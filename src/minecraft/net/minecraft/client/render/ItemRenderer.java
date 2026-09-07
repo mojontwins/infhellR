@@ -39,7 +39,7 @@ public class ItemRenderer {
 		GL11.glPushMatrix();
 		if(itemStack2.itemID < 256 && RenderBlocks.renderItemIn3d(Block.blocksList[itemStack2.itemID].getRenderType())) {
 			GL11.glBindTexture(GL11.GL_TEXTURE_2D, this.mc.renderEngine.getTexture("/terrain.png"));
-			this.renderBlocksInstance.renderBlockOnInventory(Block.blocksList[itemStack2.itemID], itemStack2.getItemDamage(), entityLiving1.getEntityBrightness(1.0F));
+			this.renderBlocksInstance.renderBlockOnInventory(Block.blocksList[itemStack2.itemID], itemStack2.getItemDamage(), 1.0F);
 		} else {
 			if(itemStack2.itemID < 256) {
 				GL11.glBindTexture(GL11.GL_TEXTURE_2D, this.mc.renderEngine.getTexture("/terrain.png"));
@@ -293,7 +293,9 @@ public class ItemRenderer {
 				GL11.glRotatef(180.0F, 0.0F, 1.0F, 0.0F);
 			}
 
+			GL11.glDisable(GL11.GL_LIGHTING);
 			this.renderItem(entityPlayerSP3, itemStack5);
+			GL11.glEnable(GL11.GL_LIGHTING);
 			GL11.glPopMatrix();
 		} else {
 			GL11.glPushMatrix();

@@ -58,15 +58,16 @@ public abstract class WorldProvider {
 
     /**
      * Builds the {@link #lightBrightnessTable} using a smooth decay curve:
-     * {@code brightness[i] = (1 - i/15) / (i/15 * 3 + 1) * 0.95 + 0.05}.
-     * This gives approximately linear visual brightness across the 16 light levels.
+     * {@code brightness[i] = (i/15) / ((1 - i/15) * 3 + 1) * 0.95 + 0.05}.
+     * Full light (i=15) maps to 1.0 and no light (i=0) to the 0.05 floor,
+     * giving approximately linear visual brightness across the 16 light levels.
      */
     protected void generateLightBrightnessTable() {
         float minBrightness = 0.05F;
         for (int level = 0; level <= 15; ++level) {
             float darkness = 1.0F - (float) level / 15.0F;
             this.lightBrightnessTable[level] =
-                    (darkness) / (darkness * 3.0F + 1.0F) * (1.0F - minBrightness) + minBrightness;
+                    (1.0F - darkness) / (darkness * 3.0F + 1.0F) * (1.0F - minBrightness) + minBrightness;
         }
     }
 

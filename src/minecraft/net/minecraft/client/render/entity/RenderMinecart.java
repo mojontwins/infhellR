@@ -68,9 +68,9 @@ public class RenderMinecart extends Render {
 			GL11.glTranslatef(0.0F, 0.3125F, 0.0F);
 			GL11.glRotatef(90.0F, 0.0F, 1.0F, 0.0F);
 			if(minecart.minecartType == 1) {
-				(new RenderBlocks()).renderBlockOnInventory(Block.chest, 0, minecart.getEntityBrightness(partialTicks));
+				(new RenderBlocks()).renderBlockOnInventory(Block.chest, 0, 1.0F);
 			} else if(minecart.minecartType == 2) {
-				(new RenderBlocks()).renderBlockOnInventory(Block.stoneOvenIdle, 0, minecart.getEntityBrightness(partialTicks));
+				(new RenderBlocks()).renderBlockOnInventory(Block.stoneOvenIdle, 0, 1.0F);
 			}
 
 			GL11.glRotatef(-90.0F, 0.0F, 1.0F, 0.0F);

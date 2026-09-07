@@ -1041,7 +1041,7 @@ public abstract class Minecraft implements Runnable {
 						// Network conflict or world error: drop the world and show the
 						// conflict warning screen, which allows the user to reconnect.
 						this.theWorld = null;
-				this.clearWorld((World)null);
+						this.clearWorld((World)null);
 						this.displayGuiScreen(new GuiConflictWarning());
 					}
 				}

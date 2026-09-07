@@ -26,7 +26,7 @@ public class RenderEntityBlockEntity extends Render {
 		Block block = Block.blocksList[blockEntity.blockID];
 		if(block == null) block = Block.stone;
 
-		this.renderBlocks.renderBlockOnInventory(block, 0, blockEntity.getEntityBrightness(partialTicks));
+		this.renderBlocks.renderBlockOnInventory(block, 0, 1.0F);
 
 		GL11.glPopMatrix();
 	}

@@ -35,7 +35,7 @@ public class RenderTNTPrimed extends Render {
 
 		scale = (1.0F - ((float)tnt.fuse - partialTicks + 1.0F) / 100.0F) * 0.8F;
 		this.loadTexture("/terrain.png");
-		this.blockRenderer.renderBlockOnInventory(Block.tnt, 0, tnt.getEntityBrightness(partialTicks));
+		this.blockRenderer.renderBlockOnInventory(Block.tnt, 0, 1.0F);
 		if(tnt.fuse / 5 % 2 == 0) {
 			GL11.glDisable(GL11.GL_TEXTURE_2D);
 			GL11.glDisable(GL11.GL_LIGHTING);

@@ -32,6 +32,7 @@ public class RenderItem extends Render {
 		this.random.setSeed(187L);
 		ItemStack itemStack = itemEntity.item;
 		GL11.glPushMatrix();
+		GL11.glDisable(GL11.GL_LIGHTING);
 		float bobOffset = MathHelper.sin(((float)itemEntity.age + partialTicks) / 10.0F + itemEntity.baseRenderingAngle) * 0.1F + 0.1F;
 		float rotationAngle = (((float)itemEntity.age + partialTicks) / 20.0F + itemEntity.baseRenderingAngle) * 57.295776F;
 		byte stackCount = 1;
@@ -71,7 +72,7 @@ public class RenderItem extends Render {
 					GL11.glTranslatef(scale, scaleY, scaleZ);
 				}
 
-				this.renderBlocks.renderBlockOnInventory(Block.blocksList[itemStack.itemID], itemStack.getItemDamage(), itemEntity.getEntityBrightness(partialTicks));
+				this.renderBlocks.renderBlockOnInventory(Block.blocksList[itemStack.itemID], itemStack.getItemDamage(), 1.0F);
 				GL11.glPopMatrix();
 			}
 		} else {
@@ -101,7 +102,7 @@ public class RenderItem extends Render {
 				float red = (float)(color >> 16 & 255) / 255.0F;
 				float green = (float)(color >> 8 & 255) / 255.0F;
 				float blue = (float)(color & 255) / 255.0F;
-				brightness = itemEntity.getEntityBrightness(partialTicks);
+				brightness = 1.0F;
 
 				GL11.glColor4f(red * brightness, green * brightness, blue * brightness, 1.0F);
 				tessellator.setColorOpaque_F(red * brightness, green * brightness, blue * brightness);
@@ -130,6 +131,7 @@ public class RenderItem extends Render {
 		}
 
 		GL11.glDisable(GL12.GL_RESCALE_NORMAL);
+		GL11.glEnable(GL11.GL_LIGHTING);
 		GL11.glPopMatrix();
 	}
 

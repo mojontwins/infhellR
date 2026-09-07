@@ -26,7 +26,7 @@ public class RenderEntityMeatBlock extends Render {
 		byte rb = (byte) (0xff - (entity1.meatDuration * 0x33 / EntityMeatBlock.MAXDURATION));
 		GL11.glColor4b(rb, (byte)0xff, rb, (byte)0xff);
 		
-		this.renderBlocks.renderBlockOnInventory(block10, 0, entity1.getEntityBrightness(f9));
+		this.renderBlocks.renderBlockOnInventory(block10, 0, 1.0F);
 		
 		GL11.glPopMatrix();
 	}
