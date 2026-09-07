@@ -1,0 +1,45 @@
+# Ignore everything by default (must come before negations)
+*
+
+# Track all .md files anywhere
+!*.md
+
+# Track all .bat and .txt files anywhere
+!*.bat
+!*.txt
+
+# Track source code in src/minecraft/ and src/minecraft_server/
+!src/
+src/*
+!src/minecraft/
+!src/minecraft_server/
+src/minecraft/*
+src/minecraft_server/*
+!src/minecraft/**
+!src/minecraft_server/**
+
+# Ignore build outputs
+bin/
+build/
+bin_test/
+bin_test_server/
+reobf/
+workspace/
+
+# Ignore compiled and binary files
+*.class
+*.jar
+*.log
+*.tmp
+
+# Ignore lib/jars (downloaded)
+lib/
+jars/
+
+# Ignore backup
+backup_pre_reorg/
+src - copia/
+
+# Ignore OS files
+Thumbs.db
+.DS_Store

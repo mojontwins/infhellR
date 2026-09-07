@@ -1,0 +1,331 @@
+# InfHell Development
+
+## Project Overview
+
+This is **InfHell 2**, a heavily modified Minecraft Beta 1.7.3 with many backported features from later versions and original additions. The codebase is large (~1,500+ Java files) with third-party mod integrations (Twilight Forest, Mo'Creatures, Better Dungeons, etc.).
+
+## Directory Structure
+
+```
+infhell-release/
+├── src/                     # Main source code
+│   ├── minecraft/           # Client code
+│   │   ├── net/minecraft/
+│   │   │   ├── client/        # Client-only classes (controller, render, gui, model, etc.)
+│   │   │   │   ├── json/      # J_* JSON parser classes (Mojang JSon)
+│   │   │   │   ├── model/     # Entity models
+│   │   │   │   ├── render/    # Rendering (entity/, tileentity/, texture/, camera/)
+│   │   │   │   ├── sound/     # SoundManager, CodecMus, MusInputStream
+│   │   │   │   └── network/   # (reserved for future client-specific networking)
+│   │   │   ├── game/          # Shared game classes
+│   │   │   │   ├── physics/
+│   │   │   │   ├── world/     # + biome/, block/, chunk/, material/, path/, terrain/
+│   │   │   │   │              # terrain.generate/ (tree, city, bo3, structure, amazonvillage, etc.)
+│   │   │   │   ├── entity/    # + animal/, misc/, monster/, player/, projectile/, status/, ai/, helpers/, item/
+│   │   │   │   ├── command/   # + worldedit/
+│   │   │   │   ├── trading/
+│   │   │   │   └── worldedit/
+│   │   │   ├── network/       # Common networking: DataWatcher, NetHandler, NetworkManager, NetworkMasterThread, NetworkReaderThread, NetworkWriterThread, ThreadMonitorConnection
+│   │   │   ├── isom/
+│   │   │   └── nbt/           # NBT classes
+│   │   ├── resources/         # bo3, schematics, sounds, unusedbo3 (bundled in jar)
+│   │   ├── seasons/           # Custom seasons textures (bundled in jar)
+│   │   ├── title/             # Custom title screen assets (bundled in jar)
+│   │   └── shaders/           # Shader assets
+│   └── minecraft_server/    # Server code (mirrors client structure)
+│       ├── net/minecraft/
+│       │   ├── server/        # MinecraftServer.java (server entry)
+│       │   ├── game/          # Same as client
+│       │   ├── isom/
+│       │   ├── nbt/
+│       │   └── network/       # (mirrors client)
+│       └── resources/         # bo3 files for server (bundled in minecraft_server.jar)
+├── src-inf2010625-1/       # Reference: infdev 20100625-1 (target package organization)
+├── workspace/              # Eclipse workspace
+│   ├── Client/             # Client Eclipse project
+│   ├── Server/             # Server Eclipse project
+│   └── NBTSchematics2BlockArray/, RegExpTests/
+├── jars/                   # Vanilla minecraft.jar, minecraft_server.jar, resources
+├── lib/                    # LWJGL, JInput, minecraft.jar libs
+│   ├── client/
+│   └── server/
+├── conf/start/Start.java   # Main class entry point
+├── build/, bin/, reobf/    # Build output directories
+└── backup_pre_reorg/       # Backup of src/ before reorganization (can be deleted)
+```
+
+## Development Workflow
+
+- Work, compile, and test in **Eclipse** (workspace is at `workspace/`)
+- Client project: `workspace/Client/`
+- Server project: `workspace/Server/`
+- Entry point: `net.minecraft.client.Minecraft` (client), `net.minecraft.server.MinecraftServer` (server)
+- Currently uses `conf/start/Start.java` with reflection to set minecraftDir
+
+## Reorganization Status
+
+The flat `net/minecraft/src/` package has been **reorganized** into proper subpackages matching the `src-inf2010625-1/` reference structure. This was done via Python scripts (`backup_pre_reorg/` contains a pre-reorg backup if needed).
+
+### What was reorganized
+- ~263 classes moved to `net.minecraft.game.*` subpackages (physics, world, entity, item)
+- ~250 classes moved to `net.minecraft.client.*` subpackages (render, gui, model, etc.)
+- ~13 NBT classes moved to `net.minecraft.nbt`
+- 618 mod classes reorganized from `com.*` to `net.minecraft.*` packages following infdev conventions:
+  - Entity classes → `net.minecraft.game.entity.animal`, `monster`, `player`, etc.
+  - AI classes → `net.minecraft.game.entity.ai`
+  - Render classes → `net.minecraft.client.render.entity`
+  - Model classes → `net.minecraft.client.model`
+  - WorldGen classes → `net.minecraft.game.world.terrain.generate.*`
+  - Structure classes → `net.minecraft.game.world.terrain.generate.structure.*`
+  - Trading classes → `net.minecraft.game.trading`
+  - Command classes → `net.minecraft.game.command.worldedit`
+  - Creative tab classes → `net.minecraft.client.gui.container.creativetab`
+- All package declarations updated
+- ~3500+ import statements updated across 1000+ files
+- 24 unused imports removed
+- 15+ classes made public for cross-package access
+- 6 classes fixed with duplicate `public public` modifiers
+- 10+ fields/methods made public
+- 2 Path import conflicts fixed
+- 1 invalid Java syntax fixed
+- FQN references replaced with proper imports
+- Fixed `WorldGenCypress`/`WorldGenWillow` (wrong file version used previously)
+
+### Package structure summary (post-reorg)
+
+**Shared (`net.minecraft.game.*`)**
+- `game.physics.*` — AABB, Vec3D, Raycast, etc.
+- `game.world.*` — World, chunks, blocks, biomes, materials, terrain
+- `game.world.terrain.generate.*` — MapGenCity, WorldGen base, feature generators
+- `game.world.terrain.generate.tree.*` — Tree/shrub/streetlight generators
+- `game.world.terrain.generate.city.*` — Building + subclasses + `CityBlockData` + `CityBitmaps`
+- `game.world.terrain.generate.bo3.*` — `WorldGenBo3Tree.java` + BO3 structures
+- `game.world.terrain.generate.amazonvillage.*` — Amazon village `EntityAmazon`
+- `game.entity.*` — Entity hierarchy + item, recipe subpkgs
+- `game.command.*` — Commands + worldedit
+- `game.trading.*` — Trading system
+- `game.worldedit.*` — WorldEdit (client/server split)
+
+**Client-only (`net.minecraft.client.*`)**
+- `client.Minecraft` — main client
+- `client.gui.*` — Screens, widgets, container
+- `client.render.*` — Renderer pipeline
+- `client.render.entity.*` — `RenderAmazon`, etc.
+- `client.model.*` — `ModelAmazon`, etc.
+- `client.sound.*` — `SoundManager`, `CodecMus`, `MusInputStream`
+- `client.json.*` — 48 `J_*` Mojang JSOn parser classes
+- `client.MoreResourcesInstaller` — Custom resource installer
+- `client.GameSettings`, `client.GameSettingsValues` (was in client, now in `game`)
+- `client.Seasons`, `client.Version` (was in client, now in `game`)
+
+**Common networking (`net.minecraft.network.*`)**
+- `network.DataWatcher` — entity state sync
+- `network.NetHandler` — abstract packet handler
+- `network.NetworkManager` — TCP packet dispatch
+- `network.NetworkMasterThread`, `NetworkReaderThread`, `NetworkWriterThread` — I/O threads
+- `network.ThreadMonitorConnection` — connection watchdog
+
+Note: `Packet*.java` classes are currently in `net.minecraft.game.*` and reference `NetHandler` via import. Future move planned: `net.minecraft.network.packet.*` (see cleanup plan below).
+
+**Server-only (`net.minecraft.server.*`)**
+- `server.MinecraftServer` — main server entry
+- `server.network.*` — `NetServerHandler`, `NetLoginHandler` (will move to `net.minecraft.server.network.*` in cleanup phase)
+
+### Client compilation: **ZERO ERRORS**
+The client (`src/minecraft/`) compiles cleanly with javac:
+```
+javac -d build_test -cp "lib/client/*.jar" -sourcepath src/minecraft src/minecraft/net/minecraft/client/Minecraft.java
+```
+-> 0 errors
+
+### Server compilation: **ZERO ERRORS**
+The server (`src/minecraft_server/`) also compiles cleanly:
+```
+javac -d build_test -cp "lib/server/*.jar" -sourcepath src/minecraft_server src/minecraft_server/net/minecraft/server/MinecraftServer.java
+```
+-> 0 errors
+
+## Scripts Used
+
+All scripts are in `C:\Users\na_th\AppData\Local\Temp\opencode\`:
+- `fix_all_imports.py` - usage-based import adder (1940 imports, 755 files)
+- `fix_mod_imports.py` - fix mod file imports for entity subpackages
+- `fix_wrong_imports.py` - fix import paths pointing to wrong packages
+- `fix_from_javac.py` / `fix_from_javac2.py` - parse javac errors and add imports
+- `add_missing_imports.py` - earlier version (3863 imports, 1050 files)
+- `fix_j_imports.py` - add J_ class inter-imports after move to `client.json`
+- `fix_enum_import.py` - add EnumJsonNodeType import to J_ files
+
+Backup at `backup_pre_reorg/src/` if reorganization needs to be reverted.
+
+## Project Goals
+
+### 1. ~~Reorganize Code into Packages~~ ✅ DONE
+
+All classes (core Minecraft + third-party mods) reorganized into `net.minecraft.*` packages following infdev conventions. Both client and server compile with ZERO errors.
+
+### 2. ~~Standalone minecraft.jar Export~~ ✅ DONE
+
+`build.bat` compiles client + server and exports both jars:
+
+**Output:**
+- `minecraft.jar` — client (`Main-Class: net.minecraft.client.Minecraft`)
+- `minecraft_server.jar` — dedicated server (`Main-Class: net.minecraft.server.MinecraftServer`)
+
+**Contents:**
+- Compiled `.class` files from `src/minecraft/` and `src/minecraft_server/`
+- Audio libs: `paulscode/sound/*`, `com/jcraft/jorbis/*`, `com/jcraft/jogg/*` (extracted from vanilla `lib/client/minecraft.jar`)
+- Vanilla resources: textures, lang files (extracted from vanilla `lib/client/minecraft.jar`)
+- Custom resources: `bo3/`, `schematics/`, `sounds/`, `unusedbo3/` (from `src/minecraft/resources/`)
+- Custom `title/` and `seasons/` assets (from `src/minecraft/title/`, `src/minecraft/seasons/`)
+- Server `bo3/` resources (from `src/minecraft_server/resources/`)
+- No natives/LWJGL (provided by Minecraft launcher)
+- No sound/music files (streamed from `jars/resources/` at runtime)
+
+**Usage:** Run `build.bat` from the project root.
+
+### 3. ~~Bug Fixes (Priority: MEDIUM)~~ — ongoing
+- Tree generation status tracked in `trees.md`
+- Command system details in `commands.md`
+- Check `changelog.txt` for recent fixes and known issues
+- Fixed pre-existing `Empty2` constructor mismatch in `SaveConverterMcRegion` / `ChunkFolderPattern` / `ChunkFilePattern` (server) by switching to no-arg `new ChunkFolderPattern()` / `new ChunkFilePattern()`.
+
+### 4. Cleanup & Refactoring Plan (Priority: LOW, ongoing)
+
+**Goal:** After reorganization, clean up the obfuscated-style naming (e.g. `i1`, `j_`, `func_27290_a`, `field_27292_a`) introduced by the upstream Mojang obfuscation. This is a multi-step, low-risk pass to make the codebase readable and maintainable.
+
+**Scope per step** (incremental, one package at a time, tested after each):
+1. **Rename local variables & parameters** — `i1`, `i2`, `j1`, `string1`, `object1` → descriptive names.
+2. **Rename private fields** — `field_27292_a` → semantic name (e.g. `value`, `next`, `parent`).
+3. **Rename methods** — `func_27290_a` → semantic name (e.g. `append`, `build`, `visit`).
+4. **Tighten access modifiers** — make truly private members `private` (some are over-promoted to `public` from the reorg).
+5. **Reorganize remaining misplaced classes** — see list below.
+
+**Already-completed cleanup moves** (folded into the reorg):
+- `ColorizerFoliage`/`Grass`/`Water` → `game.world.block`
+- `CodecMus` → `client.sound`
+- `MusInputStream` → `client.sound`
+- `ModelAmazon` → `client.model`
+- `RenderAmazon` → `client.render.entity`
+- `MoreResourcesInstaller` → `client`
+- `ThreadSleepForever`, `Seasons`, `Version` → `game`
+- `GameSettingsValues` → `game`
+- `ChatAllowedCharacters` → `game`
+- 48 `J_*` JSON classes → `client.json`
+- `EnumJsonNodeType` left in `game` (re-exported to J_ files via import)
+- `DataWatcher`, `NetHandler`, `NetworkManager`, `NetworkMasterThread`, `NetworkReaderThread`, `NetworkWriterThread`, `ThreadMonitorConnection` → `network` (both client & server)
+
+**Naming-rename backlog** (no package moves, just identifiers):
+- J_ classes: `func_27xxx_a/b` → semantic (e.g. `J_JsonListenerToJdomAdapter.func_27290_a` → `startObject`)
+- `Packet` fields (`field_27292_a`) → semantic
+- MapGenCity: rename `processEdgeChunk` parameter names; `drawRoofStairs` locals
+- Block/item field names (`blockID` → `blockId`, `blockIndexInTexture` already correct)
+
+**Conventions for renames:**
+- One package per step
+- After each package: run `build.bat` to confirm zero errors
+- Keep client/server identical (where they should be)
+- Preserve public API names that other mod code or runtime assets rely on
+- For pre-obfuscation names, consult `src-inf2010625-1/` infdev reference for historical names
+- When in doubt, ask before renaming — keep change atomic and reversible via `backup_pre_reorg/`
+
+## Key Classes
+
+| Class | Location | Purpose |
+|-------|----------|---------|
+| Minecraft | `net/minecraft/client/Minecraft.java` | Main client entry |
+| MinecraftServer | `net/minecraft/server/MinecraftServer.java` | Server entry |
+| World | `net/minecraft/game/world/World.java` | World management |
+| EntityPlayer | `net/minecraft/game/entity/player/EntityPlayer.java` | Player entity |
+| Block | `net/minecraft/game/world/block/Block.java` | Block registry |
+| Item | `net/minecraft/game/item/Item.java` | Item registry |
+| NetHandler | `net/minecraft/network/NetHandler.java` | Abstract packet handler |
+| NetClientHandler | `net/minecraft/client/NetClientHandler.java` | Client packet dispatch |
+| NetServerHandler | `net/minecraft/server/NetServerHandler.java` | Server packet dispatch |
+| NetworkManager | `net/minecraft/network/NetworkManager.java` | TCP I/O |
+| DataWatcher | `net/minecraft/network/DataWatcher.java` | Entity state sync |
+| RenderEngine | `net/minecraft/client/render/RenderEngine.java` | Texture management |
+| EntityRenderer | `net/minecraft/client/render/EntityRenderer.java` | Entity rendering |
+| RenderGlobal | `net/minecraft/client/render/RenderGlobal.java` | World rendering |
+| RenderBlocks | `net/minecraft/client/render/RenderBlocks.java` | Block rendering |
+| MapGenCity | `net/minecraft/game/world/terrain/generate/MapGenCity.java` | City generation |
+| CityBlockData | `net/minecraft/game/world/terrain/generate/city/CityBlockData.java` | Per-block data for MapGenCity |
+| CityBitmaps | `net/minecraft/game/world/terrain/generate/city/CityBitmaps.java` | Bitmap constants for MapGenCity |
+
+## Important Configuration Files
+
+- `workspace/Client/.classpath` — Client build path
+- `workspace/Client/.project` — Eclipse project config
+- `conf/start/Start.java` — Custom launcher (uses reflection for minecraftDir)
+- `jars/minecraft.jar` — Vanilla jar (contains resources, sound, META-INF)
+- `lib/client/minecraft.jar` — LWJGL-bound vanilla jar for compilation
+- `build.bat` — Build script (compile + jar packaging + resource bundling)
+
+## Working with This Project
+
+- **Compile in Eclipse**: Use the Client or Server project in workspace
+- **Test in launcher**: Export jar, place in versions folder, use with appropriate launcher profile
+- **Check package structure**: Compare with `src-inf2010625-1/` for reference organization
+- **Resource files**:
+  - `src/minecraft/resources/` — bo3, schematics, sounds, unusedbo3 (bundled in client jar)
+  - `src/minecraft_server/resources/` — bo3 (bundled in server jar)
+  - `src/minecraft/title/` — custom title screen (bundled in client jar)
+  - `src/minecraft/seasons/` — custom season textures (bundled in client jar)
+  - `jars/resources/` — runtime sound/music streaming source
+- **Client-Server parity**: classes that exist both in Client and Server must be identical, save for `WorldEdit.java` (client & server have different implementations) and `Minecraft.java` vs `MinecraftServer.java` (which are themselves the different entry points).
+- **Parity verification**: run `C:\Users\na_th\AppData\Local\Temp\opencode\check_parity.py` after structural changes to confirm only intentional diffs remain.
+
+## Work State
+### Completed
+- **Bug fix — 3D blocks dark in inventory** (`RenderItem.java` + `RenderBlockUtil.java`):
+  - `drawItemIntoGui`: added `GL11.glDisable(GL_LIGHTING)` at start of 3D block path (line ~138) and `GL11.glEnable(GL_LIGHTING)` before `glPopMatrix()` (line ~161).
+  - `renderCubeOnInventory`: per-face shade factors applied (`brightness * shade`), correct order: bottom=1.0F (side 0), top=0.5F (side 1), EW=0.8F, NS=0.6F.
+- **`Minecraft.java`**: renamed `converMapToMCRegion` → `convertMapToMCRegion`; `changeWorld1` → `clearWorld`; `changeWorld2` → `transitionToWorld`; updated all 8 call sites in `Minecraft.java`, `NetClientHandler.java`, `GuiConnecting.java`, `GuiGameOver.java`, `GuiIngameMenu.java`.
+- **`GameSettings.java`**: full rewrite — class/method javadoc, renamed `mc` → `minecraft`, `MODE` → `AVAILABLE_DISPLAY_MODES`, added missing `import net.minecraft.game.GameSettingsValues`.
+- **`EnumOptions.java`**: full rewrite — class/constant javadoc, renamed fields `enumFloat`→`isFloat`, `enumBoolean`→`isBoolean`, `enumString`→`localizedKey`; renamed methods to `isFloat()`, `isBoolean()`, `getLocalizedKey()`, `getOrdinal()`; added `getEnumOptions(int)` refactored to iterate values instead of indexing by ordinal.
+- **`KeyBinding.java`**: class/method javadoc, field javadoc added.
+- **`Session.java`**: class javadoc, field javadoc added.
+- **`GameSettingsKeys.java`**: class javadoc, field javadoc added, `MODES` removed (unused), fixed duplicate `;;` in two static fields.
+- **`Timer.java`**: full rewrite — class/method javadoc, field javadoc added, renamed no fields (already descriptive).
+- **`OpenGlCapsChecker.java`**: class/method javadoc, renamed `tryCheckOcclusionCapable` → `supportsOcclusionCulling`.
+- **`LoadingScreenRenderer.java`**: full rewrite — class/method javadoc, renamed `mc` → `minecraft`, all variable names made descriptive.
+- **`MouseHelper.java`**: full rewrite — class/method javadoc, renamed `windowComponent` (already descriptive), field javadoc added.
+- **`IntHashMap.java`**: full rewrite — class/method javadoc, generic type `<V>` added, renamed `slots`→`slots`, `growFactor` already descriptive; removed raw-type warnings.
+- **`IntHashMapEntry.java`**: full rewrite — class javadoc, generic type `<V>`, `@Override` annotations added.
+- **`ScreenShotHelper.java`**: full rewrite — all variable names made descriptive (`file0`→`minecraftDir`, `i1`→`width`, `i2`→`height`, `file3`→`screenshotsDir`, `string4`→`timestamp`, etc.), class/method javadoc added.
+- **`Gui.java`**: renamed `func_27100_a` → `drawVerticalAchievementConnector`, `func_27099_b` → `drawHorizontalAchievementConnector`, with full javadoc on both.
+- **`GuiAchievements.java`**: updated call sites to use renamed methods from `Gui.java`.
+- **`GuiScreen.java`**: full rewrite — class/method javadoc added, all variable names made descriptive (kept `mc` field name to avoid cascading renames in 50+ subclasses).
+- **`GuiSlot.java`**: full rewrite — renamed `posZ`→`rowHeight`; `field_25123_p`→`renderSelectionBox`; `field_27262_q`→`renderHeader`; `field_27261_r`→`headerHeight`; `func_27258_a`→`setRenderSelectionBox`; `func_27259_a`→`setRenderHeader`; `func_27255_a`→`drawFooter`; `func_27257_b`→`drawFooter`; `func_27256_c`→`getSlotAtMouse`; added `@Override` on overridden methods; added class-level javadoc.
+- **`GuiSlotStats.java`**: renamed `func_27258_a`→`setRenderSelectionBox`; `func_27259_a`→`setRenderHeader`; `func_27255_a`→`drawHeader` (signature adds Tessellator param); `func_27257_b`→`drawFooter`; `func_27256_c`→`getSlotAtMouse`; `func_27266_c`→`toggleSection`; `func_27264_b`→`getCraftingStatAt`; `func_27263_a`→`getSectionTranslationKey`; `func_27265_a`→`drawStatValue`; `func_27267_a`→`drawStatTooltip`; `field_27270_f`→`sectionHighlightState`; added `@Override` on `drawHeader`/`drawFooter`.
+- **`GuiSlotStatsGeneral.java`**: renamed `func_27258_a`→`setRenderSelectionBox`; `field_27276_a`→`guiStats`; updated call sites.
+- **`GuiSlotStatsBlock.java`**: renamed `func_27264_b`→`getCraftingStatAt`; `func_27265_a`→`drawStatValue`; `func_27263_a`→`getSectionTranslationKey`.
+- **`GuiSlotStatsItem.java`**: renamed `func_27264_b`→`getCraftingStatAt`; `func_27265_a`→`drawStatValue`; `func_27263_a`→`getSectionTranslationKey`.
+- **`SorterStatsBlock.java`**: renamed `func_27297_a`→`sortByStat`; `field_27270_f`→`sectionHighlightState`.
+- **`SorterStatsItem.java`**: renamed `func_27371_a`→`sortByStat`; `field_27270_f`→`sectionHighlightState`.
+
+- **`BlockRenderHandler`** interface — added `renderItemIn3d()` default method returning `true`; 16 flat handlers (`RenderBlockFluid`, `RenderBlockFire`, `RenderBlockTorch`, `RenderBlockRedstoneWire`, `RenderBlockCrops`, `RenderBlockDoor`, `RenderBlockLadder`, `RenderBlockRail`, `RenderBlockLever`, `RenderBlockBed`, `RenderBlockRepeater`, `RenderBlockPane`, `RenderBlockVine`, `RenderBlockLilyPad`, `RenderBlockPlant`, `RenderBlockSnowloggedPlant`) override to `return false`.
+- **`RenderBlocks.renderItemIn3d(int)`** — replaced the static int-comparison OR-chain with a delegation to `BlockRenderType.get(renderType).handler().renderItemIn3d()`. No call sites need changing; adding a new render type now only requires `BlockRenderHandler.renderItemIn3d()` on its handler.
+
+### Active
+- **`net.minecraft.client.gui` package cleanup**: partially done — `GuiScreen`, `GuiSlot`, `GuiSlotStats*`, `SorterStats*`, `ScaledResolution` done; remaining GUI files: `GuiButton`, `GuiTextField`, `GuiSlider`, `GuiIngame`, `GuiIngameMenu`, `GuiMainMenu`, `GuiCreateWorld`, `GuiWorldSelection`, `GuiControls`, `GuiOptions`, `GuiVideoSettings`, `GuiChat`, `GuiInventory`, `GuiContainer*`, `GuiDispenser`, `GuiCommandBlock`, `GuiSleeping`, `GuiErrorScreen`, `GuiDisconnected`, `GuiConnecting`, `GuiConflictWarning`, `GuiGameOver`, `GuiWinScreen`, `GuiCredits`, `GuiAchievements`, `GuiStats`, `GuiBeacon`, `GuiHopper`, `GuiBrewingStand`, `GuiChest`, `GuiCrafting`, `GuiEnchantment`, `GuiFurnace`, `GuiRepair`, `GuiMerchant`, `GuiBook`, `GuiScreenHorseInventory`, `GuiYesNo`, `GuiTextField`, `GuiParticle`, `FontRenderer`.
+
+### Blocked
+- `(none)`
+
+## Next Move
+1. Continue `net.minecraft.client.gui` package cleanup: process `GuiButton.java`, `GuiTextField.java`, `GuiSlider.java`, `GuiIngame.java`, `GuiIngameMenu.java`, `GuiMainMenu.java`, and all remaining GUI files.
+2. Then move to `net.minecraft.client.render` package.
+3. Then `net.minecraft.client.model`, `net.minecraft.client.sound`, `net.minecraft.client.particle`, `net.minecraft.client.effect`, `net.minecraft.client.controller`, `net.minecraft.client.player`.
+
+## Code Conventions
+
+- All classes (core and third-party mods) are in `net.minecraft.*` packages
+- Server-side code mirrors client structure in `minecraft_server/`
+- Some classes/methods made public for cross-package access (original Minecraft had package-private access)
+- Common/shared code goes in `net.minecraft.game.*` (or `net.minecraft.network.*` for shared network)
+- Client-only code (rendering, GUI, models) goes in `net.minecraft.client.*`
+- Server-only code goes in `net.minecraft.server.*`
+- Subpackages: `entity.animal`, `entity.monster`, `entity.player`, `entity.projectile`, `entity.ai`, `world.biome`, `world.terrain.generate.tree`, `world.terrain.generate.structure`, `gui.container.creativetab`
+- **`mc` field convention**: `GuiScreen` subclasses use `this.mc` to reference the parent `Minecraft` instance (NOT renamed to `minecraft` to avoid cascading changes across 50+ subclasses). Classes that control their own lifecycle (`GameSettings`, `LoadingScreenRenderer`) renamed to `minecraft`.
+

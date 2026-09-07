@@ -1,0 +1,136 @@
+InfHell Features
+================
+
+InfHell2 v0.9_4 - Pre-release update [bug fixes]
+
+- Setting dead man chest in SMP now works (server.properties).
+- Setting crafting table permission in SMP now works (server.properties).
+- Fixed icons in items.
+- Minor bugs & fixes.
+
+InfHell2 v0.9_3 - Pre-release update [bug fixes]
+
+- Optifine tesellator & world renderer!
+- Working Mipmaps!
+- Fixed eating in SMP and also a very nasty bug with Packet52.
+- Lots of fixes in the client, gameplay adjustments, etc.
+- Armored city zombies now are renderer properly.
+- Even better lighting.
+- A whole lotta more shit I can't remember!
+
+InfHell2 v0.9 - Pre-release update
+
+The game is now feature complete. This is a pre-release version before 1.0 so I can do mainly bug-fixes and gameplay adjustements so **PLEASE GIVE ALL THE FEEDBACK YOU CAN**
+
+- Bigger biomes & better transitions.
+- Better lighting.
+- Lots, heaps of bugfixes.
+- r1.2.5 netcode so better SMP.
+- Give animal names with a tag so they never despawn.
+- Dead man chest.
+- More shit I can't remember!
+
+InfHell2 v0.8 - The World Overhaul Update
+
+- Tall mesas in smooth prairies!
+- Menacing glaciers and icebergs!
+- Deadly deserts with fossils!
+- Abandoned huts in tundras and taigas!
+- Volcanoes and stone arches!
+- The Ice Palace!
+- Smoother biome transitions!
+- Better trees!
+- Lots of fixes!
+
+InfHell2 v0.7 - The Ocean Update
+
+- Pirates and pirate ships!
+- Haunted cows!
+- Copper ore!
+- Underwater ruins!
+- A means to explore underwater!
+- Underwater zombies!
+- Optional Minimap!
+- Lightmaps!
+- More weapons!
+- Harsher life enduring blood moons!
+- Make a Crying Obsidian wand to respawn!
+- Dynamic snow/ice freeze & melt optional, default off.
+- Boats obliterate lilypads!
+- Dress like a pirate and infiltrate!
+- The only safe way to kill cows is with a sword!
+
+InfHell2 v0.6 - The Monsters & Tribes Update
+
+- Can you find Hollow Hills?
+- Dig in the direction slime statues look!
+- The Lair of the Slime Boss!
+- Get the stairs block upon breaking!
+- Get your full boat upon breaking!
+- Better, faster, harder boats!
+- Classic mod pistons!
+- A tribe of brutes you can hire with gems!
+- Sheep now regrow their wool!
+
+InfHell2 v0.5 - The Cities & Highways Update
+
+- Cities!
+- The Infinite Highway!
+- (slightly prettier) Mineshafts!
+- Coloured fog & sky depending on seasons!
+- Cats!
+- Polished all world generators for the Sky world type!
+- Model Renderer from early release for better betterness!
+- Lots of bugfixes!
+- Try the seed Witch!
+
+InfHell2 v0.4 - The Weather & Seasons Update
+
+- Armored zombies and skeletons in dungeons!
+- Slightly better dungeons!
+- Seasons! Get cold in winter!
+- Biome & seasons based Weather!
+- Nasty mobs lurk in the mangrove swamps! 
+- Lots of fixes!
+- Try the seeds Krakatoa & Perfido!
+
+InfHell v0.3 - The Caves & Entities Update
+
+- Enhanced biome surfaces!
+- Lots of entities which you won't see (yet)!
+- Find a new way to get food in the desert!
+- Upside down slabs & stairs!
+- Bigger caves!
+- Chip the bark of a trunk with your axe!
+- Make dirt paths using a shovel!
+- Silk touch gold tools 'cause I love NSSS!
+- Cook more stuff!
+- Many bugs fixed!
+
+InfHell v0.2 - The Biomes Update
+
+- Biomes!
+- Secret biomes!
+- Dark biomes!
+- Biomes in sky worlds!
+- Mooshrooms!
+- Optimizations!
+- Tons of stuff you won't be able to use (yet)!
+- Tons of inner workings you won't experience (yet)
+- Did I mention Monoliths?
+
+InfHell v0.1
+
+- Sky world type!
+- Alpha in beta! Buggy noise generators!
+- Therefore... Monoliths!
+- Crafting manager!
+- Cheats & creative mode with flying!
+- CTRL to fly faster!
+- All infhell new blocks & recipes!
+- Silk touch gold tools!
+- Crying obsidian to set your spawn point!
+- No sleeping!
+- Tons of stuff you won't be able to use (yet)!
+- Tons of inner workings you won't experience (yet)!
+- Working server! That's why I ditched the original Infhell and started over!
