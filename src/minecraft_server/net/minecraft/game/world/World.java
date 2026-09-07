@@ -18,6 +18,7 @@ import net.minecraft.game.MapDataBase;
 import net.minecraft.game.MapStorage;
 import net.minecraft.game.MathHelper;
 import net.minecraft.game.entity.Entity;
+import net.minecraft.game.entity.EntityLiving;
 import net.minecraft.game.entity.player.EntityPlayer;
 import net.minecraft.game.item.ItemStack;
 import net.minecraft.game.physics.AxisAlignedBB;
@@ -51,6 +52,9 @@ import net.minecraft.game.world.block.BlockState;
 
 public class World implements IBlockAccess {
 	private static final int blocksToTickPerFrame = 80;	
+
+	/** Chebyshev chunk radius around each player within which entities receive full updates (AI, movement, collisions). */
+	public int entitySimulationRadiusChunks = 8;
 	
 	public boolean scheduledUpdatesAreImmediate;
 	
@@ -1564,6 +1568,22 @@ public class World implements IBlockAccess {
 
 		this.unloadedEntityList.clear();
 
+		// Build the set of chunks within the simulation radius of every player.
+		// Only entities inside these chunks receive full updates (AI, movement, collisions);
+		// entities outside only have their ticksExisted advanced plus an isolated despawn pass.
+		HashSet<Integer> activeChunks = new HashSet<Integer>();
+		int simRadius = this.entitySimulationRadiusChunks;
+		for(int p = 0; p < this.playerEntities.size(); ++p) {
+			EntityPlayer player = (EntityPlayer)this.playerEntities.get(p);
+			int playerChunkX = MathHelper.floor_double(player.posX / 16.0D);
+			int playerChunkZ = MathHelper.floor_double(player.posZ / 16.0D);
+			for(int dx = -simRadius; dx <= simRadius; ++dx) {
+				for(int dz = -simRadius; dz <= simRadius; ++dz) {
+					activeChunks.add(ChunkCoordIntPair.chunkXZ2Int(playerChunkX + dx, playerChunkZ + dz));
+				}
+			}
+		}
+
 		for(i1 = 0; i1 < this.loadedEntityList.size(); ++i1) {
 			entity2 = (Entity)this.loadedEntityList.get(i1);
 			if(entity2.ridingEntity != null) {
@@ -1576,7 +1596,15 @@ public class World implements IBlockAccess {
 			}
 
 			if(!entity2.isDead) {
-				this.updateEntity(entity2);
+				boolean active = entity2 instanceof EntityPlayer
+					|| activeChunks.contains(ChunkCoordIntPair.chunkXZ2Int(entity2.chunkCoordX, entity2.chunkCoordZ));
+
+				if(active) {
+					this.updateEntity(entity2);
+				} else {
+					entity2.ticksExisted++;
+					this.tickDespawnOnly(entity2);
+				}
 			}
 
 			if(entity2.isDead) {
@@ -1632,6 +1660,14 @@ public class World implements IBlockAccess {
 			this.entityRemoval.clear();
 		}
 
+	}
+
+	private void tickDespawnOnly(Entity entity) {
+		if(entity instanceof EntityLiving && !entity.isDead && !this.isRemote) {
+			EntityLiving living = (EntityLiving)entity;
+			++living.entityAge;
+			living.performDespawn();
+		}
 	}
 
 	public void addTileEntity(Collection<TileEntity> collection1) {

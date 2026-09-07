@@ -975,6 +975,14 @@ public abstract class EntityLiving extends Entity {
 
 	}
 
+	/**
+	 * Public entry point for the isolated despawn pass used by entities that are
+	 * outside the simulation radius. Delegates to the protected {@link #despawnEntity()}.
+	 */
+	public void performDespawn() {
+		this.despawnEntity();
+	}
+
 	protected void updateEntityActionState() {
 		++this.entityAge;
 		EntityPlayer entityPlayer1 = this.worldObj.getClosestPlayerToEntity(this, -1.0D);
