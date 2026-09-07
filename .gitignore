@@ -4,9 +4,9 @@
 # Track all .md files anywhere
 !*.md
 
-# Track all .bat and .txt files anywhere
-!*.bat
-!*.txt
+# Track .gitignore itself and build.bat
+!.gitignore
+!build.bat
 
 # Track source code in src/minecraft/ and src/minecraft_server/
 !src/
