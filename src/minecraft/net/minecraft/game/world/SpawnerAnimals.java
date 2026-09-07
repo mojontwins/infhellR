@@ -100,6 +100,9 @@ public final class SpawnerAnimals {
 				}
 
 				ChunkPosition spawnPos = findValidSpawnPosition(world, chunkCoords, creatureType);
+				if (spawnPos == null) {
+					continue;
+				}
 
 				int spawnedCount = spawnHorde(
 					world, creatureType, mobToSpawn,
@@ -210,7 +213,7 @@ public final class SpawnerAnimals {
 		if (!type.getPeacefulCreature() && !despawnCreative) {
 			return false;
 		}
-		return world.countEntities(type.getCreatureClass()) <= maxEntities;
+		return world.getCachedEntityCount(type.getCreatureClass()) <= maxEntities;
 	}
 
 	/**
@@ -259,24 +262,24 @@ public final class SpawnerAnimals {
 	}
 
 	/**
-	 * Finds a valid spawn position within a chunk for the given creature type.
+	 * Samples a random block tuple within a chunk for the given creature type and
+	 * checks whether it is a valid spawn position.
 	 *
-	 * <p>Generates a random block tuple and checks whether the block is a solid cube
-	 * and whether its material matches the creature type's required material
-	 * (e.g., air for land mobs, water for water mobs). If the position is invalid,
-	 * it generates a new random position and re-tries, repeating until a valid one
-	 * is found (mirroring the original unbounded re-roll).</p>
+	 * <p>Generates a single random block tuple and checks whether the block is a solid
+	 * cube and whether its material matches the creature type's required material
+	 * (e.g., air for land mobs, water for water mobs). Returns {@code null} when the
+	 * position is invalid so the caller advances to the next eligible chunk; this
+	 * mirrors the original spawner, which never re-rolls a single chunk.</p>
 	 */
 	private static ChunkPosition findValidSpawnPosition(World world, ChunkCoordIntPair chunkCoords, EnumCreatureType creatureType) {
-		int x;
-		int y;
-		int z;
-		do {
-			x = chunkCoords.chunkXPos * 16 + world.rand.nextInt(16);
-			y = world.rand.nextInt(MAX_SPAWN_HEIGHT);
-			z = chunkCoords.chunkZPos * 16 + world.rand.nextInt(16);
-		} while (world.isBlockNormalCube(x, y, z)
-				|| world.getBlockMaterial(x, y, z) != creatureType.getCreatureMaterial());
+		int x = chunkCoords.chunkXPos * 16 + world.rand.nextInt(16);
+		int y = world.rand.nextInt(MAX_SPAWN_HEIGHT);
+		int z = chunkCoords.chunkZPos * 16 + world.rand.nextInt(16);
+
+		if (world.isBlockNormalCube(x, y, z)
+				|| world.getBlockMaterial(x, y, z) != creatureType.getCreatureMaterial()) {
+			return null;
+		}
 
 		return new ChunkPosition(x, y, z);
 	}
