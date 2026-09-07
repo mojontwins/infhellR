@@ -51,7 +51,7 @@ public class WorldClient extends World {
 
 		for(i = 0; i < 10 && !this.entitySpawnQueue.isEmpty(); ++i) {
 			Entity entity = (Entity)this.entitySpawnQueue.iterator().next();
-			if(!this.loadedEntityList.contains(entity)) {
+			if(!this.getLoadedEntityList().contains(entity)) {
 				this.spawnEntityInWorld(entity);
 			}
 		}

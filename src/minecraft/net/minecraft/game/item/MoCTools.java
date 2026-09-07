@@ -92,8 +92,8 @@ public class MoCTools {
 	}
 
 	public static void checkForTwistedEntities(World world) {
-		for (int l = 0; l < world.loadedEntityList.size(); ++l) {
-			Entity entity = world.loadedEntityList.get(l);
+		for (int l = 0; l < world.getLoadedEntityList().size(); ++l) {
+			Entity entity = world.getLoadedEntityList().get(l);
 			if (entity instanceof EntityLiving) {
 				EntityLiving twisted = (EntityLiving) entity;
 				if (twisted.deathTime > 0 && twisted.ridingEntity == null && twisted.health > 0) {
@@ -490,8 +490,8 @@ public class MoCTools {
 	public int countEntities(Class<?> class1, World worldObj) {
 		int i = 0;
 
-		for (int j = 0; j < worldObj.loadedEntityList.size(); ++j) {
-			Entity entity = worldObj.loadedEntityList.get(j);
+		for (int j = 0; j < worldObj.getLoadedEntityList().size(); ++j) {
+			Entity entity = worldObj.getLoadedEntityList().get(j);
 			if (class1.isAssignableFrom(entity.getClass())) {
 				++i;
 			}
@@ -507,8 +507,8 @@ public class MoCTools {
 	public static int despawnVanillaAnimals(World worldObj, List<Class<?>>[] classList) {
 		int count = 0;
 
-		for (int j = 0; j < worldObj.loadedEntityList.size(); ++j) {
-			Entity entity = worldObj.loadedEntityList.get(j);
+		for (int j = 0; j < worldObj.getLoadedEntityList().size(); ++j) {
+			Entity entity = worldObj.getLoadedEntityList().get(j);
 			if (entity instanceof EntityLiving && (entity instanceof EntityCow || entity instanceof EntitySheep
 					|| entity instanceof EntityPig || entity instanceof EntityChicken || entity instanceof EntitySquid
 					|| entity instanceof EntityWolf)) {

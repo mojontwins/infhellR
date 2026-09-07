@@ -58,8 +58,7 @@ public class World implements IBlockAccess {
 	
 	public boolean scheduledUpdatesAreImmediate;
 	
-	public List<Entity> loadedEntityList;
-	private List<Entity> unloadedEntityList;
+	private final EntityManager entityManager;
 	private TreeSet<NextTickListEntry> scheduledTickTreeSet;
 	private Set<NextTickListEntry> scheduledTickSet;
 	public List<TileEntity> loadedTileEntityList;
@@ -85,13 +84,12 @@ public class World implements IBlockAccess {
 	public boolean findingSpawnPoint;
 	private boolean allPlayersSleeping;
 	public MapStorage mapStorage;
-	private ArrayList<AxisAlignedBB> collidingBoundingBoxes;
+	private final EntityQueryService entityQueryService;
 	private boolean scanningTileEntities;
 	private boolean spawnHostileMobs;
 	private boolean spawnPeacefulMobs;
 	private Set<ChunkCoordIntPair> positionsToUpdate;
 	private int soundCounter;
-	private List<Entity> entitiesWithinAABBExcludingEntity;
 	public boolean isRemote;
 	public boolean colouredAthmospherics;
 
@@ -128,8 +126,7 @@ public class World implements IBlockAccess {
 
 	public World(ISaveHandler iSaveHandler1, String string2, WorldProvider worldProvider3, WorldSettings par4WorldSettings) {
 		this.scheduledUpdatesAreImmediate = false;
-		this.loadedEntityList = new ArrayList<Entity>();
-		this.unloadedEntityList = new ArrayList<Entity>();
+		this.entityManager = new EntityManager(this);
 		this.scheduledTickTreeSet = new TreeSet<NextTickListEntry>();
 		this.scheduledTickSet = new HashSet<NextTickListEntry>();
 		this.loadedTileEntityList = new ArrayList<TileEntity>();
@@ -148,12 +145,11 @@ public class World implements IBlockAccess {
 		this.rand = new Random();
 		this.isNewWorld = false;
 		this.worldAccesses = new ArrayList<IWorldAccess>();
-		this.collidingBoundingBoxes = new ArrayList<AxisAlignedBB>();
+		this.entityQueryService = new EntityQueryService(this);
 		this.spawnHostileMobs = true;
 		this.spawnPeacefulMobs = true;
 		this.positionsToUpdate = new HashSet<ChunkCoordIntPair>();
 		this.soundCounter = this.rand.nextInt(12000);
-		this.entitiesWithinAABBExcludingEntity = new ArrayList<Entity>();
 		this.isRemote = false;
 		this.saveHandler = iSaveHandler1;
 		this.worldInfo = new WorldInfo(par4WorldSettings, string2);
@@ -169,8 +165,7 @@ public class World implements IBlockAccess {
 
 	public World(World world1, WorldProvider worldProvider2) {
 		this.scheduledUpdatesAreImmediate = false;
-		this.loadedEntityList = new ArrayList<Entity>();
-		this.unloadedEntityList = new ArrayList<Entity>();
+		this.entityManager = new EntityManager(this);
 		this.scheduledTickTreeSet = new TreeSet<NextTickListEntry>();
 		this.scheduledTickSet = new HashSet<NextTickListEntry>();
 		this.loadedTileEntityList = new ArrayList<TileEntity>();
@@ -189,12 +184,11 @@ public class World implements IBlockAccess {
 		this.rand = new Random();
 		this.isNewWorld = false;
 		this.worldAccesses = new ArrayList<IWorldAccess>();
-		this.collidingBoundingBoxes = new ArrayList<AxisAlignedBB>();
+		this.entityQueryService = new EntityQueryService(this);
 		this.spawnHostileMobs = true;
 		this.spawnPeacefulMobs = true;
 		this.positionsToUpdate = new HashSet<ChunkCoordIntPair>();
 		this.soundCounter = this.rand.nextInt(12000);
-		this.entitiesWithinAABBExcludingEntity = new ArrayList<Entity>();
 		this.isRemote = false;
 		this.lockTimestamp = world1.lockTimestamp;
 		this.saveHandler = world1.saveHandler;
@@ -222,8 +216,7 @@ public class World implements IBlockAccess {
 
 	public World(ISaveHandler iSaveHandler1, String string2, WorldSettings par3WorldSettings, WorldProvider worldProvider5) {
 		this.scheduledUpdatesAreImmediate = false;
-		this.loadedEntityList = new ArrayList<Entity>();
-		this.unloadedEntityList = new ArrayList<Entity>();
+		this.entityManager = new EntityManager(this);
 		this.scheduledTickTreeSet = new TreeSet<NextTickListEntry>();
 		this.scheduledTickSet = new HashSet<NextTickListEntry>();
 		this.loadedTileEntityList = new ArrayList<TileEntity>();
@@ -242,12 +235,11 @@ public class World implements IBlockAccess {
 		this.rand = new Random();
 		this.isNewWorld = false;
 		this.worldAccesses = new ArrayList<IWorldAccess>();
-		this.collidingBoundingBoxes = new ArrayList<AxisAlignedBB>();
+		this.entityQueryService = new EntityQueryService(this);
 		this.spawnHostileMobs = true;
 		this.spawnPeacefulMobs = true;
 		this.positionsToUpdate = new HashSet<ChunkCoordIntPair>();
 		this.soundCounter = this.rand.nextInt(12000);
-		this.entitiesWithinAABBExcludingEntity = new ArrayList<Entity>();
 		this.isRemote = false;
 		this.saveHandler = iSaveHandler1;
 		this.mapStorage = new MapStorage(iSaveHandler1);
@@ -1145,36 +1137,11 @@ public class World implements IBlockAccess {
 	}
 
 	public boolean spawnEntityInWorld(Entity entity1) {
-		int i2 = MathHelper.floor_double(entity1.posX / 16.0D);
-		int i3 = MathHelper.floor_double(entity1.posZ / 16.0D);
-		boolean z4 = false;
-		if(entity1 instanceof EntityPlayer) {
-			z4 = true;
-		}
-
-		if(!z4 && !this.chunkExists(i2, i3)) {
-			return false;
-		} else {
-			if(entity1 instanceof EntityPlayer) {
-				EntityPlayer entityPlayer5 = (EntityPlayer)entity1;
-				this.playerEntities.add(entityPlayer5);
-				this.updateAllPlayersSleepingFlag();
-			}
-
-			this.getChunkFromChunkCoords(i2, i3).addEntity(entity1);
-			this.loadedEntityList.add(entity1);
-			this.obtainEntitySkin(entity1);
-			return true;
-		}
+		return this.entityManager.spawnEntityInWorld(entity1);
 	}
 	
 	public Entity getEntityById(int id) {
-		Iterator<Entity>it = this.loadedEntityList.iterator();
-		while(it.hasNext()) {
-			Entity e = it.next();
-			if(e.entityId == id) return e;
-		}
-		return null;
+		return this.entityManager.getEntityById(id);
 	}
 
 	protected void obtainEntitySkin(Entity entity1) {
@@ -1192,37 +1159,11 @@ public class World implements IBlockAccess {
 	}
 
 	public void setEntityDead(Entity entity1) {
-		if(entity1.riddenByEntity != null) {
-			entity1.riddenByEntity.mountEntity((Entity)null);
-		}
-
-		if(entity1.ridingEntity != null) {
-			entity1.mountEntity((Entity)null);
-		}
-
-		entity1.setEntityDead();
-		if(entity1 instanceof EntityPlayer) {
-			this.playerEntities.remove((EntityPlayer)entity1);
-			this.updateAllPlayersSleepingFlag();
-		}
-
+		this.entityManager.setEntityDead(entity1);
 	}
 
 	public void removePlayer(Entity entity1) {
-		entity1.setEntityDead();
-		if(entity1 instanceof EntityPlayer) {
-			this.playerEntities.remove((EntityPlayer)entity1);
-			this.updateAllPlayersSleepingFlag();
-		}
-
-		int i2 = entity1.chunkCoordX;
-		int i3 = entity1.chunkCoordZ;
-		if(entity1.addedToChunk && this.chunkExists(i2, i3)) {
-			this.getChunkFromChunkCoords(i2, i3).removeEntity(entity1);
-		}
-
-		this.loadedEntityList.remove(entity1);
-		this.releaseEntitySkin(entity1);
+		this.entityManager.removePlayer(entity1);
 	}
 	
 	public void addWorldAccess(IWorldAccess iWorldAccess1) {
@@ -1234,68 +1175,10 @@ public class World implements IBlockAccess {
 	}
 	
 	public List<AxisAlignedBB> getCollidingBoundingBoxesExcludingWater(Entity entity1, AxisAlignedBB axisAlignedBB2) {
-		this.collidingBoundingBoxes.clear();
-		int i3 = MathHelper.floor_double(axisAlignedBB2.minX);
-		int i4 = MathHelper.floor_double(axisAlignedBB2.maxX + 1.0D);
-		int i5 = MathHelper.floor_double(axisAlignedBB2.minY);
-		int i6 = MathHelper.floor_double(axisAlignedBB2.maxY + 1.0D);
-		int i7 = MathHelper.floor_double(axisAlignedBB2.minZ);
-		int i8 = MathHelper.floor_double(axisAlignedBB2.maxZ + 1.0D);
-
-		for(int i9 = i3; i9 < i4; ++i9) {
-			for(int i10 = i7; i10 < i8; ++i10) {
-				if(this.blockExists(i9, 64, i10)) {
-					for(int i11 = i5 - 1; i11 < i6; ++i11) {
-						Block block12 = Block.blocksList[this.getBlockId(i9, i11, i10)];
-						if(block12 != null && !(block12 instanceof BlockFluid)) {
-							block12.getCollidingBoundingBoxes(this, i9, i11, i10, axisAlignedBB2, this.collidingBoundingBoxes, entity1);
-						}
-					}
-				}
-			}
-		}
-		
-		return this.collidingBoundingBoxes;
+		return this.entityQueryService.getCollidingBoundingBoxesExcludingWater(entity1, axisAlignedBB2);
 	}
-
-	public List<AxisAlignedBB> getCollidingBoundingBoxes(Entity entity1, AxisAlignedBB axisAlignedBB2) {
-		this.collidingBoundingBoxes.clear();
-		int i3 = MathHelper.floor_double(axisAlignedBB2.minX);
-		int i4 = MathHelper.floor_double(axisAlignedBB2.maxX + 1.0D);
-		int i5 = MathHelper.floor_double(axisAlignedBB2.minY);
-		int i6 = MathHelper.floor_double(axisAlignedBB2.maxY + 1.0D);
-		int i7 = MathHelper.floor_double(axisAlignedBB2.minZ);
-		int i8 = MathHelper.floor_double(axisAlignedBB2.maxZ + 1.0D);
-
-		for(int i9 = i3; i9 < i4; ++i9) {
-			for(int i10 = i7; i10 < i8; ++i10) {
-				if(this.blockExists(i9, 64, i10)) {
-					for(int i11 = i5 - 1; i11 < i6; ++i11) {
-						Block block12 = Block.blocksList[this.getBlockId(i9, i11, i10)];
-						if(block12 != null) {
-							block12.getCollidingBoundingBoxes(this, i9, i11, i10, axisAlignedBB2, this.collidingBoundingBoxes, entity1);
-						}
-					}
-				}
-			}
-		}
-
-		double d14 = 0.25D;
-		List<Entity> list15 = this.getEntitiesWithinAABBExcludingEntity(entity1, axisAlignedBB2.expand(d14, d14, d14));
-
-		for(int i16 = 0; i16 < list15.size(); ++i16) {
-			AxisAlignedBB axisAlignedBB13 = ((Entity)list15.get(i16)).getBoundingBox();
-			if(axisAlignedBB13 != null && axisAlignedBB13.intersectsWith(axisAlignedBB2)) {
-				this.collidingBoundingBoxes.add(axisAlignedBB13);
-			}
-
-			axisAlignedBB13 = entity1.getCollisionBox((Entity)list15.get(i16));
-			if(axisAlignedBB13 != null && axisAlignedBB13.intersectsWith(axisAlignedBB2)) {
-				this.collidingBoundingBoxes.add(axisAlignedBB13);
-			}
-		}
-
-		return this.collidingBoundingBoxes;
+public List<AxisAlignedBB> getCollidingBoundingBoxes(Entity entity1, AxisAlignedBB axisAlignedBB2) {
+		return this.entityQueryService.getCollidingBoundingBoxes(entity1, axisAlignedBB2);
 	}
 
 	public int calculateSkylightSubtracted(float renderPartialTick) {
@@ -1549,25 +1432,10 @@ public class World implements IBlockAccess {
 			}
 		}
 
-		this.loadedEntityList.removeAll(this.unloadedEntityList);
+		this.entityManager.sweepUnloaded();
 
 		int i3;
 		int i4;
-		for(i1 = 0; i1 < this.unloadedEntityList.size(); ++i1) {
-			entity2 = (Entity)this.unloadedEntityList.get(i1);
-			i3 = entity2.chunkCoordX;
-			i4 = entity2.chunkCoordZ;
-			if(entity2.addedToChunk && this.chunkExists(i3, i4)) {
-				this.getChunkFromChunkCoords(i3, i4).removeEntity(entity2);
-			}
-		}
-
-		for(i1 = 0; i1 < this.unloadedEntityList.size(); ++i1) {
-			this.releaseEntitySkin((Entity)this.unloadedEntityList.get(i1));
-		}
-
-		this.unloadedEntityList.clear();
-
 		// Build the set of chunks within the simulation radius of every player.
 		// Only entities inside these chunks receive full updates (AI, movement, collisions);
 		// entities outside only have their ticksExisted advanced plus an isolated despawn pass.
@@ -1584,8 +1452,8 @@ public class World implements IBlockAccess {
 			}
 		}
 
-		for(i1 = 0; i1 < this.loadedEntityList.size(); ++i1) {
-			entity2 = (Entity)this.loadedEntityList.get(i1);
+		for(i1 = 0; i1 < this.getLoadedEntityList().size(); ++i1) {
+			entity2 = (Entity)this.getLoadedEntityList().get(i1);
 			if(entity2.ridingEntity != null) {
 				if(!entity2.ridingEntity.isDead && entity2.ridingEntity.riddenByEntity == entity2) {
 					continue;
@@ -1614,8 +1482,7 @@ public class World implements IBlockAccess {
 					this.getChunkFromChunkCoords(i3, i4).removeEntity(entity2);
 				}
 
-				this.loadedEntityList.remove(i1--);
-				this.releaseEntitySkin(entity2);
+				this.entityManager.removeEntityFromWorldList(entity2, i1--);
 			}
 		}
 
@@ -1750,229 +1617,35 @@ public class World implements IBlockAccess {
 	}
 
 	public boolean checkIfAABBIsClear(AxisAlignedBB axisAlignedBB1) {
-		List<Entity> list2 = this.getEntitiesWithinAABBExcludingEntity((Entity)null, axisAlignedBB1);
-
-		for(int i3 = 0; i3 < list2.size(); ++i3) {
-			Entity entity4 = (Entity)list2.get(i3);
-			if(!entity4.isDead && entity4.preventEntitySpawning) {
-				return false;
-			}
-		}
-
-		return true;
+		return this.entityQueryService.checkIfAABBIsClear(axisAlignedBB1);
 	}
 
 	public boolean getIsAnyNonEmptyBlock(AxisAlignedBB axisAlignedBB1) {
-		int i2 = MathHelper.floor_double(axisAlignedBB1.minX);
-		int i3 = MathHelper.floor_double(axisAlignedBB1.maxX + 1.0D);
-		int i4 = MathHelper.floor_double(axisAlignedBB1.minY);
-		int i5 = MathHelper.floor_double(axisAlignedBB1.maxY + 1.0D);
-		int i6 = MathHelper.floor_double(axisAlignedBB1.minZ);
-		int i7 = MathHelper.floor_double(axisAlignedBB1.maxZ + 1.0D);
-		if(axisAlignedBB1.minX < 0.0D) {
-			--i2;
-		}
-
-		if(axisAlignedBB1.minY < 0.0D) {
-			--i4;
-		}
-
-		if(axisAlignedBB1.minZ < 0.0D) {
-			--i6;
-		}
-
-		for(int i8 = i2; i8 < i3; ++i8) {
-			for(int i9 = i4; i9 < i5; ++i9) {
-				for(int i10 = i6; i10 < i7; ++i10) {
-					Block block11 = Block.blocksList[this.getBlockId(i8, i9, i10)];
-					if(block11 != null) {
-						return true;
-					}
-				}
-			}
-		}
-
-		return false;
+		return this.entityQueryService.getIsAnyNonEmptyBlock(axisAlignedBB1);
 	}
 
 	public boolean getIsAnyLiquid(AxisAlignedBB axisAlignedBB1) {
-		int i2 = MathHelper.floor_double(axisAlignedBB1.minX);
-		int i3 = MathHelper.floor_double(axisAlignedBB1.maxX + 1.0D);
-		int i4 = MathHelper.floor_double(axisAlignedBB1.minY);
-		int i5 = MathHelper.floor_double(axisAlignedBB1.maxY + 1.0D);
-		int i6 = MathHelper.floor_double(axisAlignedBB1.minZ);
-		int i7 = MathHelper.floor_double(axisAlignedBB1.maxZ + 1.0D);
-		if(axisAlignedBB1.minX < 0.0D) {
-			--i2;
-		}
-
-		if(axisAlignedBB1.minY < 0.0D) {
-			--i4;
-		}
-
-		if(axisAlignedBB1.minZ < 0.0D) {
-			--i6;
-		}
-
-		for(int i8 = i2; i8 < i3; ++i8) {
-			for(int i9 = i4; i9 < i5; ++i9) {
-				for(int i10 = i6; i10 < i7; ++i10) {
-					Block block11 = Block.blocksList[this.getBlockId(i8, i9, i10)];
-					if(block11 != null && block11.blockMaterial.getIsLiquid()) {
-						return true;
-					}
-				}
-			}
-		}
-
-		return false;
+		return this.entityQueryService.getIsAnyLiquid(axisAlignedBB1);
 	}
 	
 	public boolean getIsAnyBlockID(AxisAlignedBB aabb, int blockID) {
-		int i2 = MathHelper.floor_double(aabb.minX);
-		int i3 = MathHelper.floor_double(aabb.maxX + 1.0D);
-		int i4 = MathHelper.floor_double(aabb.minY);
-		int i5 = MathHelper.floor_double(aabb.maxY + 1.0D);
-		int i6 = MathHelper.floor_double(aabb.minZ);
-		int i7 = MathHelper.floor_double(aabb.maxZ + 1.0D);
-		if(aabb.minX < 0.0D) {
-			--i2;
-		}
-
-		if(aabb.minY < 0.0D) {
-			--i4;
-		}
-
-		if(aabb.minZ < 0.0D) {
-			--i6;
-		}
-
-		for(int i8 = i2; i8 < i3; ++i8) {
-			for(int i9 = i4; i9 < i5; ++i9) {
-				for(int i10 = i6; i10 < i7; ++i10) {
-					if(blockID == this.getBlockId(i8, i9, i10)) {
-						return true;
-					}
-				}
-			}
-		}
-
-		return false;
+		return this.entityQueryService.getIsAnyBlockID(aabb, blockID);
 	}
 
 	public boolean isBoundingBoxBurning(AxisAlignedBB axisAlignedBB1) {
-		int i2 = MathHelper.floor_double(axisAlignedBB1.minX);
-		int i3 = MathHelper.floor_double(axisAlignedBB1.maxX + 1.0D);
-		int i4 = MathHelper.floor_double(axisAlignedBB1.minY);
-		int i5 = MathHelper.floor_double(axisAlignedBB1.maxY + 1.0D);
-		int i6 = MathHelper.floor_double(axisAlignedBB1.minZ);
-		int i7 = MathHelper.floor_double(axisAlignedBB1.maxZ + 1.0D);
-		if(this.checkChunksExist(i2, i4, i6, i3, i5, i7)) {
-			for(int i8 = i2; i8 < i3; ++i8) {
-				for(int i9 = i4; i9 < i5; ++i9) {
-					for(int i10 = i6; i10 < i7; ++i10) {
-						int i11 = this.getBlockId(i8, i9, i10);
-						if(i11 == Block.fire.blockID || i11 == Block.lavaMoving.blockID || i11 == Block.lavaStill.blockID) {
-							return true;
-						}
-					}
-				}
-			}
-		}
-
-		return false;
+		return this.entityQueryService.isBoundingBoxBurning(axisAlignedBB1);
 	}
 
 	public boolean handleMaterialAcceleration(AxisAlignedBB axisAlignedBB1, Material material2, Entity entity3) {
-		int i4 = MathHelper.floor_double(axisAlignedBB1.minX);
-		int i5 = MathHelper.floor_double(axisAlignedBB1.maxX + 1.0D);
-		int i6 = MathHelper.floor_double(axisAlignedBB1.minY);
-		int i7 = MathHelper.floor_double(axisAlignedBB1.maxY + 1.0D);
-		int i8 = MathHelper.floor_double(axisAlignedBB1.minZ);
-		int i9 = MathHelper.floor_double(axisAlignedBB1.maxZ + 1.0D);
-		if(!this.checkChunksExist(i4, i6, i8, i5, i7, i9)) {
-			return false;
-		} else {
-			boolean z10 = false;
-			Vec3D vec3D11 = Vec3D.createVector(0.0D, 0.0D, 0.0D);
-
-			for(int i12 = i4; i12 < i5; ++i12) {
-				for(int i13 = i6; i13 < i7; ++i13) {
-					for(int i14 = i8; i14 < i9; ++i14) {
-						Block block15 = Block.blocksList[this.getBlockId(i12, i13, i14)];
-						if(block15 != null && block15.blockMaterial == material2) {
-							double d16 = (double)((float)(i13 + 1) - BlockFluid.getPercentAir(this.getBlockMetadata(i12, i13, i14)));
-							if((double)i7 >= d16) {
-								z10 = true;
-								block15.velocityToAddToEntity(this, i12, i13, i14, entity3, vec3D11);
-							}
-						}
-					}
-				}
-			}
-
-			if(vec3D11.lengthVector() > 0.0D) {
-				vec3D11 = vec3D11.normalize();
-				double d18 = 0.014D;
-				entity3.motionX += vec3D11.xCoord * d18;
-				entity3.motionY += vec3D11.yCoord * d18;
-				entity3.motionZ += vec3D11.zCoord * d18;
-			}
-
-			return z10;
-		}
+		return this.entityQueryService.handleMaterialAcceleration(axisAlignedBB1, material2, entity3);
 	}
 
 	public boolean isMaterialInBB(AxisAlignedBB axisAlignedBB1, Material material2) {
-		int i3 = MathHelper.floor_double(axisAlignedBB1.minX);
-		int i4 = MathHelper.floor_double(axisAlignedBB1.maxX + 1.0D);
-		int i5 = MathHelper.floor_double(axisAlignedBB1.minY);
-		int i6 = MathHelper.floor_double(axisAlignedBB1.maxY + 1.0D);
-		int i7 = MathHelper.floor_double(axisAlignedBB1.minZ);
-		int i8 = MathHelper.floor_double(axisAlignedBB1.maxZ + 1.0D);
-
-		for(int i9 = i3; i9 < i4; ++i9) {
-			for(int i10 = i5; i10 < i6; ++i10) {
-				for(int i11 = i7; i11 < i8; ++i11) {
-					Block block12 = Block.blocksList[this.getBlockId(i9, i10, i11)];
-					if(block12 != null && block12.blockMaterial == material2) {
-						return true;
-					}
-				}
-			}
-		}
-
-		return false;
+		return this.entityQueryService.isMaterialInBB(axisAlignedBB1, material2);
 	}
 
 	public boolean isAABBInMaterial(AxisAlignedBB axisAlignedBB1, Material material2) {
-		int i3 = MathHelper.floor_double(axisAlignedBB1.minX);
-		int i4 = MathHelper.floor_double(axisAlignedBB1.maxX + 1.0D);
-		int i5 = MathHelper.floor_double(axisAlignedBB1.minY);
-		int i6 = MathHelper.floor_double(axisAlignedBB1.maxY + 1.0D);
-		int i7 = MathHelper.floor_double(axisAlignedBB1.minZ);
-		int i8 = MathHelper.floor_double(axisAlignedBB1.maxZ + 1.0D);
-
-		for(int i9 = i3; i9 < i4; ++i9) {
-			for(int i10 = i5; i10 < i6; ++i10) {
-				for(int i11 = i7; i11 < i8; ++i11) {
-					Block block12 = Block.blocksList[this.getBlockId(i9, i10, i11)];
-					if(block12 != null && block12.blockMaterial == material2) {
-						int i13 = this.getBlockMetadata(i9, i10, i11);
-						double d14 = (double)(i10 + 1);
-						if(i13 < 8) {
-							d14 = (double)(i10 + 1) - (double)i13 / 8.0D;
-						}
-
-						if(d14 >= axisAlignedBB1.minY) {
-							return true;
-						}
-					}
-				}
-			}
-		}
-
-		return false;
+		return this.entityQueryService.isAABBInMaterial(axisAlignedBB1, material2);
 	}
 
 	public Explosion createExplosion(Entity entity1, double d2, double d4, double d6, float f8) {
@@ -2000,28 +1673,7 @@ public class World implements IBlockAccess {
 	}
 
 	public float getBlockDensity(Vec3D vec3D1, AxisAlignedBB axisAlignedBB2) {
-		double d3 = 1.0D / ((axisAlignedBB2.maxX - axisAlignedBB2.minX) * 2.0D + 1.0D);
-		double d5 = 1.0D / ((axisAlignedBB2.maxY - axisAlignedBB2.minY) * 2.0D + 1.0D);
-		double d7 = 1.0D / ((axisAlignedBB2.maxZ - axisAlignedBB2.minZ) * 2.0D + 1.0D);
-		int i9 = 0;
-		int i10 = 0;
-
-		for(float f11 = 0.0F; f11 <= 1.0F; f11 = (float)((double)f11 + d3)) {
-			for(float f12 = 0.0F; f12 <= 1.0F; f12 = (float)((double)f12 + d5)) {
-				for(float f13 = 0.0F; f13 <= 1.0F; f13 = (float)((double)f13 + d7)) {
-					double d14 = axisAlignedBB2.minX + (axisAlignedBB2.maxX - axisAlignedBB2.minX) * (double)f11;
-					double d16 = axisAlignedBB2.minY + (axisAlignedBB2.maxY - axisAlignedBB2.minY) * (double)f12;
-					double d18 = axisAlignedBB2.minZ + (axisAlignedBB2.maxZ - axisAlignedBB2.minZ) * (double)f13;
-					if(this.rayTraceBlocks(Vec3D.createVector(d14, d16, d18), vec3D1) == null) {
-						++i9;
-					}
-
-					++i10;
-				}
-			}
-		}
-
-		return (float)i9 / (float)i10;
+		return this.entityQueryService.getBlockDensity(vec3D1, axisAlignedBB2);
 	}
 
 	public boolean onBlockHit(EntityPlayer entityPlayer1, int i2, int i3, int i4, int i5) {
@@ -2063,7 +1715,7 @@ public class World implements IBlockAccess {
 	}
 
 	public String getDebugLoadedEntities() {
-		return "All: " + this.loadedEntityList.size();
+		return "All: " + this.getLoadedEntityList().size();
 	}
 
 	public String getProviderName() {
@@ -2626,63 +2278,19 @@ public class World implements IBlockAccess {
 	}
 
 	public List<Entity> getEntitiesWithinAABBExcludingEntity(Entity entity1, AxisAlignedBB axisAlignedBB2) {
-		this.entitiesWithinAABBExcludingEntity.clear();
-		int i3 = MathHelper.floor_double((axisAlignedBB2.minX - 2.0D) / 16.0D);
-		int i4 = MathHelper.floor_double((axisAlignedBB2.maxX + 2.0D) / 16.0D);
-		int i5 = MathHelper.floor_double((axisAlignedBB2.minZ - 2.0D) / 16.0D);
-		int i6 = MathHelper.floor_double((axisAlignedBB2.maxZ + 2.0D) / 16.0D);
-
-		for(int i7 = i3; i7 <= i4; ++i7) {
-			for(int i8 = i5; i8 <= i6; ++i8) {
-				if(this.chunkExists(i7, i8)) {
-					this.getChunkFromChunkCoords(i7, i8).getEntitiesWithinAABBForEntity(entity1, axisAlignedBB2, this.entitiesWithinAABBExcludingEntity);
-				}
-			}
-		}
-
-		return this.entitiesWithinAABBExcludingEntity;
+		return this.entityQueryService.getEntitiesWithinAABBExcludingEntity(entity1, axisAlignedBB2);
 	}
 
 	public List<Entity> getEntitiesWithinAABB(Class<?> class1, AxisAlignedBB axisAlignedBB2) {
-		int i3 = MathHelper.floor_double((axisAlignedBB2.minX - 2.0D) / 16.0D);
-		int i4 = MathHelper.floor_double((axisAlignedBB2.maxX + 2.0D) / 16.0D);
-		int i5 = MathHelper.floor_double((axisAlignedBB2.minZ - 2.0D) / 16.0D);
-		int i6 = MathHelper.floor_double((axisAlignedBB2.maxZ + 2.0D) / 16.0D);
-		ArrayList<Entity> arrayList7 = new ArrayList<Entity>();
-
-		for(int i8 = i3; i8 <= i4; ++i8) {
-			for(int i9 = i5; i9 <= i6; ++i9) {
-				if(this.chunkExists(i8, i9)) {
-					this.getChunkFromChunkCoords(i8, i9).getEntitiesOfTypeWithinAAAB(class1, axisAlignedBB2, arrayList7);
-				}
-			}
-		}
-
-		return arrayList7;
+		return this.entityQueryService.getEntitiesWithinAABB(class1, axisAlignedBB2);
 	}
 
 	public Entity findNearestEntityWithinAABB(Class<?> class1, AxisAlignedBB axisAlignedBB2, Entity entity3) {
-		List<Entity> list4 = this.getEntitiesWithinAABB(class1, axisAlignedBB2);
-		Entity entity5 = null;
-		double d6 = Double.MAX_VALUE;
-		Iterator<Entity> iterator8 = list4.iterator();
-
-		while(iterator8.hasNext()) {
-			Entity entity9 = (Entity)iterator8.next();
-			if(entity9 != entity3) {
-				double d10 = entity3.getDistanceSqToEntity(entity9);
-				if(d10 <= d6) {
-					entity5 = entity9;
-					d6 = d10;
-				}
-			}
-		}
-
-		return entity5;
+		return this.entityQueryService.findNearestEntityWithinAABB(class1, axisAlignedBB2, entity3);
 	}
 
 	public List<Entity> getLoadedEntityList() {
-		return this.loadedEntityList;
+		return this.entityManager.getLoadedEntityList();
 	}
 
 	public void updateTileEntityChunkAndDoNothing(int i1, int i2, int i3, TileEntity tileEntity4) {
@@ -2697,29 +2305,19 @@ public class World implements IBlockAccess {
 	}
 
 	public int countEntities(Class<?> class1) {
-		int i2 = 0;
+		return this.entityManager.countEntities(class1);
+	}
 
-		for(int i3 = 0; i3 < this.loadedEntityList.size(); ++i3) {
-			Entity entity4 = (Entity)this.loadedEntityList.get(i3);
-			if(class1.isAssignableFrom(entity4.getClass())) {
-				++i2;
-			}
-		}
-
-		return i2;
+	public int getCachedEntityCount(Class<?> class1) {
+		return this.entityManager.getCachedEntityCount(class1);
 	}
 
 	public void addLoadedEntities(List<Entity> list1) {
-		this.loadedEntityList.addAll(list1);
-
-		for(int i2 = 0; i2 < list1.size(); ++i2) {
-			this.obtainEntitySkin((Entity)list1.get(i2));
-		}
-
+		this.entityManager.addLoadedEntities(list1);
 	}
 
 	public void unloadEntities(List<Entity> list1) {
-		this.unloadedEntityList.addAll(list1);
+		this.entityManager.unloadEntities(list1);
 	}
 
 	public void dropOldChunks() {
@@ -3106,9 +2704,7 @@ public class World implements IBlockAccess {
 			}
 		}
 
-		if(!this.loadedEntityList.contains(entity1)) {
-			this.loadedEntityList.add(entity1);
-		}
+		this.entityManager.addIfAbsent(entity1);
 
 	}
 
@@ -3120,29 +2716,14 @@ public class World implements IBlockAccess {
 	}
 
 	public void updateEntityList() {
-		this.loadedEntityList.removeAll(this.unloadedEntityList);
+		this.entityManager.sweepUnloaded();
 
 		int i1;
 		Entity entity2;
 		int i3;
 		int i4;
-		for(i1 = 0; i1 < this.unloadedEntityList.size(); ++i1) {
-			entity2 = (Entity)this.unloadedEntityList.get(i1);
-			i3 = entity2.chunkCoordX;
-			i4 = entity2.chunkCoordZ;
-			if(entity2.addedToChunk && this.chunkExists(i3, i4)) {
-				this.getChunkFromChunkCoords(i3, i4).removeEntity(entity2);
-			}
-		}
-
-		for(i1 = 0; i1 < this.unloadedEntityList.size(); ++i1) {
-			this.releaseEntitySkin((Entity)this.unloadedEntityList.get(i1));
-		}
-
-		this.unloadedEntityList.clear();
-
-		for(i1 = 0; i1 < this.loadedEntityList.size(); ++i1) {
-			entity2 = (Entity)this.loadedEntityList.get(i1);
+		for(i1 = 0; i1 < this.getLoadedEntityList().size(); ++i1) {
+			entity2 = (Entity)this.getLoadedEntityList().get(i1);
 			if(entity2.ridingEntity != null) {
 				if(!entity2.ridingEntity.isDead && entity2.ridingEntity.riddenByEntity == entity2) {
 					continue;
@@ -3159,8 +2740,7 @@ public class World implements IBlockAccess {
 					this.getChunkFromChunkCoords(i3, i4).removeEntity(entity2);
 				}
 
-				this.loadedEntityList.remove(i1--);
-				this.releaseEntitySkin(entity2);
+				this.entityManager.removeEntityFromWorldList(entity2, i1--);
 			}
 		}
 
