@@ -1,264 +1,287 @@
 package net.minecraft.game.world;
 
 import java.util.Random;
+
 import net.minecraft.game.MathHelper;
 import net.minecraft.game.entity.Entity;
 import net.minecraft.game.world.block.Block;
 
+/**
+ * Manages portal teleportation between dimensions (Nether / Overworld).
+ *
+ * <p>Responsible for finding an existing portal near the destination coordinates
+ * and, if none is found, creating a new portal frame out of obsidian and
+ * filling it with portal blocks.</p>
+ *
+ * <p>Portal exit positions are snapped to the centre of the nearest portal
+ * block column, adjusting for which side of the portal frame the entity
+ * enters from.</p>
+ */
 public class Teleporter {
-	private Random rand = new Random();
+    private final Random rand = new Random();
 
-	public void setExitLocation(World world1, Entity entity2) {
-		if(!this.findExitLocation(world1, entity2)) {
-			this.createExitLocation(world1, entity2);
-			this.findExitLocation(world1, entity2);
-		}
-	}
+    /**
+     * Finds or creates a portal exit and teleports the entity to it.
+     *
+     * @param world the destination world
+     * @param entity the entity to teleport
+     */
+    public void setExitLocation(World world, Entity entity) {
+        if (!this.findExitLocation(world, entity)) {
+            this.createExitLocation(world, entity);
+            this.findExitLocation(world, entity);
+        }
+    }
 
-	public boolean findExitLocation(World world1, Entity entity2) {
-		short s3 = 128;
-		double d4 = -1.0D;
-		int i6 = 0;
-		int i7 = 0;
-		int i8 = 0;
-		int i9 = MathHelper.floor_double(entity2.posX);
-		int i10 = MathHelper.floor_double(entity2.posZ);
+    /**
+     * Searches for the nearest portal block within 128 blocks of the entity's
+     * current position, then sets the entity's position to the portal centre.
+     *
+     * @return true if a portal was found within range
+     */
+    public boolean findExitLocation(World world, Entity entity) {
+        final int searchRadius = 128;
+        double closestDistSq = -1.0D;
+        int portalX = 0;
+        int portalY = 0;
+        int portalZ = 0;
+        int centerX = MathHelper.floor_double(entity.posX);
+        int centerZ = MathHelper.floor_double(entity.posZ);
 
-		double d18;
-		for(int i11 = i9 - s3; i11 <= i9 + s3; ++i11) {
-			double d12 = (double)i11 + 0.5D - entity2.posX;
+        for (int x = centerX - searchRadius; x <= centerX + searchRadius; ++x) {
+            double dx = (double) x + 0.5D - entity.posX;
 
-			for(int i14 = i10 - s3; i14 <= i10 + s3; ++i14) {
-				double d15 = (double)i14 + 0.5D - entity2.posZ;
+            for (int z = centerZ - searchRadius; z <= centerZ + searchRadius; ++z) {
+                double dz = (double) z + 0.5D - entity.posZ;
 
-				for(int i17 = 127; i17 >= 0; --i17) {
-					if(world1.getBlockId(i11, i17, i14) == Block.portal.blockID) {
-						while(world1.getBlockId(i11, i17 - 1, i14) == Block.portal.blockID) {
-							--i17;
-						}
+                for (int y = 127; y >= 0; --y) {
+                    if (world.getBlockId(x, y, z) == Block.portal.blockID) {
+                        // Descend to the bottom of the portal column.
+                        while (world.getBlockId(x, y - 1, z) == Block.portal.blockID) {
+                            --y;
+                        }
 
-						d18 = (double)i17 + 0.5D - entity2.posY;
-						double d20 = d12 * d12 + d18 * d18 + d15 * d15;
-						if(d4 < 0.0D || d20 < d4) {
-							d4 = d20;
-							i6 = i11;
-							i7 = i17;
-							i8 = i14;
-						}
-					}
-				}
-			}
-		}
+                        double dy = (double) y + 0.5D - entity.posY;
+                        double distSq = dx * dx + dy * dy + dz * dz;
+                        if (closestDistSq < 0.0D || distSq < closestDistSq) {
+                            closestDistSq = distSq;
+                            portalX = x;
+                            portalY = y;
+                            portalZ = z;
+                        }
+                    }
+                }
+            }
+        }
 
-		if(d4 >= 0.0D) {
-			double d22 = (double)i6 + 0.5D;
-			double d16 = (double)i7 + 0.5D;
-			d18 = (double)i8 + 0.5D;
-			if(world1.getBlockId(i6 - 1, i7, i8) == Block.portal.blockID) {
-				d22 -= 0.5D;
-			}
+        if (closestDistSq >= 0.0D) {
+            double exitX = (double) portalX + 0.5D;
+            double exitY = (double) portalY + 0.5D;
+            double exitZ = (double) portalZ + 0.5D;
 
-			if(world1.getBlockId(i6 + 1, i7, i8) == Block.portal.blockID) {
-				d22 += 0.5D;
-			}
+            // Adjust for which side of the portal the entity entered from.
+            if (world.getBlockId(portalX - 1, portalY, portalZ) == Block.portal.blockID) {
+                exitX -= 0.5D;
+            }
+            if (world.getBlockId(portalX + 1, portalY, portalZ) == Block.portal.blockID) {
+                exitX += 0.5D;
+            }
+            if (world.getBlockId(portalX, portalY, portalZ - 1) == Block.portal.blockID) {
+                exitZ -= 0.5D;
+            }
+            if (world.getBlockId(portalX, portalY, portalZ + 1) == Block.portal.blockID) {
+                exitZ += 0.5D;
+            }
 
-			if(world1.getBlockId(i6, i7, i8 - 1) == Block.portal.blockID) {
-				d18 -= 0.5D;
-			}
+            entity.setLocationAndAngles(exitX, exitY, exitZ, entity.rotationYaw, 0.0F);
+            entity.motionX = entity.motionY = entity.motionZ = 0.0D;
+            return true;
+        }
+        return false;
+    }
 
-			if(world1.getBlockId(i6, i7, i8 + 1) == Block.portal.blockID) {
-				d18 += 0.5D;
-			}
+    /**
+     * Creates a new portal at the best available location near the entity's
+     * destination coordinates. Searches for a suitable open space, then
+     * builds an obsidian frame and fills it with portal blocks.
+     *
+     * @return true always (a portal is always attempted)
+     */
+    public boolean createExitLocation(World world, Entity entity) {
+        final byte searchRadius = 16;
+        double closestDistSq = -1.0D;
+        int originX = MathHelper.floor_double(entity.posX);
+        int originY = MathHelper.floor_double(entity.posY);
+        int originZ = MathHelper.floor_double(entity.posZ);
+        int bestX = originX;
+        int bestY = originY;
+        int bestZ = originZ;
+        int bestPortalOffset = 0;
 
-			entity2.setLocationAndAngles(d22, d16, d18, entity2.rotationYaw, 0.0F);
-			entity2.motionX = entity2.motionY = entity2.motionZ = 0.0D;
-			return true;
-		} else {
-			return false;
-		}
-	}
+        // First pass: search for the largest open space, favouring the standard
+        // 4×5 portal layout.
+        final int portalWidth = 4;
+        final int portalHeight = 5;
+        int orientation = this.rand.nextInt(4);  // 0–3 selects frame orientation.
 
-	public boolean createExitLocation(World world1, Entity entity2) {
-		byte b3 = 16;
-		double d4 = -1.0D;
-		int i6 = MathHelper.floor_double(entity2.posX);
-		int i7 = MathHelper.floor_double(entity2.posY);
-		int i8 = MathHelper.floor_double(entity2.posZ);
-		int i9 = i6;
-		int i10 = i7;
-		int i11 = i8;
-		int i12 = 0;
-		int i13 = this.rand.nextInt(4);
+        outerFirstPass:
+        for (int x = originX - searchRadius; x <= originX + searchRadius; ++x) {
+            double dx = (double) x + 0.5D - entity.posX;
 
-		int i14;
-		double d15;
-		int i17;
-		double d18;
-		int i20;
-		int i21;
-		int i22;
-		int i23;
-		int i24;
-		int i25;
-		int i26;
-		int i27;
-		int i28;
-		double d32;
-		double d33;
-		for(i14 = i6 - b3; i14 <= i6 + b3; ++i14) {
-			d15 = (double)i14 + 0.5D - entity2.posX;
+            for (int z = originZ - searchRadius; z <= originZ + searchRadius; ++z) {
+                double dz = (double) z + 0.5D - entity.posZ;
 
-			for(i17 = i8 - b3; i17 <= i8 + b3; ++i17) {
-				d18 = (double)i17 + 0.5D - entity2.posZ;
+                for (int y = 127; y >= 0; --y) {
+                    if (!world.isAirBlock(x, y, z)) {
+                        continue;
+                    }
+                    // Descend to the first solid block below this air column.
+                    while (y > 0 && world.isAirBlock(x, y - 1, z)) {
+                        --y;
+                    }
 
-				label293:
-				for(i20 = 127; i20 >= 0; --i20) {
-					if(world1.isAirBlock(i14, i20, i17)) {
-						while(i20 > 0 && world1.isAirBlock(i14, i20 - 1, i17)) {
-							--i20;
-						}
+                    for (int offset = orientation; offset < orientation + portalWidth; ++offset) {
+                        int xOff = offset % 2;
+                        int zOff = 1 - xOff;
+                        if (offset % 4 >= 2) {
+                            xOff = -xOff;
+                            zOff = -zOff;
+                        }
 
-						for(i21 = i13; i21 < i13 + 4; ++i21) {
-							i22 = i21 % 2;
-							i23 = 1 - i22;
-							if(i21 % 4 >= 2) {
-								i22 = -i22;
-								i23 = -i23;
-							}
+                        for (int depth = 0; depth < 3; ++depth) {
+                            for (int across = 0; across < 4; ++across) {
+                                for (int height = -1; height < portalHeight; ++height) {
+                                    int bx = x + (across - 1) * xOff + depth * zOff;
+                                    int by = y + height;
+                                    int bz = z + (across - 1) * zOff - depth * xOff;
+                                    boolean isEdge = height < 0;
+                                    if (isEdge && !world.getBlockMaterial(bx, by, bz).isSolid()) {
+                                        continue;
+                                    }
+                                    if (!isEdge && !world.isAirBlock(bx, by, bz)) {
+                                        continue outerFirstPass;
+                                    }
+                                }
+                            }
+                        }
 
-							for(i24 = 0; i24 < 3; ++i24) {
-								for(i25 = 0; i25 < 4; ++i25) {
-									for(i26 = -1; i26 < 4; ++i26) {
-										i27 = i14 + (i25 - 1) * i22 + i24 * i23;
-										i28 = i20 + i26;
-										int i29 = i17 + (i25 - 1) * i23 - i24 * i22;
-										if(i26 < 0 && !world1.getBlockMaterial(i27, i28, i29).isSolid() || i26 >= 0 && !world1.isAirBlock(i27, i28, i29)) {
-											continue label293;
-										}
-									}
-								}
-							}
+                        double dy = (double) y + 0.5D - entity.posY;
+                        double distSq = dx * dx + dy * dy + dz * dz;
+                        if (closestDistSq < 0.0D || distSq < closestDistSq) {
+                            closestDistSq = distSq;
+                            bestX = x;
+                            bestY = y;
+                            bestZ = z;
+                            bestPortalOffset = offset % 4;
+                        }
+                    }
+                }
+            }
+        }
 
-							d32 = (double)i20 + 0.5D - entity2.posY;
-							d33 = d15 * d15 + d32 * d32 + d18 * d18;
-							if(d4 < 0.0D || d33 < d4) {
-								d4 = d33;
-								i9 = i14;
-								i10 = i20;
-								i11 = i17;
-								i12 = i21 % 4;
-							}
-						}
-					}
-				}
-			}
-		}
+        // Second pass: fall back to a narrower 2×3 portal if the first pass found nothing.
+        if (closestDistSq < 0.0D) {
+            for (int x = originX - searchRadius; x <= originX + searchRadius; ++x) {
+                double dx = (double) x + 0.5D - entity.posX;
 
-		if(d4 < 0.0D) {
-			for(i14 = i6 - b3; i14 <= i6 + b3; ++i14) {
-				d15 = (double)i14 + 0.5D - entity2.posX;
+                for (int z = originZ - searchRadius; z <= originZ + searchRadius; ++z) {
+                    double dz = (double) z + 0.5D - entity.posZ;
 
-				for(i17 = i8 - b3; i17 <= i8 + b3; ++i17) {
-					d18 = (double)i17 + 0.5D - entity2.posZ;
+                    for (int y = 127; y >= 0; --y) {
+                        if (!world.isAirBlock(x, y, z)) {
+                            continue;
+                        }
+                        while (world.isAirBlock(x, y - 1, z)) {
+                            --y;
+                        }
 
-					label231:
-					for(i20 = 127; i20 >= 0; --i20) {
-						if(world1.isAirBlock(i14, i20, i17)) {
-							while(world1.isAirBlock(i14, i20 - 1, i17)) {
-								--i20;
-							}
+                        for (int offset = orientation; offset < orientation + 2; ++offset) {
+                            int xOff = offset % 2;
+                            int zOff = 1 - xOff;
 
-							for(i21 = i13; i21 < i13 + 2; ++i21) {
-								i22 = i21 % 2;
-								i23 = 1 - i22;
+                            for (int across = 0; across < 4; ++across) {
+                                for (int height = -1; height < 3; ++height) {
+                                    int bx = x + (across - 1) * xOff;
+                                    int by = y + height;
+                                    int bz = z + (across - 1) * zOff;
+                                    if (height < 0 && !world.getBlockMaterial(bx, by, bz).isSolid()) {
+                                        continue;
+                                    }
+                                    if (!world.isAirBlock(bx, by, bz)) {
+                                        continue;
+                                    }
+                                }
+                            }
 
-								for(i24 = 0; i24 < 4; ++i24) {
-									for(i25 = -1; i25 < 4; ++i25) {
-										i26 = i14 + (i24 - 1) * i22;
-										i27 = i20 + i25;
-										i28 = i17 + (i24 - 1) * i23;
-										if(i25 < 0 && !world1.getBlockMaterial(i26, i27, i28).isSolid() || i25 >= 0 && !world1.isAirBlock(i26, i27, i28)) {
-											continue label231;
-										}
-									}
-								}
+                            double dy = (double) y + 0.5D - entity.posY;
+                            double distSq = dx * dx + dy * dy + dz * dz;
+                            if (closestDistSq < 0.0D || distSq < closestDistSq) {
+                                closestDistSq = distSq;
+                                bestX = x;
+                                bestY = y;
+                                bestZ = z;
+                                bestPortalOffset = offset % 2;
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
-								d32 = (double)i20 + 0.5D - entity2.posY;
-								d33 = d15 * d15 + d32 * d32 + d18 * d18;
-								if(d4 < 0.0D || d33 < d4) {
-									d4 = d33;
-									i9 = i14;
-									i10 = i20;
-									i11 = i17;
-									i12 = i21 % 2;
-								}
-							}
-						}
-					}
-				}
-			}
-		}
+        int destX = bestX;
+        int destY = bestY;
+        int destZ = bestZ;
+        int portalOffset = bestPortalOffset;
+        int xSign = portalOffset % 2;
+        int zSign = 1 - xSign;
+        if (portalOffset % 4 >= 2) {
+            xSign = -xSign;
+            zSign = -zSign;
+        }
 
-		int i30 = i9;
-		int i16 = i10;
-		i17 = i11;
-		int i31 = i12 % 2;
-		int i19 = 1 - i31;
-		if(i12 % 4 >= 2) {
-			i31 = -i31;
-			i19 = -i19;
-		}
+        // Place obsidian floor if no suitable floor was found.
+        if (closestDistSq < 0.0D) {
+            if (bestY < 70) bestY = 70;
+            if (bestY > 118) bestY = 118;
+            destY = bestY;
 
-		boolean z34;
-		if(d4 < 0.0D) {
-			if(i10 < 70) {
-				i10 = 70;
-			}
+            for (int dx = -1; dx <= 1; ++dx) {
+                for (int dz = -1; dz <= 1; ++dz) {
+                    int bx = destX + (1) * xSign + dx * zSign;
+                    int by = destY + dz;
+                    int bz = destZ + (1) * zSign - dx * xSign;
+                    boolean isFloor = dz < 0;
+                    world.setBlockWithNotify(bx, by, bz, isFloor ? Block.obsidian.blockID : 0);
+                }
+            }
+        }
 
-			if(i10 > 118) {
-				i10 = 118;
-			}
+        // Build the portal frame and fill with portal blocks.
+        for (int frameX = 0; frameX < portalWidth; ++frameX) {
+            world.editingBlocks = true;
 
-			i16 = i10;
+            for (int frameZ = 0; frameZ < portalWidth; ++frameZ) {
+                for (int height = -1; height < portalHeight; ++height) {
+                    int bx = destX + (frameZ - 1) * xSign;
+                    int by = destY + height;
+                    int bz = destZ + (frameZ - 1) * zSign;
+                    boolean isFrame = frameZ == 0 || frameZ == 3 || height == -1 || height == portalHeight - 1;
+                    world.setBlockWithNotify(bx, by, bz, isFrame ? Block.obsidian.blockID : Block.portal.blockID);
+                }
+            }
 
-			for(i20 = -1; i20 <= 1; ++i20) {
-				for(i21 = 1; i21 < 3; ++i21) {
-					for(i22 = -1; i22 < 3; ++i22) {
-						i23 = i30 + (i21 - 1) * i31 + i20 * i19;
-						i24 = i16 + i22;
-						i25 = i17 + (i21 - 1) * i19 - i20 * i31;
-						z34 = i22 < 0;
-						world1.setBlockWithNotify(i23, i24, i25, z34 ? Block.obsidian.blockID : 0);
-					}
-				}
-			}
-		}
+            world.editingBlocks = false;
 
-		for(i20 = 0; i20 < 4; ++i20) {
-			world1.editingBlocks = true;
+            for (int frameZ = 0; frameZ < portalWidth; ++frameZ) {
+                for (int height = -1; height < portalHeight; ++height) {
+                    int bx = destX + (frameZ - 1) * xSign;
+                    int by = destY + height;
+                    int bz = destZ + (frameZ - 1) * zSign;
+                    world.notifyBlocksOfNeighborChange(bx, by, bz, world.getBlockId(bx, by, bz));
+                }
+            }
+        }
 
-			for(i21 = 0; i21 < 4; ++i21) {
-				for(i22 = -1; i22 < 4; ++i22) {
-					i23 = i30 + (i21 - 1) * i31;
-					i24 = i16 + i22;
-					i25 = i17 + (i21 - 1) * i19;
-					z34 = i21 == 0 || i21 == 3 || i22 == -1 || i22 == 3;
-					world1.setBlockWithNotify(i23, i24, i25, z34 ? Block.obsidian.blockID : Block.portal.blockID);
-				}
-			}
-
-			world1.editingBlocks = false;
-
-			for(i21 = 0; i21 < 4; ++i21) {
-				for(i22 = -1; i22 < 4; ++i22) {
-					i23 = i30 + (i21 - 1) * i31;
-					i24 = i16 + i22;
-					i25 = i17 + (i21 - 1) * i19;
-					world1.notifyBlocksOfNeighborChange(i23, i24, i25, world1.getBlockId(i23, i24, i25));
-				}
-			}
-		}
-
-		return true;
-	}
+        return true;
+    }
 }

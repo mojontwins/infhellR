@@ -6,6 +6,9 @@ import net.minecraft.game.world.chunk.ChunkProviderHell;
 import net.minecraft.game.world.chunk.IChunkProvider;
 import net.minecraft.game.world.biome.BiomeGenBase;
 
+/**
+ * WorldProvider for the Nether (dimension -1).
+ */
 public class WorldProviderHell extends WorldProvider {
 	public void registerWorldChunkManager() {
 		this.worldChunkMgr = new WorldChunkManagerHell(BiomeGenBase.hell, 1.0D, 0.0D);
@@ -15,16 +18,16 @@ public class WorldProviderHell extends WorldProvider {
 		this.worldType = -1;
 	}
 
-	public Vec3D getFogColor(float f1, float f2, boolean bloodMoon) {
+	public Vec3D getFogColor(float celestialAngle, float partialTick, boolean bloodMoon) {
 		return Vec3D.createVector((double)0.2F, (double)0.03F, (double)0.03F);
 	}
 
 	protected void generateLightBrightnessTable() {
-		float f1 = 0.1F;
+		float minBrightness = 0.1F;
 
-		for(int i2 = 0; i2 <= 15; ++i2) {
-			float f3 = 1.0F - (float)i2 / 15.0F;
-			this.lightBrightnessTable[i2] = (1.0F - f3) / (f3 * 3.0F + 1.0F) * (1.0F - f1) + f1;
+		for(int level = 0; level <= 15; ++level) {
+			float darkness = 1.0F - (float)level / 15.0F;
+			this.lightBrightnessTable[level] = (1.0F - darkness) / (darkness * 3.0F + 1.0F) * (1.0F - minBrightness) + minBrightness;
 		}
 
 	}
@@ -33,12 +36,12 @@ public class WorldProviderHell extends WorldProvider {
 		return new ChunkProviderHell(this.worldObj, this.worldObj.getRandomSeed());
 	}
 
-	public boolean canCoordinateBeSpawn(int i1, int i2) {
-		int i3 = this.worldObj.getFirstUncoveredBlock(i1, i2);
-		return i3 == Block.bedrock.blockID ? false : (i3 == 0 ? false : Block.opaqueCubeLookup[i3]);
+	public boolean canCoordinateBeSpawn(int x, int z) {
+		int topId = this.worldObj.getFirstUncoveredBlock(x, z);
+		return topId == Block.bedrock.blockID ? false : (topId == 0 ? false : Block.opaqueCubeLookup[topId]);
 	}
 
-	public float calculateCelestialAngle(long j1, float f3) {
+	public float calculateCelestialAngle(long worldTime, float partialTick) {
 		return 0.5F;
 	}
 

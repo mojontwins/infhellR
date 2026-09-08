@@ -1,31 +1,55 @@
 package net.minecraft.game.world;
 
-import net.minecraft.game.world.block.tileentity.TileEntity;
-import net.minecraft.game.world.material.Material;
-import net.minecraft.game.entity.EntityBlockEntity;
-
+/**
+ * Abstract interface for reading block state at any world coordinate.
+ *
+ * <p>Implemented by {@link net.minecraft.game.world.World} and
+ * {@link net.minecraft.game.world.ChunkCache} so both can be used
+ * interchangeably by renderers, physics, and world-generation code.</p>
+ */
 public interface IBlockAccess {
-	int getBlockId(int i1, int i2, int i3);
+    int getBlockId(int x, int y, int z);
 
-	TileEntity getBlockTileEntity(int i1, int i2, int i3);
+    net.minecraft.game.world.block.tileentity.TileEntity getBlockTileEntity(int x, int y, int z);
 	
-	EntityBlockEntity getBlockEntity(int x, int y, int z);
+    net.minecraft.game.entity.EntityBlockEntity getBlockEntity(int x, int y, int z);
 	
-	float getBrightness(int i1, int i2, int i3, int i4);
+    /**
+     * Returns the combined brightness (block + sky) at the given face of the block.
+     *
+     * @param x     block x
+     * @param y     block y
+     * @param z     block z
+     * @param face  which of the 6 block faces to check (0-5)
+     * @return brightness in [0, 1]
+     */
+    float getBrightness(int x, int y, int z, int face);
 
-	float getLightBrightness(int i1, int i2, int i3);
+    /**
+     * Returns the sky-subtracted brightness at the block centre.
+     */
+    float getLightBrightness(int x, int y, int z);
 
-	int getBlockMetadata(int i1, int i2, int i3);
+    int getBlockMetadata(int x, int y, int z);
 
-	Material getBlockMaterial(int i1, int i2, int i3);
+    net.minecraft.game.world.material.Material getBlockMaterial(int x, int y, int z);
 
-	boolean isBlockOpaqueCube(int i1, int i2, int i3);
+    boolean isBlockOpaqueCube(int x, int y, int z);
 
-	boolean isBlockNormalCube(int i1, int i2, int i3);
+    boolean isBlockNormalCube(int x, int y, int z);
 
 	WorldChunkManager getWorldChunkManager();
 
-	int getLightBrightnessForSkyBlocks(int i2, int i3, int i4, int i);
+    /**
+     * Returns the brightness value to use for sky-block propagation at this position.
+     *
+     * @param x       block x
+     * @param y       block y
+     * @param z       block z
+     * @param skyLight current sky light value at this position
+     * @return the effective sky light for propagation purposes
+     */
+    int getLightBrightnessForSkyBlocks(int x, int y, int z, int skyLight);
 
-	boolean isAirBlock(int i, int j, int z);
+    boolean isAirBlock(int x, int y, int z);
 }

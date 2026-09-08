@@ -130,10 +130,10 @@ public class BiomeGenBase {
 	
 	public void addCityCreatures() {
 		// City specific monsters. Add for all biomes. Will only spawn in city chunks.
-		this.spawnableMonsterList.add(new SpawnListEntry(EntityCityHusk.class, 20, true));
+		this.spawnableMonsterList.add(new SpawnListEntry(EntityCityHusk.class, 15, true));
 		this.spawnableMonsterList.add(new SpawnListEntry(EntityToxicZombie.class, 10, true));
-		this.spawnableMonsterList.add(new SpawnListEntry(EntityPigman.class, 3, true));
-		this.spawnableMonsterList.add(new SpawnListEntry(EntityCowman.class, 3, true));
+		this.spawnableMonsterList.add(new SpawnListEntry(EntityPigman.class, 4, true));
+		this.spawnableMonsterList.add(new SpawnListEntry(EntityCowman.class, 4, true));
 		
 		// City specific mobs. Add for all biomes. Will only spawn in city chunks.
 		this.spawnableCreatureList.add(new SpawnListEntry(EntityCatBlack.class, 5, true));
@@ -186,8 +186,9 @@ public class BiomeGenBase {
 	public Weather weather = Weather.normal; 
 	
 	// Set this to a different colour so leaves are tinted differently for this biome.
-	// This is an index to an array in BlockLeaves.
+	// This is an index to an array in BlockLeaves. 7 means "seasonal", i.e. color will change with seasons.
 	public int foliageColorizer = 0;
+	
 	public float maxHeight = 1.0F;
 	public float minHeight = 0.0F;
 	

@@ -5,56 +5,71 @@ import java.util.Arrays;
 import net.minecraft.game.world.biome.BiomeGenBase;
 import net.minecraft.game.world.chunk.ChunkCoordIntPair;
 
+/**
+ * A flat {@link WorldChunkManager} for the Nether and Sky dimensions.
+ *
+ * <p>All positions return the same fixed biome, temperature, and humidity —
+ * no Perlin noise is used. This makes terrain generation fast and ensures
+ * the nether/sky biomes are uniform throughout.</p>
+ */
 public class WorldChunkManagerHell extends WorldChunkManager {
-	private BiomeGenBase biomeHell;
-	private double temperatureHell;
-	private double humidityHell;
+    private final BiomeGenBase fixedBiome;
+    private final double temperatureHell;
+    private final double humidityHell;
 
-	public WorldChunkManagerHell(BiomeGenBase biomeGenBase1, double d2, double d4) {
-		this.biomeHell = biomeGenBase1;
-		this.temperatureHell = d2;
-		this.humidityHell = d4;
-	}
+    public WorldChunkManagerHell(BiomeGenBase biome, double temperature, double humidity) {
+        this.fixedBiome = biome;
+        this.temperatureHell = temperature;
+        this.humidityHell = humidity;
+    }
 
-	public BiomeGenBase getBiomeGenAtChunkCoord(ChunkCoordIntPair chunkCoordIntPair1) {
-		return this.biomeHell;
-	}
+    @Override
+    public BiomeGenBase getBiomeGenAtChunkCoord(ChunkCoordIntPair chunk) {
+        return this.fixedBiome;
+    }
 
-	public BiomeGenBase getBiomeGenAt(int i1, int i2) {
-		return this.biomeHell;
-	}
+    @Override
+    public BiomeGenBase getBiomeGenAt(int x, int z) {
+        return this.fixedBiome;
+    }
 
-	public double getTemperature(int i1, int i2) {
-		return this.temperatureHell;
-	}
+    @Override
+    public double getTemperature(int x, int z) {
+        return this.temperatureHell;
+    }
 
-	public BiomeGenBase[] getBiomesForGeneration(int i1, int i2, int i3, int i4) {
-		this.generatedBiomes = this.loadBlockGeneratorData(this.generatedBiomes, i1, i2, i3, i4);
-		return this.generatedBiomes;
-	}
+    @Override
+    public BiomeGenBase[] getBiomesForGeneration(int x, int z, int width, int length) {
+        this.generatedBiomes = this.loadBlockGeneratorData(this.generatedBiomes, x, z, width, length);
+        return this.generatedBiomes;
+    }
 
-	public double[] getTemperatures(double[] d1, int i2, int i3, int i4, int i5) {
-		if(d1 == null || d1.length < i4 * i5) {
-			d1 = new double[i4 * i5];
-		}
+    @Override
+    public double[] getTemperatures(double[] buffer, int x, int z, int width, int stride) {
+        int size = stride * stride;
+        if (buffer == null || buffer.length < size) {
+            buffer = new double[size];
+        }
+        Arrays.fill(buffer, 0, size, this.temperatureHell);
+        return buffer;
+    }
 
-		Arrays.fill(d1, 0, i4 * i5, this.temperatureHell);
-		return d1;
-	}
+    @Override
+    public BiomeGenBase[] loadBlockGeneratorData(BiomeGenBase[] biomeArray,
+            int x, int z, int width, int length) {
+        int size = width * length;
+        if (biomeArray == null || biomeArray.length < size) {
+            biomeArray = new BiomeGenBase[size];
+        }
 
-	public BiomeGenBase[] loadBlockGeneratorData(BiomeGenBase[] biomeGenBase1, int i2, int i3, int i4, int i5) {
-		if(biomeGenBase1 == null || biomeGenBase1.length < i4 * i5) {
-			biomeGenBase1 = new BiomeGenBase[i4 * i5];
-		}
+        if (this.temperature == null || this.temperature.length < size) {
+            this.temperature = new double[size];
+            this.humidity = new double[size];
+        }
 
-		if(this.temperature == null || this.temperature.length < i4 * i5) {
-			this.temperature = new double[i4 * i5];
-			this.humidity = new double[i4 * i5];
-		}
-
-		Arrays.fill(biomeGenBase1, 0, i4 * i5, this.biomeHell);
-		Arrays.fill(this.humidity, 0, i4 * i5, this.humidityHell);
-		Arrays.fill(this.temperature, 0, i4 * i5, this.temperatureHell);
-		return biomeGenBase1;
-	}
+        Arrays.fill(biomeArray, 0, size, this.fixedBiome);
+        Arrays.fill(this.humidity,     0, size, this.humidityHell);
+        Arrays.fill(this.temperature, 0, size, this.temperatureHell);
+        return biomeArray;
+    }
 }

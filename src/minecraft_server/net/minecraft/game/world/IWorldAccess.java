@@ -1,29 +1,93 @@
 package net.minecraft.game.world;
 
-import net.minecraft.game.entity.Entity;
-import net.minecraft.game.entity.player.EntityPlayer;
-import net.minecraft.game.world.block.tileentity.TileEntity;
-
+/**
+ * Callback interface through which the server notifies the client of world events.
+ *
+ * <p>Each method corresponds to a specific world-change event that the client
+ * must handle — updating renderers, playing sounds, spawning particles, etc.
+ * The client registers its implementation via
+ * {@link World#addWorldAccess(IWorldAccess)}.</p>
+ */
 public interface IWorldAccess {
-	void markBlockNeedsUpdate(int i1, int i2, int i3);
+    /**
+     * Notifies the client that a block has changed at the given coordinates,
+     * invalidating its cached render data.
+     */
+    void markBlockNeedsUpdate(int x, int y, int z);
 
-	void markBlockRangeNeedsUpdate(int i1, int i2, int i3, int i4, int i5, int i6);
+    /**
+     * Notifies the client that a range of blocks has changed. Used for
+     * batch updates (e.g. large terrain modifications).
+     */
+    void markBlockRangeNeedsUpdate(int x1, int y1, int z1, int x2, int y2, int z2);
 
-	void playSound(String string1, double d2, double d4, double d6, float f8, float f9);
+    /**
+     * Plays a positional sound at the given world coordinates.
+     *
+     * @param name  sound identifier (e.g. "random.click")
+     * @param x     world x
+     * @param y     world y
+     * @param z     world z
+     * @param volume  0.0–1.0
+     * @param pitch   0.5–2.0
+     */
+    void playSound(String name, double x, double y, double z, float volume, float pitch);
 
-	void spawnParticle(String string1, double d2, double d4, double d6, double d8, double d10, double d12);
+    /**
+     * Spawns a named particle effect at the given coordinates.
+     *
+     * @param name     particle identifier
+     * @param x1-x3    position
+     * @param y1-y3    velocity (displacement per tick)
+     */
+    void spawnParticle(String name, double x1, double y1, double z1, double x2, double y2, double x3);
 
-	void obtainEntitySkin(Entity entity1);
+    /**
+     * Tells the client to start tracking the given entity's position for
+     * rendering purposes (entity bounding-box updates).
+     */
+    void obtainEntitySkin(net.minecraft.game.entity.Entity entity);
 
-	void releaseEntitySkin(Entity entity1);
+    /**
+     * Tells the client to stop tracking the given entity.
+     */
+    void releaseEntitySkin(net.minecraft.game.entity.Entity entity);
 
-	void updateAllRenderers();
+    /**
+     * Requests a full re-render of all world renderers.
+     */
+    void updateAllRenderers();
 
-	void playRecord(String string1, int i2, int i3, int i4);
+    /**
+     * Plays a record (music disc) at the given block position.
+     *
+     * @param recordName sound event name, or null to stop the current record
+     * @param x         block x
+     * @param y         block y
+     * @param z         block z
+     */
+    void playRecord(String recordName, int x, int y, int z);
 
-	void doNothingWithTileEntity(int i1, int i2, int i3, TileEntity tileEntity4);
+    /**
+     * Called when a tile entity is removed or invalidated.
+     */
+    void doNothingWithTileEntity(int x, int y, int z, net.minecraft.game.world.block.tileentity.TileEntity tileEntity);
 
-	void playAuxSFX(EntityPlayer entityPlayer1, int i2, int i3, int i4, int i5, int i6);
-	
-	void showString(String string);
+    /**
+     * Plays a GUI aux-effect (e.g. anvil break, enchantment sparkle, furnace spark).
+     *
+     * @param player    the player who triggered the effect
+     * @param effectId  which effect to play (see SFX constants)
+     * @param x         world x
+     * @param y         world y
+     * @param z         world z
+     * @param a         extra data word (effect-specific)
+     * @param b         extra data word
+     */
+    void playAuxSFX(net.minecraft.game.entity.player.EntityPlayer player, int effectId, int x, int y, int z, int a);
+
+    /**
+     * Sets the overlay title string for titles set by the world provider.
+     */
+    void showString(String text);
 }

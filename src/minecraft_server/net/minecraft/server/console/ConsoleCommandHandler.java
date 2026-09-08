@@ -269,14 +269,14 @@ public class ConsoleCommandHandler {
 											if("add".equalsIgnoreCase(string16)) {
 												for(i17 = 0; i17 < this.minecraftServer.worldMngr.length; ++i17) {
 													worldServer19 = this.minecraftServer.worldMngr[i17];
-													worldServer19.s_func_32005_b(worldServer19.getWorldTime() + (long)i8);
+													worldServer19.shiftScheduledTimes(worldServer19.getWorldTime() + (long)i8);
 												}
 
 												this.sendNoticeToOps(username, "Added " + i8 + " to time");
 											} else if("set".equalsIgnoreCase(string16)) {
 												for(i17 = 0; i17 < this.minecraftServer.worldMngr.length; ++i17) {
 													worldServer19 = this.minecraftServer.worldMngr[i17];
-													worldServer19.s_func_32005_b((long)i8);
+													worldServer19.shiftScheduledTimes((long)i8);
 												}
 
 												this.sendNoticeToOps(username, "Set time to " + i8);

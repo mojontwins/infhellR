@@ -46,26 +46,27 @@ public final class SkylightTracker {
 	 * @return the computed subtraction in the range 0–11
 	 */
 	int calculateSkylightSubtracted(float renderPartialTick) {
-		float f2 = this.world.getCelestialAngle(renderPartialTick);
-		float f3 = 1.0F - (MathHelper.cos(f2 * (float)Math.PI * 2.0F) * 2.0F + 0.5F);
-		if(f3 < 0.0F) {
-			f3 = 0.0F;
+		float celestialAngle = this.world.getCelestialAngle(renderPartialTick);
+		float lightFactor = 1.0F - (MathHelper.cos(celestialAngle * (float)Math.PI * 2.0F) * 2.0F + 0.5F);
+		if(lightFactor < 0.0F) {
+			lightFactor = 0.0F;
 		}
 
-		if(f3 > 1.0F) {
-			f3 = 1.0F;
+		if(lightFactor > 1.0F) {
+			lightFactor = 1.0F;
 		}
 
-		f3 = 1.0F - f3;
+		lightFactor = 1.0F - lightFactor;
+		// Rain darkens the day (snow does not); rain also weakens thunder's dimming effect.
 		float rainStrength = this.world.getRainStrength(renderPartialTick) - this.world.getSnowStrength(renderPartialTick);
 		if(rainStrength < 0.0F) rainStrength = 0.0F;
-		f3 = (float)((double)f3 * (1.0D - (double)(rainStrength * 5F) / 16D));
+		lightFactor = (float)((double)lightFactor * (1.0D - (double)(rainStrength * 5F) / 16D));
 		float factor = 6F - 3 * rainStrength;
-		f3 = (float)((double)f3 * (1.0D - (double)(this.world.getWeightedThunderStrength(renderPartialTick) * factor) / 16D));
+		lightFactor = (float)((double)lightFactor * (1.0D - (double)(this.world.getWeightedThunderStrength(renderPartialTick) * factor) / 16D));
 
-		f3 = 1.0F - f3;
+		lightFactor = 1.0F - lightFactor;
 
-		return (int)(f3 * 11.0F);
+		return (int)(lightFactor * 11.0F);
 	}
 
 	/**
@@ -75,9 +76,9 @@ public final class SkylightTracker {
 	 * @return {@code true} if the stored value changed as a result of this call
 	 */
 	boolean updateSkylightSubtracted(float renderPartialTick) {
-		int i1 = this.calculateSkylightSubtracted(renderPartialTick);
-		if(i1 != this.skylightSubtracted) {
-			this.skylightSubtracted = i1;
+		int newSkylightSubtracted = this.calculateSkylightSubtracted(renderPartialTick);
+		if(newSkylightSubtracted != this.skylightSubtracted) {
+			this.skylightSubtracted = newSkylightSubtracted;
 			return true;
 		}
 

@@ -44,6 +44,8 @@ public class Explosion {
 		float originalSize = this.explosionSize;
 		int gridSize = 16;
 
+		// Trace rays outward from the centre, sampled across the faces of a 16x16x16 cube shell;
+		// the distance each ray travels before running out of force is the explosion's reach.
 		for(int ix = 0; ix < gridSize; ++ix) {
 			for(int iy = 0; iy < gridSize; ++iy) {
 				for(int iz = 0; iz < gridSize; ++iz) {
@@ -92,6 +94,8 @@ public class Explosion {
 		List<Entity> entities = this.world.getEntitiesWithinAABBExcludingEntity(this.exploder, AxisAlignedBB.getBoundingBoxFromPool((double)minX, (double)minY, (double)minZ, (double)maxX, (double)maxY, (double)maxZ));
 		Vec3D center = Vec3D.createVector(this.explosionX, this.explosionY, this.explosionZ);
 
+		// Damage and knock back every entity inside the blast, weighted by distance and the entity's
+		// degree of exposure (block density) to the blast centre.
 		for(int i = 0; i < entities.size(); ++i) {
 			Entity entity = (Entity)entities.get(i);
 			double dist = entity.getDistance(this.explosionX, this.explosionY, this.explosionZ) / (double)this.explosionSize;
@@ -116,6 +120,7 @@ public class Explosion {
 		ArrayList<ChunkPosition> blocks = new ArrayList<ChunkPosition>();
 		blocks.addAll(this.destroyedBlockPositions);
 		if(this.isFlaming) {
+			// Flaming explosions ignite roughly a third of the surfaces they destroyed.
 			for(int i = blocks.size() - 1; i >= 0; --i) {
 				ChunkPosition pos = (ChunkPosition)blocks.get(i);
 				int x = pos.x;

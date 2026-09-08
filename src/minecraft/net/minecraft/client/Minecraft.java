@@ -2075,7 +2075,7 @@ public abstract class Minecraft implements Runnable {
 			if(!this.isRemote()) {
 				// Single-player: retrieve or create the singleplayer player.
 				if(player == null) {
-					this.thePlayer = (EntityPlayerSP)w.func_4085_a(EntityPlayerSP.class);
+					this.thePlayer = (EntityPlayerSP)w.getEntityByClass(EntityPlayerSP.class);
 				}
 			} else if(this.thePlayer != null) {
 				// Multiplayer: detach and re-spawn the player in the new world.

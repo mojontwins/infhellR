@@ -42,7 +42,7 @@ public class BlockLeaves extends BlockLeavesBase {
 	public static int[] fixedColors = { 
 			0x5BFB3B, // Normal neon green
 			0xF6F535, // Yellower for arid biomes
-			0x9BE658, // Average normal / yellowish, dying NORMALs
+			0x9BE658, // Average normal / yellowish, dying Oaks
 			0x5BFB3B, 0x5BFB3B, 0x5BFB3B, 0x5BFB3B, 
 			0x5BFB3B // This will NEVER be used, it means "Seasonal
 					 // colorizer"

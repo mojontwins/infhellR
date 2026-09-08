@@ -1,7 +1,6 @@
 package net.minecraft.game.world;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import net.minecraft.game.MathHelper;

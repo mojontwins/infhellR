@@ -9,6 +9,7 @@ import net.minecraft.game.world.World;
 import net.minecraft.game.command.worldedit.CommandCopy;
 import net.minecraft.game.command.worldedit.CommandCorner1;
 import net.minecraft.game.command.worldedit.CommandCorner2;
+import net.minecraft.game.command.worldedit.CommandClear;
 import net.minecraft.game.command.worldedit.CommandCut;
 import net.minecraft.game.command.worldedit.CommandExport;
 import net.minecraft.game.command.worldedit.CommandFill;
@@ -18,7 +19,6 @@ import net.minecraft.game.command.worldedit.CommandRotateYCCW;
 import net.minecraft.game.command.worldedit.CommandRotateYCW;
 import net.minecraft.game.command.worldedit.CommandUndo;
 import net.minecraft.game.command.worldedit.CommandWand;
-import net.minecraft.game.command.worldedit.CommandClear;
 
 public class WorldEdit {
 	public static BlockPos corner1 = new BlockPos();

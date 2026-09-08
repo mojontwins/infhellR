@@ -1,104 +1,149 @@
 package net.minecraft.game.world;
 
-import net.minecraft.game.world.chunk.ChunkProviderSky;
-import net.minecraft.game.world.chunk.IChunkProvider;
-import net.minecraft.game.world.terrain.ChunkProviderGenerate;
-
+/**
+ * Defines a world-generation preset type (default, flat, sky, cold, etc.).
+ *
+ * <p>Each type controls:</p>
+ * <ul>
+ *   <li>Which {@link net.minecraft.game.world.chunk.ChunkProviderGenerate} variant to use</li>
+ *   <li>Sea level and spawn height</li>
+ *   <li>Whether void particles are shown</li>
+ *   <li>Whether the world is "versioned" (stores a generator version in the save)</li>
+ * </ul>
+ */
 public class WorldType {
-	public static final WorldType[] worldTypes = new WorldType[16];
-	public static final WorldType DEFAULT = (new WorldType(0, "default", 1)).setVersioned();
-	public static final WorldType FLAT = (new WorldType(1, "flat")).setCanBeCreated(false);
-	public static final WorldType SKY = (new WorldType(3, "sky", 1)).setVersioned();
-	public static final WorldType COLD = (new WorldType(2, "cold", 1)).setVersioned();
+    private static final int MAX_TYPES = 16;
+    public static final WorldType[] worldTypes = new WorldType[MAX_TYPES];
 
-	private final String worldType;
-	private final int generatorVersion;
-	private boolean canBeCreated;
-	private boolean versioned;
+    public static final WorldType DEFAULT = (new WorldType(0, "default", 1)).setVersioned();
+    public static final WorldType FLAT    = (new WorldType(1, "flat")).setCanBeCreated(false);
+    public static final WorldType COLD   = (new WorldType(2, "cold", 1)).setVersioned();
+    public static final WorldType SKY    = (new WorldType(3, "sky", 1)).setVersioned();
 
-	protected WorldType(int par1, String par2Str) {
-		this(par1, par2Str, 0);
-	}
+    private final String worldTypeName;
+    private final int generatorVersion;
+    private boolean canBeCreated;
+    private boolean versioned;
 
-	protected WorldType(int par1, String par2Str, int par3) {
-		this.worldType = par2Str;
-		this.generatorVersion = par3;
-		this.canBeCreated = true;
-		worldTypes[par1] = this;
-	}
+    protected WorldType(int id, String name) {
+        this(id, name, 0);
+    }
 
-	public String toString() {
-		return this.worldType;
-	}
+    protected WorldType(int id, String name, int generatorVersion) {
+        this.worldTypeName = name;
+        this.generatorVersion = generatorVersion;
+        this.canBeCreated = true;
+        worldTypes[id] = this;
+    }
 
-	public String getTranslateName() {
-		return "generator." + this.worldType;
-	}
+    @Override
+    public String toString() {
+        return this.worldTypeName;
+    }
 
-	public int getGeneratorVersion() {
-		return this.generatorVersion;
-	}
+    /** @return the lang key for this generator type, e.g. "generator.flat" */
+    public String getTranslateName() {
+        return "generator." + this.worldTypeName;
+    }
 
-	private WorldType setCanBeCreated(boolean par1) {
-		this.canBeCreated = par1;
-		return this;
-	}
+    /** @return the generator version stored in the world save */
+    public int getGeneratorVersion() {
+        return this.generatorVersion;
+    }
 
-	public boolean getCanBeCreated() {
-		return this.canBeCreated;
-	}
+    private WorldType setCanBeCreated(boolean canCreate) {
+        this.canBeCreated = canCreate;
+        return this;
+    }
 
-	private WorldType setVersioned() {
-		this.versioned = true;
-		return this;
-	}
+    /** @return true if this type can be selected when creating a new world */
+    public boolean getCanBeCreated() {
+        return this.canBeCreated;
+    }
 
-	public boolean isVersioned() {
-		return this.versioned;
-	}
+    private WorldType setVersioned() {
+        this.versioned = true;
+        return this;
+    }
 
-	public static WorldType parseWorldType(String par0Str) {
-		for(int var1 = 0; var1 < worldTypes.length; ++var1) {
-			if(worldTypes[var1] != null && worldTypes[var1].worldType.equalsIgnoreCase(par0Str)) {
-				return worldTypes[var1];
-			}
-		}
+    /** @return true if the world save stores a generator version */
+    public boolean isVersioned() {
+        return this.versioned;
+    }
 
-		return null;
-	}
+    /**
+     * Looks up a world type by its string name.
+     *
+     * @param name the generator name (e.g. "default", "flat")
+     * @return the matching WorldType, or null
+     */
+    public static WorldType parseWorldType(String name) {
+        for (int i = 0; i < worldTypes.length; ++i) {
+            if (worldTypes[i] != null && worldTypes[i].worldTypeName.equalsIgnoreCase(name)) {
+                return worldTypes[i];
+            }
+        }
+        return null;
+    }
 
-	public WorldChunkManager getChunkManager(World var1) {
-		return (WorldChunkManager)(this == SKY ? new WorldChunkManager(var1) : new WorldChunkManager(var1));
-	}
+    /**
+     * Returns the {@link WorldChunkManager} for this generator type.
+     * Currently all types use the same manager class.
+     */
+    public WorldChunkManager getChunkManager(World world) {
+        return new WorldChunkManager(world);
+    }
 
-	public IChunkProvider getChunkGenerator(World var1) {
-		return (IChunkProvider)(this == SKY ? 
-				new ChunkProviderSky(var1, var1.getRandomSeed(), var1.getWorldInfo().isMapFeaturesEnabled(), var1.getWorldInfo().getGenerateCities()) 
-			: 
-				new ChunkProviderGenerate(var1, var1.getRandomSeed(), var1.getWorldInfo().isMapFeaturesEnabled(), var1.getWorldInfo().getGenerateCities())
-		);
-	}
+    /**
+     * Returns the appropriate chunk generator for this world type.
+     *
+     * @param world the world being generated
+     */
+    public net.minecraft.game.world.chunk.IChunkProvider getChunkGenerator(World world) {
+        if (this == SKY) {
+            return new net.minecraft.game.world.chunk.ChunkProviderSky(
+                    world, world.getRandomSeed(),
+                    world.getWorldInfo().isMapFeaturesEnabled(),
+                    world.getWorldInfo().getGenerateCities());
+        }
+        return new net.minecraft.game.world.terrain.ChunkProviderGenerate(
+                world, world.getRandomSeed(),
+                world.getWorldInfo().isMapFeaturesEnabled(),
+                world.getWorldInfo().getGenerateCities());
+    }
 
-	public int getSeaLevel(World var1) {
-		return this.getMinimumSpawnHeight(var1);
-	}
+    /** @return sea level for this generator type */
+    public int getSeaLevel(World world) {
+        return this.getMinimumSpawnHeight(world);
+    }
 
-	public int getMinimumSpawnHeight(World world) {
-		return this == FLAT ? 4 : 64;
-	}
+    /** @return minimum y-level for player/entity spawning in this generator */
+    public int getMinimumSpawnHeight(World world) {
+        return this == FLAT ? 4 : 64;
+    }
 
-	public double getHorizon(World world) {
-		return this == FLAT ? 0.0D : 63.0D;
-	}
+    /**
+     * @return the y-level of the horizon/dividing line between the world and the void.
+     *         For the default world this is 63 (sea level).
+     */
+    public double getHorizon(World world) {
+        return this == FLAT ? 0.0D : 63.0D;
+    }
 
-	public boolean hasVoidParticles(boolean var1) {
-		return this != FLAT && !var1;
-	}
+    /**
+     * @param hasNoSky true when rendering in the Nether
+     * @return true if void particles should be rendered
+     */
+    public boolean hasVoidParticles(boolean hasNoSky) {
+        return this != FLAT && !hasNoSky;
+    }
 
-	public double voidFadeMagnitude() {
-		return this == FLAT ? 1.0D : 8.0D / 256D;
-	}
+    /** @return the rate at which the void fog fades in (1.0 = instant, smaller = gradual) */
+    public double voidFadeMagnitude() {
+        return this == FLAT ? 1.0D : 8.0D / 256D;
+    }
 
-	public void onGUICreateWorldPress() {
-	}
+    /** Hook called when the "Create New World" GUI is first opened (unused by default) */
+    public void onGUICreateWorldPress() {
+    }
 }

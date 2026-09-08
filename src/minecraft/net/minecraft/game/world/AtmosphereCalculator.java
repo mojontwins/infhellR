@@ -1,9 +1,8 @@
 package net.minecraft.game.world;
 
 import net.minecraft.game.MathHelper;
-import net.minecraft.game.entity.Entity;
-import net.minecraft.game.physics.Vec3D;
 import net.minecraft.game.Seasons;
+import net.minecraft.game.physics.Vec3D;
 
 /**
  * Static helpers that compute the world's atmosphere: the sky, fog and cloud colours plus the
@@ -33,19 +32,19 @@ public final class AtmosphereCalculator {
 	 */
 	public static float getSunBrightness(World world, float partialTick) {
 		float celestialAngle = world.getCelestialAngle(partialTick);
-		float f3 = 1.0F - (MathHelper.cos(celestialAngle * (float)Math.PI * 2.0F) * 2.0F + 0.2F);
-		if(f3 < 0.0F) {
-			f3 = 0.0F;
+		float brightness = 1.0F - (MathHelper.cos(celestialAngle * (float)Math.PI * 2.0F) * 2.0F + 0.2F);
+		if(brightness < 0.0F) {
+			brightness = 0.0F;
 		}
 
-		if(f3 > 1.0F) {
-			f3 = 1.0F;
+		if(brightness > 1.0F) {
+			brightness = 1.0F;
 		}
 
-		f3 = 1.0F - f3;
-		f3 = (float)((double)f3 * (1.0D - (double)(world.getRainStrength(partialTick) * 5.0F) / 16.0D));
-		f3 = (float)((double)f3 * (1.0D - (double)(world.getWeightedThunderStrength(partialTick) * 5.0F) / 16.0D));
-		return f3 * 0.8F + 0.2F;
+		brightness = 1.0F - brightness;
+		brightness = (float)((double)brightness * (1.0D - (double)(world.getRainStrength(partialTick) * 5.0F) / 16.0D));
+		brightness = (float)((double)brightness * (1.0D - (double)(world.getWeightedThunderStrength(partialTick) * 5.0F) / 16.0D));
+		return brightness * 0.8F + 0.2F;
 	}
 
 	/**
@@ -81,11 +80,11 @@ public final class AtmosphereCalculator {
 		r *= celestialLight;
 		g *= celestialLight;
 		b *= celestialLight;
-		float atenuationStrength = world.getRainStrength(renderPartialTick) + world.getWeightedThunderStrength(renderPartialTick) - world.getSnowStrength(renderPartialTick);
-		if(atenuationStrength >= 0.0F) {
-			if(atenuationStrength >= 1.0F) atenuationStrength = 1.0F;
+		float attenuationStrength = world.getRainStrength(renderPartialTick) + world.getWeightedThunderStrength(renderPartialTick) - world.getSnowStrength(renderPartialTick);
+		if(attenuationStrength >= 0.0F) {
+			if(attenuationStrength >= 1.0F) attenuationStrength = 1.0F;
 			float skyColorComponent = (r * 0.3F + g * 0.59F + b * 0.11F) * 0.2F;
-			float skyColorAtenuation = 1.0F - atenuationStrength * 0.75F;
+			float skyColorAtenuation = 1.0F - attenuationStrength * 0.75F;
 			r = r * skyColorAtenuation + skyColorComponent * (1.0F - skyColorAtenuation);
 			g = g * skyColorAtenuation + skyColorComponent * (1.0F - skyColorAtenuation);
 			b = b * skyColorAtenuation + skyColorComponent * (1.0F - skyColorAtenuation);
@@ -116,42 +115,43 @@ public final class AtmosphereCalculator {
 	 */
 	public static Vec3D getCloudColor(World world, float partialTick) {
 		float celestialAngle = world.getCelestialAngle(partialTick);
-		float f3 = MathHelper.cos(celestialAngle * (float)Math.PI * 2.0F) * 2.0F + 0.5F;
-		if(f3 < 0.0F) {
-			f3 = 0.0F;
+		float daylightFactor = MathHelper.cos(celestialAngle * (float)Math.PI * 2.0F) * 2.0F + 0.5F;
+		if(daylightFactor < 0.0F) {
+			daylightFactor = 0.0F;
 		}
 
-		if(f3 > 1.0F) {
-			f3 = 1.0F;
+		if(daylightFactor > 1.0F) {
+			daylightFactor = 1.0F;
 		}
 
-		float f4 = (float)(CLOUD_COLOUR >> 16 & 255L) / 255.0F;
-		float f5 = (float)(CLOUD_COLOUR >> 8 & 255L) / 255.0F;
-		float f6 = (float)(CLOUD_COLOUR & 255L) / 255.0F;
-		float f7 = world.getRainStrength(partialTick);
-		float f8;
-		float f9;
-		if(f7 > 0.0F) {
-			f8 = (f4 * 0.3F + f5 * 0.59F + f6 * 0.11F) * 0.6F;
-			f9 = 1.0F - f7 * 0.95F;
-			f4 = f4 * f9 + f8 * (1.0F - f9);
-			f5 = f5 * f9 + f8 * (1.0F - f9);
-			f6 = f6 * f9 + f8 * (1.0F - f9);
+		float r = (float)(CLOUD_COLOUR >> 16 & 255L) / 255.0F;
+		float g = (float)(CLOUD_COLOUR >> 8 & 255L) / 255.0F;
+		float b = (float)(CLOUD_COLOUR & 255L) / 255.0F;
+		float rainStrength = world.getRainStrength(partialTick);
+		float thunderStrength;
+		float attenuation;
+		if(rainStrength > 0.0F) {
+			thunderStrength = (r * 0.3F + g * 0.59F + b * 0.11F) * 0.6F;
+			attenuation = 1.0F - rainStrength * 0.95F;
+			r = r * attenuation + thunderStrength * (1.0F - attenuation);
+			g = g * attenuation + thunderStrength * (1.0F - attenuation);
+			b = b * attenuation + thunderStrength * (1.0F - attenuation);
 		}
 
-		f4 *= f3 * 0.9F + 0.1F;
-		f5 *= f3 * 0.9F + 0.1F;
-		f6 *= f3 * 0.85F + 0.15F;
-		f8 = world.getWeightedThunderStrength(partialTick);
-		if(f8 > 0.0F) {
-			f9 = (f4 * 0.3F + f5 * 0.59F + f6 * 0.11F) * 0.2F;
-			float f10 = 1.0F - f8 * 0.95F;
-			f4 = f4 * f10 + f9 * (1.0F - f10);
-			f5 = f5 * f10 + f9 * (1.0F - f10);
-			f6 = f6 * f10 + f9 * (1.0F - f10);
+		// Clouds dim with the daylight level (blue channel slightly more).
+		r *= daylightFactor * 0.9F + 0.1F;
+		g *= daylightFactor * 0.9F + 0.1F;
+		b *= daylightFactor * 0.85F + 0.15F;
+		thunderStrength = world.getWeightedThunderStrength(partialTick);
+		if(thunderStrength > 0.0F) {
+			attenuation = (r * 0.3F + g * 0.59F + b * 0.11F) * 0.2F;
+			float thunderAttenuation = 1.0F - thunderStrength * 0.95F;
+			r = r * thunderAttenuation + attenuation * (1.0F - thunderAttenuation);
+			g = g * thunderAttenuation + attenuation * (1.0F - thunderAttenuation);
+			b = b * thunderAttenuation + attenuation * (1.0F - thunderAttenuation);
 		}
 
-		return Vec3D.createVector((double)f4, (double)f5, (double)f6);
+		return Vec3D.createVector((double)r, (double)g, (double)b);
 	}
 
 	/**
@@ -177,15 +177,15 @@ public final class AtmosphereCalculator {
 	 */
 	public static float getStarBrightness(World world, float partialTick) {
 		float celestialAngle = world.getCelestialAngle(partialTick);
-		float f3 = 1.0F - (MathHelper.cos(celestialAngle * (float)Math.PI * 2.0F) * 2.0F + 0.75F);
-		if(f3 < 0.0F) {
-			f3 = 0.0F;
+		float brightness = 1.0F - (MathHelper.cos(celestialAngle * (float)Math.PI * 2.0F) * 2.0F + 0.75F);
+		if(brightness < 0.0F) {
+			brightness = 0.0F;
 		}
 
-		if(f3 > 1.0F) {
-			f3 = 1.0F;
+		if(brightness > 1.0F) {
+			brightness = 1.0F;
 		}
 
-		return f3 * f3 * 0.5F;
+		return brightness * brightness * 0.5F;
 	}
 }

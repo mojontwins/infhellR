@@ -5,10 +5,6 @@ import net.minecraft.game.world.terrain.generate.tree.WorldGenTrees;
 import net.minecraft.game.world.terrain.generate.WorldGenWillow;
 import net.minecraft.game.world.terrain.generate.WorldGenerator;
 
-
-
-
-
 public class BiomeGenWillowForest extends BiomeGenForest {
 
 	public BiomeGenWillowForest() {

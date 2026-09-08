@@ -10,6 +10,7 @@ public class GameSettingsValues {
 	public static boolean viewBobbing = true;
 	public static boolean anaglyph = false;
 	public static boolean advancedOpengl = false;
+	public static boolean useVbo = false;
 	public static int limitFramerate = 1;
 	public static boolean fancyGraphics = false;
 	public static boolean ambientOcclusion = false;

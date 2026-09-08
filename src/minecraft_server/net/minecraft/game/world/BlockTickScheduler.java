@@ -15,8 +15,8 @@ import net.minecraft.game.world.block.Block;
  * <p>Entries are stored in {@link #scheduledTickTreeSet} (ordered by scheduled time, then insertion
  * order) and mirrored in {@link #scheduledTickSet}; the two must stay in sync, verified at the top
  * of {@link #tickUpdates}. Extracted from {@link World} in the refactor; {@code World} keeps its
- * public {@code scheduleBlockUpdate}/{@code TickUpdates}/{@code s_func_32005_b} entry points as thin
- * delegates, so external callers — including {@code WorldClient}'s client-side overrides, which are
+ * public {@code scheduleBlockUpdate}/{@code TickUpdates}/{@code shiftScheduledTimes} entry points as
+ * thin delegates, so external callers — including {@code WorldClient}'s client-side overrides, which are
  * no-ops because block ticks arrive from the server as packets — are unchanged.
  */
 public final class BlockTickScheduler {
@@ -40,25 +40,27 @@ public final class BlockTickScheduler {
 	 * When {@link World#scheduledUpdatesAreImmediate} is set the tick is fired instantly instead.
 	 */
 	void scheduleBlockUpdate(int x, int y, int z, int blockID, int tickRate) {
-		NextTickListEntry nextTickListEntry6 = new NextTickListEntry(x, y, z, blockID);
-		byte b7 = 8;
+		NextTickListEntry entry = new NextTickListEntry(x, y, z, blockID);
+		byte updateRadius = 8;
 		if(this.world.scheduledUpdatesAreImmediate) {
-			if(this.world.checkChunksExist(nextTickListEntry6.xCoord - b7, nextTickListEntry6.yCoord - b7, nextTickListEntry6.zCoord - b7, nextTickListEntry6.xCoord + b7, nextTickListEntry6.yCoord + b7, nextTickListEntry6.zCoord + b7)) {
-				int i8 = this.world.getBlockId(nextTickListEntry6.xCoord, nextTickListEntry6.yCoord, nextTickListEntry6.zCoord);
-				if(i8 == nextTickListEntry6.blockID && i8 > 0) {
-					Block.blocksList[i8].updateTick(this.world, nextTickListEntry6.xCoord, nextTickListEntry6.yCoord, nextTickListEntry6.zCoord, this.world.rand);
+			// Immediate mode (debug/world-edit): fire the tick right away instead of queueing it.
+			if(this.world.checkChunksExist(entry.xCoord - updateRadius, entry.yCoord - updateRadius, entry.zCoord - updateRadius, entry.xCoord + updateRadius, entry.yCoord + updateRadius, entry.zCoord + updateRadius)) {
+				int existingBlockId = this.world.getBlockId(entry.xCoord, entry.yCoord, entry.zCoord);
+				if(existingBlockId == entry.blockID && existingBlockId > 0) {
+					Block.blocksList[existingBlockId].updateTick(this.world, entry.xCoord, entry.yCoord, entry.zCoord, this.world.rand);
 				}
 			}
 
 		} else {
-			if(this.world.checkChunksExist(x - b7, y - b7, z - b7, x + b7, y + b7, z + b7)) {
+			// Normal mode: enqueue the tick, due tickRate ticks from the current world time.
+			if(this.world.checkChunksExist(x - updateRadius, y - updateRadius, z - updateRadius, x + updateRadius, y + updateRadius, z + updateRadius)) {
 				if(blockID > 0) {
-					nextTickListEntry6.setScheduledTime((long)tickRate + this.world.worldInfo.getWorldTime());
+					entry.setScheduledTime((long)tickRate + this.world.worldInfo.getWorldTime());
 				}
 
-				if(!this.scheduledTickSet.contains(nextTickListEntry6)) {
-					this.scheduledTickSet.add(nextTickListEntry6);
-					this.scheduledTickTreeSet.add(nextTickListEntry6);
+				if(!this.scheduledTickSet.contains(entry)) {
+					this.scheduledTickSet.add(entry);
+					this.scheduledTickTreeSet.add(entry);
 				}
 			}
 
@@ -70,27 +72,29 @@ public final class BlockTickScheduler {
 	 * entry whose scheduled time has not been reached yet. Returns whether more ticks remain queued.
 	 */
 	boolean tickUpdates(boolean processAll) {
-		int i2 = this.scheduledTickTreeSet.size();
-		if(i2 != this.scheduledTickSet.size()) {
+		int dueTickCount = this.scheduledTickTreeSet.size();
+		if(dueTickCount != this.scheduledTickSet.size()) {
 			throw new IllegalStateException("TickNextTick list out of synch");
 		} else {
-			if(i2 > 1000) {
-				i2 = 1000;
+			if(dueTickCount > 1000) {
+				// Never fire more than a fixed batch of ticks per frame.
+				dueTickCount = 1000;
 			}
 
-			for(int i3 = 0; i3 < i2; ++i3) {
-				NextTickListEntry nextTickListEntry4 = (NextTickListEntry)this.scheduledTickTreeSet.first();
-				if(!processAll && nextTickListEntry4.scheduledTime > this.world.worldInfo.getWorldTime()) {
+			for(int i = 0; i < dueTickCount; ++i) {
+				NextTickListEntry entry = (NextTickListEntry)this.scheduledTickTreeSet.first();
+				if(!processAll && entry.scheduledTime > this.world.worldInfo.getWorldTime()) {
+					// Time-ordered: stop at the first tick that has not come due yet.
 					break;
 				}
 
-				this.scheduledTickTreeSet.remove(nextTickListEntry4);
-				this.scheduledTickSet.remove(nextTickListEntry4);
-				byte b5 = 8;
-				if(this.world.checkChunksExist(nextTickListEntry4.xCoord - b5, nextTickListEntry4.yCoord - b5, nextTickListEntry4.zCoord - b5, nextTickListEntry4.xCoord + b5, nextTickListEntry4.yCoord + b5, nextTickListEntry4.zCoord + b5)) {
-					int i6 = this.world.getBlockId(nextTickListEntry4.xCoord, nextTickListEntry4.yCoord, nextTickListEntry4.zCoord);
-					if(i6 == nextTickListEntry4.blockID && i6 > 0) {
-						Block.blocksList[i6].updateTick(this.world, nextTickListEntry4.xCoord, nextTickListEntry4.yCoord, nextTickListEntry4.zCoord, this.world.rand);
+				this.scheduledTickTreeSet.remove(entry);
+				this.scheduledTickSet.remove(entry);
+				byte updateRadius = 8;
+				if(this.world.checkChunksExist(entry.xCoord - updateRadius, entry.yCoord - updateRadius, entry.zCoord - updateRadius, entry.xCoord + updateRadius, entry.yCoord + updateRadius, entry.zCoord + updateRadius)) {
+					int existingBlockId = this.world.getBlockId(entry.xCoord, entry.yCoord, entry.zCoord);
+					if(existingBlockId == entry.blockID && existingBlockId > 0) {
+						Block.blocksList[existingBlockId].updateTick(this.world, entry.xCoord, entry.yCoord, entry.zCoord, this.world.rand);
 					}
 				}
 			}
@@ -106,9 +110,9 @@ public final class BlockTickScheduler {
 	void shiftScheduledTimes(long newWorldTime) {
 		long delta = newWorldTime - this.world.worldInfo.getWorldTime();
 
-		NextTickListEntry nextTickListEntry6;
-		for(Iterator<NextTickListEntry> iterator5 = this.scheduledTickSet.iterator(); iterator5.hasNext(); nextTickListEntry6.scheduledTime += delta) {
-			nextTickListEntry6 = (NextTickListEntry)iterator5.next();
+		NextTickListEntry entry;
+		for(Iterator<NextTickListEntry> iterator = this.scheduledTickSet.iterator(); iterator.hasNext(); entry.scheduledTime += delta) {
+			entry = (NextTickListEntry)iterator.next();
 		}
 
 		this.world.setWorldTime(newWorldTime);
