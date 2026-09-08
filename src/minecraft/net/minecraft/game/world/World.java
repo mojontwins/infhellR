@@ -64,7 +64,6 @@ public class World implements IBlockAccess {
 	private List<TileEntity> entityRemoval;
 	public List<EntityPlayer> playerEntities;
 	public List<Entity> weatherEffects;
-	private long cloudColour;
 	protected int updateLCG;
 	protected final int DIST_HASH_MAGIC;
 	
@@ -130,7 +129,6 @@ public class World implements IBlockAccess {
 		this.entityRemoval = new ArrayList<TileEntity>();
 		this.playerEntities = new ArrayList<EntityPlayer>();
 		this.weatherEffects = new ArrayList<Entity>();
-		this.cloudColour = 16777215L;
 		this.skylightTracker = new SkylightTracker(this);
 		this.updateLCG = (new Random()).nextInt();
 		this.DIST_HASH_MAGIC = 1013904223;
@@ -168,7 +166,6 @@ public class World implements IBlockAccess {
 		this.entityRemoval = new ArrayList<TileEntity>();
 		this.playerEntities = new ArrayList<EntityPlayer>();
 		this.weatherEffects = new ArrayList<Entity>();
-		this.cloudColour = 16777215L;
 		this.skylightTracker = new SkylightTracker(this);
 		this.updateLCG = (new Random()).nextInt();
 		this.DIST_HASH_MAGIC = 1013904223;
@@ -218,7 +215,6 @@ public class World implements IBlockAccess {
 		this.entityRemoval = new ArrayList<TileEntity>();
 		this.playerEntities = new ArrayList<EntityPlayer>();
 		this.weatherEffects = new ArrayList<Entity>();
-		this.cloudColour = 16777215L;
 		this.skylightTracker = new SkylightTracker(this);
 		this.updateLCG = (new Random()).nextInt();
 		this.DIST_HASH_MAGIC = 1013904223;
@@ -1189,95 +1185,11 @@ public List<AxisAlignedBB> getCollidingBoundingBoxes(Entity entity1, AxisAligned
 	}
 
 	public float getSunBrightness(float f1) {
-		//float f2 = this.getCelestialAngle(f1);
-		float f2 = this.getCelestialAngle(f1);
-		float f3 = 1.0F - (MathHelper.cos(f2 * (float)Math.PI * 2.0F) * 2.0F + 0.2F);
-		if(f3 < 0.0F) {
-			f3 = 0.0F;
-		}
-
-		if(f3 > 1.0F) {
-			f3 = 1.0F;
-		}
-
-		f3 = 1.0F - f3;
-		f3 = (float)((double)f3 * (1.0D - (double)(this.getRainStrength(f1) * 5.0F) / 16.0D));
-		f3 = (float)((double)f3 * (1.0D - (double)(this.getWeightedThunderStrength(f1) * 5.0F) / 16.0D));
-		return f3 * 0.8F + 0.2F;
+		return AtmosphereCalculator.getSunBrightness(this, f1);
 	}
 	
 	public Vec3D getSkyColor(Entity entity1, float renderPartialTick) {
-		float celestialAngle = this.getCelestialAngle(renderPartialTick);
-		float celestialLight = MathHelper.cos(celestialAngle * (float)Math.PI * 2.0F) * 2.0F + 0.5F;
-		if(celestialLight < 0.0F) {
-			celestialLight = 0.0F;
-		}
-
-		if(celestialLight > 1.0F) {
-			celestialLight = 1.0F;
-		}
-
-		int skyColor;
-		if(this.colouredAthmospherics) {
-			skyColor = Seasons.getSkyColorForToday();
-		} else {
-			skyColor = 0x88BBFF;
-		}
-		
-		float r = (float)(skyColor >> 16 & 255L) / 255.0F;
-		float g = (float)(skyColor >> 8 & 255L) / 255.0F;
-		float b = (float)(skyColor & 255L) / 255.0F;
-		r *= celestialLight;
-		g *= celestialLight;
-		b *= celestialLight;
-
-		/*
-		float skyColorComponent;
-		float skyColorAtenuation;
-		
-		float rainAtenuation = this.getRainStrength(renderPartialTick);
-		
-		if(rainAtenuation > 0.0F) {
-			skyColorComponent = (r * 0.3F + g * 0.59F + b * 0.11F) * 0.6F;
-			skyColorAtenuation = 1.0F - rainAtenuation * 0.75F;
-			r = r * skyColorAtenuation + skyColorComponent * (1.0F - skyColorAtenuation);
-			g = g * skyColorAtenuation + skyColorComponent * (1.0F - skyColorAtenuation);
-			b = b * skyColorAtenuation + skyColorComponent * (1.0F - skyColorAtenuation);
-		}
-
-		float thunderingAtenuation = this.getWeightedThunderStrength(renderPartialTick);
-		if(thunderingAtenuation > 0.0F) {
-			skyColorComponent = (r * 0.3F + g * 0.59F + b * 0.11F) * 0.2F;
-			skyColorAtenuation = 1.0F - thunderingAtenuation * 0.75F;
-			r = r * skyColorAtenuation + skyColorComponent * (1.0F - skyColorAtenuation);
-			g = g * skyColorAtenuation + skyColorComponent * (1.0F - skyColorAtenuation);
-			b = b * skyColorAtenuation + skyColorComponent * (1.0F - skyColorAtenuation);
-		}
-		*/
-		
-		float atenuationStrength = this.getRainStrength(renderPartialTick) + this.getWeightedThunderStrength(renderPartialTick) - this.getSnowStrength(renderPartialTick);
-		if(atenuationStrength >= 0.0F) {
-			if(atenuationStrength >= 1.0F) atenuationStrength = 1.0F;
-			float skyColorComponent = (r * 0.3F + g * 0.59F + b * 0.11F) * 0.2F;
-			float skyColorAtenuation = 1.0F - atenuationStrength * 0.75F;
-			r = r * skyColorAtenuation + skyColorComponent * (1.0F - skyColorAtenuation);
-			g = g * skyColorAtenuation + skyColorComponent * (1.0F - skyColorAtenuation);
-			b = b * skyColorAtenuation + skyColorComponent * (1.0F - skyColorAtenuation);
-		}		
-
-		if(this.lightningFlash > 0) {
-			float lightning = (float)this.lightningFlash - renderPartialTick;
-			if(lightning > 1.0F) {
-				lightning = 1.0F;
-			}
-
-			lightning *= 0.45F;
-			r = r * (1.0F - lightning) + 0.8F * lightning;
-			g = g * (1.0F - lightning) + 0.8F * lightning;
-			b = b * (1.0F - lightning) + 1.0F * lightning;
-		}
-
-		return Vec3D.createVector((double)r, (double)g, (double)b);
+		return AtmosphereCalculator.getSkyColor(this, renderPartialTick);
 	}
 
 	public float getCelestialAngle(float f1) {
@@ -1285,48 +1197,11 @@ public List<AxisAlignedBB> getCollidingBoundingBoxes(Entity entity1, AxisAligned
 	}
 
 	public Vec3D getCloudColor(float f1) {
-		float f2 = this.getCelestialAngle(f1);
-		float f3 = MathHelper.cos(f2 * (float)Math.PI * 2.0F) * 2.0F + 0.5F;
-		if(f3 < 0.0F) {
-			f3 = 0.0F;
-		}
-
-		if(f3 > 1.0F) {
-			f3 = 1.0F;
-		}
-
-		float f4 = (float)(this.cloudColour >> 16 & 255L) / 255.0F;
-		float f5 = (float)(this.cloudColour >> 8 & 255L) / 255.0F;
-		float f6 = (float)(this.cloudColour & 255L) / 255.0F;
-		float f7 = this.getRainStrength(f1);
-		float f8;
-		float f9;
-		if(f7 > 0.0F) {
-			f8 = (f4 * 0.3F + f5 * 0.59F + f6 * 0.11F) * 0.6F;
-			f9 = 1.0F - f7 * 0.95F;
-			f4 = f4 * f9 + f8 * (1.0F - f9);
-			f5 = f5 * f9 + f8 * (1.0F - f9);
-			f6 = f6 * f9 + f8 * (1.0F - f9);
-		}
-
-		f4 *= f3 * 0.9F + 0.1F;
-		f5 *= f3 * 0.9F + 0.1F;
-		f6 *= f3 * 0.85F + 0.15F;
-		f8 = this.getWeightedThunderStrength(f1);
-		if(f8 > 0.0F) {
-			f9 = (f4 * 0.3F + f5 * 0.59F + f6 * 0.11F) * 0.2F;
-			float f10 = 1.0F - f8 * 0.95F;
-			f4 = f4 * f10 + f9 * (1.0F - f10);
-			f5 = f5 * f10 + f9 * (1.0F - f10);
-			f6 = f6 * f10 + f9 * (1.0F - f10);
-		}
-
-		return Vec3D.createVector((double)f4, (double)f5, (double)f6);
+		return AtmosphereCalculator.getCloudColor(this, f1);
 	}
 
 	public Vec3D getFogColor(float f1) {
-		float f2 = this.getCelestialAngle(f1);
-		return this.worldProvider.getFogColor(f2, f1, this.worldInfo.isBloodMoon(), this.colouredAthmospherics);
+		return AtmosphereCalculator.getFogColor(this, f1);
 	}
 
 	public int findTopSolidBlockUsingBlockMaterial(int x, int z) {
@@ -1347,17 +1222,7 @@ public List<AxisAlignedBB> getCollidingBoundingBoxes(Entity entity1, AxisAligned
 	}
 
 	public float getStarBrightness(float f1) {
-		float f2 = this.getCelestialAngle(f1);
-		float f3 = 1.0F - (MathHelper.cos(f2 * (float)Math.PI * 2.0F) * 2.0F + 0.75F);
-		if(f3 < 0.0F) {
-			f3 = 0.0F;
-		}
-
-		if(f3 > 1.0F) {
-			f3 = 1.0F;
-		}
-
-		return f3 * f3 * 0.5F;
+		return AtmosphereCalculator.getStarBrightness(this, f1);
 	}
 
 	public int findTopSolidBlock(int i1, int i2) {
