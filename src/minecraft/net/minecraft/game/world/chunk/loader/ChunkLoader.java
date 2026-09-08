@@ -70,7 +70,8 @@ public class ChunkLoader implements IChunkLoader {
 					return null;
 				}
 
-				Chunk chunk7 = loadChunkIntoWorldFromCompound(world, nBTTagCompound6.getCompoundTag("Level"));
+				NBTTagCompound nBTTagCompound7 = nBTTagCompound6.getCompoundTag("Level");
+				Chunk chunk7 = loadChunkIntoWorldFromCompound(world, nBTTagCompound7);
 				if(!chunk7.isAtLocation(x, z)) {
 					System.out.println("Chunk file at " + x + "," + z + " is in the wrong location; relocating. (Expected " + x + ", " + z + ", got " + chunk7.xPosition + ", " + chunk7.zPosition + ")");
 					nBTTagCompound6.setInteger("xPos", x);
@@ -79,7 +80,9 @@ public class ChunkLoader implements IChunkLoader {
 				}
 
 				chunk7.removeUnknownBlocks();
-				chunk7.generateLandSurfaceHeightMap();
+				if(!nBTTagCompound7.hasKey("LandSurfaceHeightMap")) {
+					chunk7.generateLandSurfaceHeightMap();
+				}
 				return chunk7;
 			} catch (Exception exception8) {
 				exception8.printStackTrace();
@@ -130,6 +133,7 @@ public class ChunkLoader implements IChunkLoader {
 		nBTTagCompound2.setByteArray("SkyLight", chunk0.skylightMap.data);
 		nBTTagCompound2.setByteArray("BlockLight", chunk0.blocklightMap.data);
 		nBTTagCompound2.setByteArray("HeightMap", chunk0.heightMap);
+		nBTTagCompound2.setByteArray("LandSurfaceHeightMap", chunk0.landSurfaceHeightMap);
 		nBTTagCompound2.setBoolean("TerrainPopulated", chunk0.isTerrainPopulated);
 		
 		nBTTagCompound2.setBoolean("hasBuilding", chunk0.hasBuilding);
@@ -222,6 +226,10 @@ public class ChunkLoader implements IChunkLoader {
 		chunk4.skylightMap = new NibbleArray(nBTTagCompound1.getByteArray("SkyLight"));
 		chunk4.blocklightMap = new NibbleArray(nBTTagCompound1.getByteArray("BlockLight"));
 		chunk4.heightMap = nBTTagCompound1.getByteArray("HeightMap");
+		byte[] landSurfaceHeightMap = nBTTagCompound1.getByteArray("LandSurfaceHeightMap");
+		if(landSurfaceHeightMap.length == 256) {
+			chunk4.landSurfaceHeightMap = landSurfaceHeightMap;
+		}
 		chunk4.isTerrainPopulated = nBTTagCompound1.getBoolean("TerrainPopulated");
 		
 		chunk4.hasBuilding = nBTTagCompound1.getBoolean("hasBuilding");

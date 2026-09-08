@@ -54,14 +54,16 @@ public class BlockGlass extends BlockBreakable implements IBlockWithSubtypes {
 
 	@Override
 	public void getSubBlocks(int par1, CreativeTabs par2CreativeTabs, List<ItemStack> par3List) {
-		for (int i = 0; i < this.glassTextures.length; i ++) {
+		for (int i = 0; i < this.glassNames.length; i ++) {
 			par3List.add(new ItemStack(par1, 1, i));
 		}
 	}
 
 	@Override
 	public String getNameFromMeta(int meta) {
-		return "glass." + this.glassNames[meta];
+		int i = meta & 3;
+		if(i >= this.glassNames.length) i = 0; // meta 3 = plain glass (same texture as meta 0)
+		return "glass." + this.glassNames[i];
 	}
 
 	@Override
