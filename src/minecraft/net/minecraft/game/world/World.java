@@ -59,12 +59,12 @@ public class World implements IBlockAccess {
 	
 	private final EntityManager entityManager;
 	private final BlockTickScheduler blockTickScheduler;
+	private final SkylightTracker skylightTracker;
 	public List<TileEntity> loadedTileEntityList;
 	private List<TileEntity> entityRemoval;
 	public List<EntityPlayer> playerEntities;
 	public List<Entity> weatherEffects;
 	private long cloudColour;
-	public int skylightSubtracted;
 	protected int updateLCG;
 	protected final int DIST_HASH_MAGIC;
 	
@@ -131,7 +131,7 @@ public class World implements IBlockAccess {
 		this.playerEntities = new ArrayList<EntityPlayer>();
 		this.weatherEffects = new ArrayList<Entity>();
 		this.cloudColour = 16777215L;
-		this.skylightSubtracted = 0;
+		this.skylightTracker = new SkylightTracker(this);
 		this.updateLCG = (new Random()).nextInt();
 		this.DIST_HASH_MAGIC = 1013904223;
 		this.lastLightningBolt = 0;
@@ -169,7 +169,7 @@ public class World implements IBlockAccess {
 		this.playerEntities = new ArrayList<EntityPlayer>();
 		this.weatherEffects = new ArrayList<Entity>();
 		this.cloudColour = 16777215L;
-		this.skylightSubtracted = 0;
+		this.skylightTracker = new SkylightTracker(this);
 		this.updateLCG = (new Random()).nextInt();
 		this.DIST_HASH_MAGIC = 1013904223;
 		this.lastLightningBolt = 0;
@@ -219,7 +219,7 @@ public class World implements IBlockAccess {
 		this.playerEntities = new ArrayList<EntityPlayer>();
 		this.weatherEffects = new ArrayList<Entity>();
 		this.cloudColour = 16777215L;
-		this.skylightSubtracted = 0;
+		this.skylightTracker = new SkylightTracker(this);
 		this.updateLCG = (new Random()).nextInt();
 		this.DIST_HASH_MAGIC = 1013904223;
 		this.lastLightningBolt = 0;
@@ -721,7 +721,7 @@ public class World implements IBlockAccess {
 			Chunk chunk11 = this.getChunkFromChunkCoords(i1 >> 4, i3 >> 4);
 			i1 &= 15;
 			i3 &= 15;
-			return chunk11.getBlockLightValue(i1, i2, i3, this.skylightSubtracted);
+			return chunk11.getBlockLightValue(i1, i2, i3, this.skylightTracker.getSkylightSubtracted());
 		}
 	}
 
@@ -911,7 +911,7 @@ public class World implements IBlockAccess {
 	}
 
 	public boolean isDaytime() {
-		return this.skylightSubtracted < 4;
+		return this.skylightTracker.getSkylightSubtracted() < 4;
 	}
 
 	public MovingObjectPosition rayTraceBlocks(Vec3D vec3D1, Vec3D vec3D2) {
@@ -1176,31 +1176,16 @@ public List<AxisAlignedBB> getCollidingBoundingBoxes(Entity entity1, AxisAligned
 		return this.entityQueryService.getCollidingBoundingBoxes(entity1, axisAlignedBB2);
 	}
 
+	public int getSkylightSubtracted() {
+		return this.skylightTracker.getSkylightSubtracted();
+	}
+
+	public void setSkylightSubtracted(int skylightSubtracted) {
+		this.skylightTracker.setSkylightSubtracted(skylightSubtracted);
+	}
+
 	public int calculateSkylightSubtracted(float renderPartialTick) {
-		float f2 = this.getCelestialAngle(renderPartialTick);
-		float f3 = 1.0F - (MathHelper.cos(f2 * (float)Math.PI * 2.0F) * 2.0F + 0.5F);
-		if(f3 < 0.0F) {
-			f3 = 0.0F;
-		}
-
-		if(f3 > 1.0F) {
-			f3 = 1.0F;
-		}
-
-		f3 = 1.0F - f3;
-		/*
-		f3 = (float)((double)f3 * (1.0D - (double)(this.getRainStrength(f1) * 5.0F) / 16.0D));
-		f3 = (float)((double)f3 * (1.0D - (double)(this.getWeightedThunderStrength(f1) * 5.0F) / 16.0D));
-		*/
-		float rainStrength = this.getRainStrength(renderPartialTick) - this.getSnowStrength(renderPartialTick);
-		if(rainStrength < 0.0F) rainStrength = 0.0F;
-		f3 = (float)((double)f3 * (1.0D - (double)(rainStrength * 5F) / 16D));
-		float factor = 6F - 3 * rainStrength;
-		f3 = (float)((double)f3 * (1.0D - (double)(getWeightedThunderStrength(renderPartialTick) * factor) / 16D));
-		
-		f3 = 1.0F - f3;
-
-		return (int)(f3 * 11.0F);
+		return this.skylightTracker.calculateSkylightSubtracted(renderPartialTick);
 	}
 
 	public float getSunBrightness(float f1) {
@@ -1775,11 +1760,7 @@ public List<AxisAlignedBB> getCollidingBoundingBoxes(Entity entity1, AxisAligned
 	}
 
 	public void calculateInitialSkylight() {
-		int i1 = this.calculateSkylightSubtracted(1.0F);
-		if(i1 != this.skylightSubtracted) {
-			this.skylightSubtracted = i1;
-		}
-
+		this.skylightTracker.updateSkylightSubtracted(1.0F);
 	}
 
 	public void setAllowedMobSpawns(boolean z1, boolean z2) {
@@ -1813,15 +1794,7 @@ public List<AxisAlignedBB> getCollidingBoundingBoxes(Entity entity1, AxisAligned
 			
 		this.chunkProvider.unload100OldestChunks();
 		
-		int i4 = this.calculateSkylightSubtracted(1.0F);
-		if(i4 != this.skylightSubtracted) {
-			this.skylightSubtracted = i4;
-			/*
-			for(int i5 = 0; i5 < this.worldAccesses.size(); ++i5) {
-				((IWorldAccess)this.worldAccesses.get(i5)).updateAllRenderers();
-			}
-			*/
-		}
+		this.skylightTracker.updateSkylightSubtracted(1.0F);
 
 		worldTime = this.worldInfo.getWorldTime() + 1L;
 		int hourOfTheDay = (int)(worldTime % 24000L);

@@ -90,10 +90,10 @@ public class EntityMob extends EntityCreature implements IMob {
 			} else {
 				int i4 = this.worldObj.getBlockLightValue(i1, i2, i3);
 				if(this.worldObj.thundering()) {
-					int i5 = this.worldObj.skylightSubtracted;
-					this.worldObj.skylightSubtracted = 10;
+					int i5 = this.worldObj.getSkylightSubtracted();
+					this.worldObj.setSkylightSubtracted(10);
 					i4 = this.worldObj.getBlockLightValue(i1, i2, i3);
-					this.worldObj.skylightSubtracted = i5;
+					this.worldObj.setSkylightSubtracted(i5);
 				}
 	
 				return i4 <= this.rand.nextInt(8) && super.getCanSpawnHere();

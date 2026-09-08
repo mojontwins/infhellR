@@ -111,7 +111,7 @@ public class CanvasIsomPreview extends Canvas implements KeyListener, MouseListe
 				new SaveHandler(new File(this.dataFolder, "saves"), string1, false), 
 				string1, 
 				new WorldSettings((new Random()).nextLong(), 0, true, false, true, 0.0F, WorldType.DEFAULT));
-		this.worldObj.skylightSubtracted = 0;
+		this.worldObj.setSkylightSubtracted(0);
 		synchronized(this.imageBufferList) {
 			this.imageBufferList.clear();
 
@@ -126,7 +126,7 @@ public class CanvasIsomPreview extends Canvas implements KeyListener, MouseListe
 
 	private void setTimeOfDay(int i1) {
 		synchronized(this.imageBufferList) {
-			this.worldObj.skylightSubtracted = i1;
+			this.worldObj.setSkylightSubtracted(i1);
 			this.imageBufferList.clear();
 
 			for(int i3 = 0; i3 < 64; ++i3) {

@@ -39,8 +39,8 @@ public class WorldClient extends World {
 		this.setWorldTime(worldTime);
 		int newSkylight = this.calculateSkylightSubtracted(1.0F);
 		int i;
-		if(newSkylight != this.skylightSubtracted) {
-			this.skylightSubtracted = newSkylight;
+		if(newSkylight != this.getSkylightSubtracted()) {
+			this.setSkylightSubtracted(newSkylight);
 
 			for(i = 0; i < this.worldAccesses.size(); ++i) {
 				((IWorldAccess)this.worldAccesses.get(i)).updateAllRenderers();

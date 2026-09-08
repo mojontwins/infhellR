@@ -197,14 +197,14 @@ public class ChunkCache implements IBlockAccess {
                 return 0;
             }
             if (y >= 128) {
-                int light = 15 - this.world.skylightSubtracted;
+                int light = 15 - this.world.getSkylightSubtracted();
                 return Math.max(light, 0);
             }
 
             int cx = (x >> 4) - this.chunkX;
             int cz = (z >> 4) - this.chunkZ;
             return this.chunkArray[cx][cz].getBlockLightValue(
-                    x & 15, y, z & 15, this.world.skylightSubtracted);
+                    x & 15, y, z & 15, this.world.getSkylightSubtracted());
         }
         return 15;
     }
