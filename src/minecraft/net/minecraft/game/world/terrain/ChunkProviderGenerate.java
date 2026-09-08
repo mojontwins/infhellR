@@ -43,6 +43,10 @@ import net.minecraft.game.world.terrain.generate.WorldGenTallGrass;
 
 
 
+/**
+ * Chunk provider that generates terrain using noise functions.
+ * Handles biome placement, terrain shape, ore distribution, and decoration.
+ */
 public class ChunkProviderGenerate implements IChunkProvider {
 	protected Random rand;
 	protected NoiseGeneratorOctaves minLimitNoise;
@@ -69,14 +73,28 @@ public class ChunkProviderGenerate implements IChunkProvider {
 	protected MapGenMineshaft mineshaftGenerator;
 	protected MapGenMineshaftMesa mineshaftMesaGenerator;
 	protected MapGenStronghold strongholdGenerator;
+
+	// Reusable world generators: each holds only immutable constructor state,
+	// so a single instance is shared across every per-chunk population attempt.
+	// (Saves allocating a fresh object on each loop iteration.)
+	protected WorldGenMinable coalGen, glowGen, ironGen, copperGen, goldGen, redstoneGen, diamondGen;
+	protected WorldGenMinable dirtLumpGen, gravelLumpGen;
+	protected WorldGenFlowers yellowFlowerGen, redFlowerGen, brownMushroomGen, redMushroomGen;
+	protected WorldGenReed reedGen;
+	protected WorldGenPumpkin pumpkinGen;
+	protected WorldGenCactus cactusGen;
+	protected WorldGenTallGrass tallGrassGen;
+	protected WorldGenLiquids waterSpringGen, lavaSpringGen;
+	protected WorldGenClay clayGen;
+	protected WorldGenSurfaceMoss surfaceMossGen;
+
 	protected BiomeGenBase[] biomesForGeneration;
 	public double[] mainArray;
 	public double[] minLimitArray;
 	public double[] maxLimitArray;
 	public double[] scaleArray;
 	public double[] depthArray;
-	double[] caveArray;
-	int[][] unused = new int[32][32];
+		double[] caveArray;
 	public double[] generatedTemperatures;
 	float[] distanceArray;
 	
@@ -114,8 +132,39 @@ public class ChunkProviderGenerate implements IChunkProvider {
 		this.mineshaftGenerator = new MapGenMineshaft(world1);
 		this.mineshaftMesaGenerator = new MapGenMineshaftMesa(world1);
 		this.strongholdGenerator = new MapGenStronghold(world1);
+
+		// Reusable decoration/ore generators (immutable constructor state).
+		this.coalGen      = new WorldGenMinable(Block.oreCoal.blockID, 16);
+		this.glowGen      = new WorldGenMinable(Block.oreGlow.blockID, 6);
+		this.ironGen      = new WorldGenMinable(Block.oreIron.blockID, 8);
+		this.copperGen    = new WorldGenMinable(Block.oreCopper.blockID, 8);
+		this.goldGen      = new WorldGenMinable(Block.oreGold.blockID, 8);
+		this.redstoneGen  = new WorldGenMinable(Block.oreRedstone.blockID, 7);
+		this.diamondGen   = new WorldGenMinable(Block.oreDiamond.blockID, 7);
+		this.dirtLumpGen  = new WorldGenMinable(Block.dirt.blockID, 32);
+		this.gravelLumpGen = new WorldGenMinable(Block.gravel.blockID, 32);
+		this.clayGen      = new WorldGenClay(32);
+		this.yellowFlowerGen  = new WorldGenFlowers(Block.plantYellow.blockID);
+		this.redFlowerGen     = new WorldGenFlowers(Block.plantRed.blockID);
+		this.brownMushroomGen = new WorldGenFlowers(Block.mushroomBrown.blockID);
+		this.redMushroomGen   = new WorldGenFlowers(Block.mushroomRed.blockID);
+		this.reedGen          = new WorldGenReed();
+		this.pumpkinGen       = new WorldGenPumpkin();
+		this.cactusGen        = new WorldGenCactus();
+		this.tallGrassGen     = new WorldGenTallGrass(Block.tallGrass.blockID, -1);
+		this.waterSpringGen   = new WorldGenLiquids(Block.waterMoving.blockID);
+		this.lavaSpringGen    = new WorldGenLiquids(Block.lavaMoving.blockID);
+		this.surfaceMossGen   = new WorldGenSurfaceMoss();
 	}
 
+	/**
+	 * Generates the raw terrain heightmap and block IDs (stone/water/air) for a chunk.
+	 * Uses layered noise to produce terrain features.
+	 * 
+	 * @param chunkX  Chunk X coordinate
+	 * @param chunkZ  Chunk Z coordinate
+	 * @param blocks  Array to fill with block IDs (stone=1, water=8, air=0)
+	 */
 	public void generateTerrain(int chunkX, int chunkZ, byte[] blocks) {
 		final double noiseScale = 0.125D;
 		final double scalingFactor = 0.25D;
@@ -204,12 +253,24 @@ public class ChunkProviderGenerate implements IChunkProvider {
 
 	}
 
+	/**
+	 * Applies biome surface rules: replaces terrain blocks with biome-specific
+	 * surfaces (sand, gravel, stone) using the pre-generated noise arrays.
+	 *
+	 * @param chunkX   Chunk X coordinate
+	 * @param chunkZ   Chunk Z coordinate
+	 * @param blocks   Block ID array for the chunk
+	 * @param metadata Metadata array for the chunk
+	 * @param biomes   Biome grid (16×16)
+	 */
 	public void replaceBlocksForBiome(int chunkX, int chunkZ, byte[] blocks, byte[] metadata, BiomeGenBase[] biomes) {
-		byte seaLevel = 64;
-		double d6 = 8.0D / 256D;
-		this.sandNoise = this.noiseGenSandOrGravel.generateNoiseOctaves(this.sandNoise, (double)(chunkX * 16), (double)(chunkZ * 16), 0.0D, 16, 16, 1, d6, d6, 1.0D);
-		this.gravelNoise = this.noiseGenSandOrGravel.generateNoiseOctaves(this.gravelNoise, (double)(chunkX * 16), 109.0134D, (double)(chunkZ * 16), 16, 1, 16, d6, 1.0D, d6);
-		this.stoneNoise = this.noiseStone.generateNoiseOctaves(this.stoneNoise, (double)(chunkX * 16), (double)(chunkZ * 16), 0.0D, 16, 16, 1, d6 * 2.0D, d6 * 2.0D, d6 * 2.0D);
+		// Replace blocks for each cell using the biome's surface rules.
+		// sand/gravel/stone noise drives which surfaces get replaced.
+		final int seaLevel = 64;
+		double surfaceNoiseScale = 8.0D / 256D;
+		this.sandNoise = this.noiseGenSandOrGravel.generateNoiseOctaves(this.sandNoise, (double)(chunkX * 16), (double)(chunkZ * 16), 0.0D, 16, 16, 1, surfaceNoiseScale, surfaceNoiseScale, 1.0D);
+		this.gravelNoise = this.noiseGenSandOrGravel.generateNoiseOctaves(this.gravelNoise, (double)(chunkX * 16), 109.0134D, (double)(chunkZ * 16), 16, 1, 16, surfaceNoiseScale, 1.0D, surfaceNoiseScale);
+		this.stoneNoise = this.noiseStone.generateNoiseOctaves(this.stoneNoise, (double)(chunkX * 16), (double)(chunkZ * 16), 0.0D, 16, 16, 1, surfaceNoiseScale * 2.0D, surfaceNoiseScale * 2.0D, surfaceNoiseScale * 2.0D);
 
 		BiomeGenBase biomeGen;
 
@@ -224,10 +285,18 @@ public class ChunkProviderGenerate implements IChunkProvider {
 
 	}
 
+	/**
+	 * Shortcut that delegates to provideChunk; IChunkProvider interface entry point.
+	 */
 	public Chunk prepareChunk(int i1, int i2) {
 		return this.provideChunk(i1, i2);
 	}
 	
+	/**
+	 * Biome-specific terrain shaping: mycelium ramps, dark forest flattens,
+	 * mangrove squishes below 90, flower fields raise; fills reshaped columns
+	 * with water or air. Currently disabled (call site commented out).
+	 */
 	public void specialCarving(int chunkX, int chunkZ, byte[] blockArray, Chunk chunk) {
 		int index;
 		boolean dry;
@@ -275,6 +344,13 @@ public class ChunkProviderGenerate implements IChunkProvider {
 		}
 	}
 	
+	/**
+	 * Creates a new chunk filled with terrain blocks according to biome rules.
+	 *
+	 * @param chunkX  Chunk X coordinate
+	 * @param chunkZ  Chunk Z coordinate
+	 * @param blocks  Array to fill with block IDs (stone=1, water=8, air=0)
+	 */
 	public Chunk provideChunk(int chunkX, int chunkZ) {
 		this.rand.setSeed((long)chunkX * 341873128712L + (long)chunkZ * 132897987541L);
 		
@@ -314,7 +390,7 @@ public class ChunkProviderGenerate implements IChunkProvider {
 			this.underwaterGenerator.generate(this, this.worldObj, chunkX, chunkZ, blockArray);
 		}
 		
-		// Erode 
+		// Erosion pass (disabled)
 		//this.specialCarving(chunkX, chunkZ, blockArray, chunk);
 		
 		// Features system
@@ -371,6 +447,13 @@ public class ChunkProviderGenerate implements IChunkProvider {
 		return chunk;
 	}
 
+	/**
+	 * Generates terrain height only (no block placement) for preview or map generation.
+	 *
+	 * @param chunkX  Chunk X coordinate
+	 * @param chunkZ  Chunk Z coordinate
+	 * @return  Chunk with terrain heightmap but no blocks placed
+	 */
 	public Chunk justGenerateForHeight(int chunkX, int chunkZ) {
 		this.rand.setSeed((long)chunkX * 341873128712L + (long)chunkZ * 132897987541L);
 		
@@ -388,6 +471,13 @@ public class ChunkProviderGenerate implements IChunkProvider {
 		return chunk;
 	}
 	
+		/**
+	 * Populates the chunk with a generated city if conditions are met.
+	 *
+	 * @param chunkX  Chunk X coordinate
+	 * @param chunkZ  Chunk Z coordinate
+	 * @param chunk   Chunk to populate with city structures
+	 */
 	public void buildOnChunk(int chunkX, int chunkZ, Chunk chunk) {	
 		((MapGenCity)this.cityGenerator).setChunk(chunk);
 		((MapGenCity)this.cityGenerator).generate(this, this.worldObj, chunkX, chunkZ, chunk.blocks, chunk.data);
@@ -397,6 +487,21 @@ public class ChunkProviderGenerate implements IChunkProvider {
 		chunk.roadVariation = ((MapGenCity) this.cityGenerator).roadVariation;
 	}
 
+	/**
+	 * Initializes the noise field arrays for terrain generation.
+	 * Generates noise for Alpha and Beta terrain types using various noise functions.
+	 * 
+	 * @param densityMapArray  Array to store the noise values
+	 * @param x                 X coordinate of the noise field
+	 * @param y                 Y coordinate of the noise field
+	 * @param z                 Z coordinate of the noise field
+	 * @param xSize             Size of the noise field in X dimension
+	 * @param ySize             Size of the noise field in Y dimension
+	 * @param zSize             Size of the noise field in Z dimension
+	 * @param chunkX            Chunk X coordinate (for Beta noise generation)
+	 * @param chunkZ            Chunk Z coordinate (for Beta noise generation)
+	 * @return                  Array containing the generated noise values
+	 */
 	private double[] initializeNoiseField(double[] densityMapArray, int x, int y, int z, int xSize, int ySize, int zSize, int chunkX, int chunkZ) {
 		
 		// The noise field makes Alpha and Beta terrain generate differently.
@@ -417,14 +522,14 @@ public class ChunkProviderGenerate implements IChunkProvider {
 			densityMapArray = new double[xSize * ySize * zSize];
 		}
 
-		double scaleXZ = 684.412D;
-		double scaleY = 684.412D;
+		double noiseScaleXZ = 684.412D;
+		double noiseScaleY = 684.412D;
 
 		this.scaleArray = this.scaleNoise.generateNoiseOctaves(this.scaleArray, (double)x, (double)y, (double)z, xSize, 1, zSize, 1.0D, 0.0D, 1.0D);
 		this.depthArray = this.depthNoise.generateNoiseOctaves(this.depthArray, (double)x, (double)y, (double)z, xSize, 1, zSize, 100.0D, 0.0D, 100.0D);
-		this.mainArray = this.mainNoise.generateNoiseOctaves(this.mainArray, (double)x, (double)y, (double)z, xSize, ySize, zSize, scaleXZ / 80.0D, scaleY / 160.0D, scaleXZ / 80.0D);
-		this.minLimitArray = this.minLimitNoise.generateNoiseOctaves(this.minLimitArray, (double)x, (double)y, (double)z, xSize, ySize, zSize, scaleXZ, scaleY, scaleXZ);
-		this.maxLimitArray = this.maxLimitNoise.generateNoiseOctaves(this.maxLimitArray, (double)x, (double)y, (double)z, xSize, ySize, zSize, scaleXZ, scaleY, scaleXZ);
+		this.mainArray = this.mainNoise.generateNoiseOctaves(this.mainArray, (double)x, (double)y, (double)z, xSize, ySize, zSize, noiseScaleXZ / 80.0D, noiseScaleY / 160.0D, noiseScaleXZ / 80.0D);
+		this.minLimitArray = this.minLimitNoise.generateNoiseOctaves(this.minLimitArray, (double)x, (double)y, (double)z, xSize, ySize, zSize, noiseScaleXZ, noiseScaleY, noiseScaleXZ);
+		this.maxLimitArray = this.maxLimitNoise.generateNoiseOctaves(this.maxLimitArray, (double)x, (double)y, (double)z, xSize, ySize, zSize, noiseScaleXZ, noiseScaleY, noiseScaleXZ);
 		//this.caveArray = this.caveNoise.generateNoiseOctaves(this.caveArray, (double)x, (double)y, (double)z, xSize, ySize, zSize, 0.5, 1.5, 0.5);
 		
 		int mainIndex = 0;
@@ -544,25 +649,25 @@ public class ChunkProviderGenerate implements IChunkProvider {
 
 					density -= densityOffset;
 
-					double d35;
+					double cliffFactor;
 					
 					if(dy > ySize - 4) {
-						d35 = (double)((float)(dy - (ySize - 4)) / 3.0F);
-						density = density * (1.0D - d35) + -10.0D * d35;
+						cliffFactor = (double)((float)(dy - (ySize - 4)) / 3.0F);
+						density = density * (1.0D - cliffFactor) + -10.0D * cliffFactor;
 					}
 
 					// This will never happen!
 					if((double)dy < 0) {
-						d35 = (- (double)dy) / 4.0D;
-						if(d35 < 0.0D) {
-							d35 = 0.0D;
+						cliffFactor = (- (double)dy) / 4.0D;
+						if(cliffFactor < 0.0D) {
+							cliffFactor = 0.0D;
 						}
 
-						if(d35 > 1.0D) {
-							d35 = 1.0D;
+						if(cliffFactor > 1.0D) {
+							cliffFactor = 1.0D;
 						}
 
-						density = density * (1.0D - d35) + -10.0D * d35;
+						density = density * (1.0D - cliffFactor) + -10.0D * cliffFactor;
 					}
 
 					// Dig huge caves
@@ -697,10 +802,24 @@ public class ChunkProviderGenerate implements IChunkProvider {
 		*/
 	}
 
+	/**
+	 * Checks if the chunk at the given coordinates exists.
+	 *
+	 * @param x  Chunk X coordinate
+	 * @param z  Chunk Z coordinate
+	 * @return   Always true (chunks are generated on demand)
+	 */
 	public boolean chunkExists(int i1, int i2) {
 		return true;
 	}
 
+	/**
+	 * Populates the chunk with ores based on the biome generator.
+	 *
+	 * @param x0       Starting X coordinate
+	 * @param z0       Starting Z coordinate
+	 * @param biomeGen Biome generator providing ore distribution settings
+	 */
 	public void populateOres(int x0, int z0, BiomeGenBase biomeGen) {
 		int i, x, y, z;
 		
@@ -708,52 +827,58 @@ public class ChunkProviderGenerate implements IChunkProvider {
 			x = x0 + this.rand.nextInt(16);
 			y = this.rand.nextInt(128);
 			z = z0 + this.rand.nextInt(16);
-			(new WorldGenMinable(Block.oreCoal.blockID, 16)).generate(this.worldObj, this.rand, x, y, z);
+			this.coalGen.generate(this.worldObj, this.rand, x, y, z);
 		}
 
 		for(i = 0; i < biomeGen.glowLumpAttempts; ++i) {
 			x = x0 + this.rand.nextInt(16);
 			y = this.rand.nextInt(48);
 			z = z0 + this.rand.nextInt(16);
-			(new WorldGenMinable(Block.oreGlow.blockID, 6)).generate(this.worldObj, this.rand, x, y, z);
+			this.glowGen.generate(this.worldObj, this.rand, x, y, z);
 		}
 				
 		for(i = 0; i < biomeGen.ironLumpAttempts; ++i) {
 			x = x0 + this.rand.nextInt(16);
 			y = this.rand.nextInt(72);
 			z = z0 + this.rand.nextInt(16);
-			(new WorldGenMinable(Block.oreIron.blockID, 8)).generate(this.worldObj, this.rand, x, y, z);
+			this.ironGen.generate(this.worldObj, this.rand, x, y, z);
 		}
 		
 		for(i = 0; i < biomeGen.copperLumpAttempts; ++i) {
 			x = x0 + this.rand.nextInt(16);
 			y = this.rand.nextInt(48);
 			z = z0 + this.rand.nextInt(16);
-			(new WorldGenMinable(Block.oreCopper.blockID, 8)).generate(this.worldObj, this.rand, x, y, z);
+			this.copperGen.generate(this.worldObj, this.rand, x, y, z);
 		}
 
 		for(i = 0; i < biomeGen.goldLumpAttempts; ++i) {
 			x = x0 + this.rand.nextInt(16);
 			y = this.rand.nextInt(biomeGen.goldLumpMaxHeight);
 			z = z0 + this.rand.nextInt(16);
-			(new WorldGenMinable(Block.oreGold.blockID, 8)).generate(this.worldObj, this.rand, x, y, z);
+			this.goldGen.generate(this.worldObj, this.rand, x, y, z);
 		}
 
 		for(i = 0; i < biomeGen.redstoneLumpAttempts; ++i) {
 			x = x0 + this.rand.nextInt(16);
 			y = this.rand.nextInt(biomeGen.redstoneLumpMaxHeight);
 			z = z0 + this.rand.nextInt(16);
-			(new WorldGenMinable(Block.oreRedstone.blockID, 7)).generate(this.worldObj, this.rand, x, y, z);
+			this.redstoneGen.generate(this.worldObj, this.rand, x, y, z);
 		}
 
 		for(i = 0; i < biomeGen.diamondLumpAttempts; ++i) {
 			x = x0 + this.rand.nextInt(16);
 			y = this.rand.nextInt(biomeGen.diamondLumpMaxHeight);
 			z = z0 + this.rand.nextInt(16);
-			(new WorldGenMinable(Block.oreDiamond.blockID, 7)).generate(this.worldObj, this.rand, x, y, z);
+			this.diamondGen.generate(this.worldObj, this.rand, x, y, z);
 		}
 	}
 	
+	/**
+	 * Generates mineshafts and strongholds in the chunk if map features are enabled.
+	 *
+	 * @param chunkX  Chunk X coordinate
+	 * @param chunkZ  Chunk Z coordinate
+	 */
 	public void generateMapFeatures(int chunkX, int chunkZ) {
 		if (this.mapFeaturesEnabled) {
 			this.mineshaftGenerator.generateStructuresInChunk(this.worldObj, this.rand, chunkX, chunkZ, false);
@@ -762,6 +887,13 @@ public class ChunkProviderGenerate implements IChunkProvider {
 		}
 	}
 	
+	/**
+	 * Populates the chunk with features such as ores, flora, trees, and structures.
+	 *
+	 * @param chunkProvider  Chunk provider to get the base chunk
+	 * @param chunkX         Chunk X coordinate
+	 * @param chunkZ         Chunk Z coordinate
+	 */
 	public void populate(IChunkProvider chunkProvider, int chunkX, int chunkZ) {
 		BlockSand.fallInstantly = true;
 		int x0 = chunkX * 16;
@@ -810,39 +942,44 @@ public class ChunkProviderGenerate implements IChunkProvider {
 		
 		int maxDungeonHeight = 128;
 		if(thisChunk.hasBuilding) maxDungeonHeight = 70;
-		
+
+		// The dungeon generator stores the biome it was built for; since that
+		// changes per chunk (and its instance fields are re-seeded each generate),
+		// create one per chunk rather than per attempt.
+		WorldGenDungeons dungeonGen = new WorldGenDungeons(biomeGen);
+
 		for(i = 0; i < biomeGen.dungeonAttempts; ++i) {
 			x = x0 + this.rand.nextInt(16) + 8;
 			y = this.rand.nextInt(maxDungeonHeight);
 			z = z0 + this.rand.nextInt(16) + 8;
-			(new WorldGenDungeons(biomeGen)).generate(this.worldObj, this.rand, x, y, z);
+			dungeonGen.generate(this.worldObj, this.rand, x, y, z);
 		}
 
 		for(i = 0; i < biomeGen.clayAttempts; ++i) {
 			x = x0 + this.rand.nextInt(16);
 			y = this.rand.nextInt(128);
 			z = z0 + this.rand.nextInt(16);
-			(new WorldGenClay(32)).generate(this.worldObj, this.rand, x, y, z);
+			this.clayGen.generate(this.worldObj, this.rand, x, y, z);
 		}
 
 		for(i = 0; i < biomeGen.dirtLumpAttempts; ++i) {
 			x = x0 + this.rand.nextInt(16);
 			y = this.rand.nextInt(128);
 			z = z0 + this.rand.nextInt(16);
-			(new WorldGenMinable(Block.dirt.blockID, 32)).generate(this.worldObj, this.rand, x, y, z);
+			this.dirtLumpGen.generate(this.worldObj, this.rand, x, y, z);
 		}
 
 		for(i = 0; i < biomeGen.gravelLumpAttempts; ++i) {
 			x = x0 + this.rand.nextInt(16);
 			y = this.rand.nextInt(128);
 			z = z0 + this.rand.nextInt(16);
-			(new WorldGenMinable(Block.gravel.blockID, 32)).generate(this.worldObj, this.rand, x, y, z);
+			this.gravelLumpGen.generate(this.worldObj, this.rand, x, y, z);
 		}
 
 		this.populateOres(x0, z0, biomeGen);
 
-		double noiseScaler = 0.5D;
-		int treeBaseAttempts = (int)((this.mobSpawnerNoise.generateNoiseOctaves((double)x0 * noiseScaler, (double)z0 * noiseScaler) / 8.0D + this.rand.nextDouble() * 4.0D + 4.0D) / 3.0D);
+		double treeNoiseScale = 0.5D;
+		int treeBaseAttempts = (int)((this.mobSpawnerNoise.generateNoiseOctaves((double)x0 * treeNoiseScale, (double)z0 * treeNoiseScale) / 8.0D + this.rand.nextDouble() * 4.0D + 4.0D) / 3.0D);
 		if(treeBaseAttempts < 0) {
 			treeBaseAttempts = 0;
 		}
@@ -875,49 +1012,49 @@ public class ChunkProviderGenerate implements IChunkProvider {
 			x = x0 + this.rand.nextInt(16) + 8;
 			y = this.rand.nextInt(128);
 			z = z0 + this.rand.nextInt(16) + 8;
-			(new WorldGenFlowers(Block.plantYellow.blockID)).generate(this.worldObj, this.rand, x, y, z);
+			this.yellowFlowerGen.generate(this.worldObj, this.rand, x, y, z);
 		}
 
 		for(i = 0; i < biomeGen.redFlowersAttempts; ++i) {
 			x = x0 + this.rand.nextInt(16) + 8;
 			y = this.rand.nextInt(128);
 			z = z0 + this.rand.nextInt(16) + 8;
-			(new WorldGenFlowers(Block.plantRed.blockID)).generate(this.worldObj, this.rand, x, y, z);
+			this.redFlowerGen.generate(this.worldObj, this.rand, x, y, z);
 		}
 
 		if(this.rand.nextInt(biomeGen.mushroomBrownChance) == 0) {
 			x = x0 + this.rand.nextInt(16) + 8;
 			y = this.rand.nextInt(128);
 			z = z0 + this.rand.nextInt(16) + 8;
-			(new WorldGenFlowers(Block.mushroomBrown.blockID)).generate(this.worldObj, this.rand, x, y, z);
+			this.brownMushroomGen.generate(this.worldObj, this.rand, x, y, z);
 		}
 
 		if(this.rand.nextInt(biomeGen.mushroomRedChance) == 0) {
 			x = x0 + this.rand.nextInt(16) + 8;
 			y = this.rand.nextInt(128);
 			z = z0 + this.rand.nextInt(16) + 8;
-			(new WorldGenFlowers(Block.mushroomRed.blockID)).generate(this.worldObj, this.rand, x, y, z);
+			this.redMushroomGen.generate(this.worldObj, this.rand, x, y, z);
 		}
 
 		for(i = 0; i < biomeGen.reedAttempts; ++i) {
 			x = x0 + this.rand.nextInt(16) + 8;
 			y = this.rand.nextInt(128);
 			z = z0 + this.rand.nextInt(16) + 8;
-			(new WorldGenReed()).generate(this.worldObj, this.rand, x, y, z);
+			this.reedGen.generate(this.worldObj, this.rand, x, y, z);
 		}
 		
 		if(biomeGen.pumpkinChance > 0 && this.rand.nextInt(biomeGen.pumpkinChance) == 0) {
 			x = x0 + this.rand.nextInt(16) + 8;
 			y = this.rand.nextInt(128);
 			z = z0 + this.rand.nextInt(16) + 8;
-			(new WorldGenPumpkin()).generate(this.worldObj, this.rand, x, y, z);
+			this.pumpkinGen.generate(this.worldObj, this.rand, x, y, z);
 		}
 
 		for(i = 0; i < biomeGen.cactusAttempts; ++i) {
 			x = x0 + this.rand.nextInt(16) + 8;
 			y = this.rand.nextInt(128);
 			z = z0 + this.rand.nextInt(16) + 8;
-			(new WorldGenCactus()).generate(this.worldObj, this.rand, x, y, z);
+			this.cactusGen.generate(this.worldObj, this.rand, x, y, z);
 		}
 		
 		// Generate tall grass
@@ -925,7 +1062,7 @@ public class ChunkProviderGenerate implements IChunkProvider {
 			x = x0 + this.rand.nextInt(16) + 8;
 			y = this.rand.nextInt(64) + 64;
 			z = z0 + this.rand.nextInt(16) + 8;
-			(new WorldGenTallGrass(Block.tallGrass.blockID, -1)).generate(this.worldObj, this.rand, x, y, z);
+			this.tallGrassGen.generate(this.worldObj, this.rand, x, y, z);
 		}
 		
 		// Generate dead bushes
@@ -943,14 +1080,14 @@ public class ChunkProviderGenerate implements IChunkProvider {
 			x = x0 + this.rand.nextInt(16) + 8;
 			y = this.rand.nextInt(this.rand.nextInt(biomeGen.waterFallMaxHeight - biomeGen.waterFallMinHeight) + biomeGen.waterFallMinHeight);
 			z = z0 + this.rand.nextInt(16) + 8;
-			(new WorldGenLiquids(Block.waterMoving.blockID)).generate(this.worldObj, this.rand, x, y, z);
+			this.waterSpringGen.generate(this.worldObj, this.rand, x, y, z);
 		}
 
 		for(i = 0; i < biomeGen.lavaAttempts; ++i) {
 			x = x0 + this.rand.nextInt(16) + 8;
 			y = this.rand.nextInt(this.rand.nextInt(this.rand.nextInt(112) + 8) + 8);
 			z = z0 + this.rand.nextInt(16) + 8;
-			(new WorldGenLiquids(Block.lavaMoving.blockID)).generate(this.worldObj, this.rand, x, y, z);
+			this.lavaSpringGen.generate(this.worldObj, this.rand, x, y, z);
 		}
 
 		// Custom mapgenerator population 
@@ -963,8 +1100,6 @@ public class ChunkProviderGenerate implements IChunkProvider {
 		if(this.mapFeaturesEnabled) {
 			((MapGenUnderwater)this.underwaterGenerator).populate(this.worldObj, this.rand, chunkX, chunkZ, thisChunk);
 		}
-			
-		// Better dungeons
 		
 		// Layered sand
 		// 1st step = build float "blurred" height map
@@ -978,15 +1113,15 @@ public class ChunkProviderGenerate implements IChunkProvider {
 		float[][] blurredHeightMap = new float[16][16];
 		for (x = 0; x < 16; x ++) {
 			for (z = 0; z < 16; z ++) {
-				int xx0 = x + 1; 
-				int zz0 = z + 1;
-				float sum = 0.0F;
-				for (int xx = xx0 - 1; xx <= xx0 + 1; xx ++) {
-					for (int zz = zz0 - 1; zz <= zz0 + 1; zz ++) {
-						sum += floatHeightMap[xx][zz];
+				int nearX = x + 1; 
+				int nearZ = z + 1;
+				float neighborHeightSum = 0.0F;
+				for (int xx = nearX - 1; xx <= nearX + 1; xx ++) {
+					for (int zz = nearZ - 1; zz <= nearZ + 1; zz ++) {
+						neighborHeightSum += floatHeightMap[xx][zz];
 					}
 				}
-				blurredHeightMap[x][z] = sum / 9.0F;
+				blurredHeightMap[x][z] = neighborHeightSum / 9.0F;
 			}
 		}
 
@@ -1049,7 +1184,7 @@ public class ChunkProviderGenerate implements IChunkProvider {
 				int mossX = x0 + this.rand.nextInt(16) + 8;
 				int mossZ = z0 + this.rand.nextInt(16) + 8;
 				int mossY = this.worldObj.getLandSurfaceHeightValue(mossX, mossZ);
-				(new WorldGenSurfaceMoss()).generate(this.worldObj, this.rand, mossX, mossY, mossZ);
+				this.surfaceMossGen.generate(this.worldObj, this.rand, mossX, mossY, mossZ);
 			}
 		}
 
@@ -1057,10 +1192,22 @@ public class ChunkProviderGenerate implements IChunkProvider {
 		thisChunk.beingDecorated = false;
 	}
 
-	public boolean saveChunks(boolean z1, IProgressUpdate iProgressUpdate2) {
+	/**
+	 * Saves chunks to disk.
+	 *
+	 * @param saveChunksHere  Whether to save chunks that are currently in use
+	 * @param progressCallback  Callback for saving progress updates
+	 * @return  True if chunks were saved successfully
+	 */
+	public boolean saveChunks(boolean saveChunksHere, IProgressUpdate progressCallback) {
 		return true;
 	}
 
+	/**
+	 * Unloads the 100 oldest chunks from memory.
+	 *
+	 * @return  False (not implemented)
+	 */
 	public boolean unload100OldestChunks() {
 		return false;
 	}
