@@ -8,7 +8,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
-import java.util.TreeSet;
 
 import net.minecraft.game.worldedit.WorldEdit;
 
@@ -59,8 +58,7 @@ public class World implements IBlockAccess {
 	public boolean scheduledUpdatesAreImmediate;
 	
 	private final EntityManager entityManager;
-	private TreeSet<NextTickListEntry> scheduledTickTreeSet;
-	private Set<NextTickListEntry> scheduledTickSet;
+	private final BlockTickScheduler blockTickScheduler;
 	public List<TileEntity> loadedTileEntityList;
 	private List<TileEntity> entityRemoval;
 	public List<EntityPlayer> playerEntities;
@@ -127,8 +125,7 @@ public class World implements IBlockAccess {
 	public World(ISaveHandler iSaveHandler1, String string2, WorldProvider worldProvider3, WorldSettings par4WorldSettings) {
 		this.scheduledUpdatesAreImmediate = false;
 		this.entityManager = new EntityManager(this);
-		this.scheduledTickTreeSet = new TreeSet<NextTickListEntry>();
-		this.scheduledTickSet = new HashSet<NextTickListEntry>();
+		this.blockTickScheduler = new BlockTickScheduler(this);
 		this.loadedTileEntityList = new ArrayList<TileEntity>();
 		this.entityRemoval = new ArrayList<TileEntity>();
 		this.playerEntities = new ArrayList<EntityPlayer>();
@@ -166,8 +163,7 @@ public class World implements IBlockAccess {
 	public World(World world1, WorldProvider worldProvider2) {
 		this.scheduledUpdatesAreImmediate = false;
 		this.entityManager = new EntityManager(this);
-		this.scheduledTickTreeSet = new TreeSet<NextTickListEntry>();
-		this.scheduledTickSet = new HashSet<NextTickListEntry>();
+		this.blockTickScheduler = new BlockTickScheduler(this);
 		this.loadedTileEntityList = new ArrayList<TileEntity>();
 		this.entityRemoval = new ArrayList<TileEntity>();
 		this.playerEntities = new ArrayList<EntityPlayer>();
@@ -217,8 +213,7 @@ public class World implements IBlockAccess {
 	public World(ISaveHandler iSaveHandler1, String string2, WorldSettings par3WorldSettings, WorldProvider worldProvider5) {
 		this.scheduledUpdatesAreImmediate = false;
 		this.entityManager = new EntityManager(this);
-		this.scheduledTickTreeSet = new TreeSet<NextTickListEntry>();
-		this.scheduledTickSet = new HashSet<NextTickListEntry>();
+		this.blockTickScheduler = new BlockTickScheduler(this);
 		this.loadedTileEntityList = new ArrayList<TileEntity>();
 		this.entityRemoval = new ArrayList<TileEntity>();
 		this.playerEntities = new ArrayList<EntityPlayer>();
@@ -1396,29 +1391,7 @@ public List<AxisAlignedBB> getCollidingBoundingBoxes(Entity entity1, AxisAligned
 	}
 
 	public void scheduleBlockUpdate(int x, int y, int z, int blockID, int tickRate) {
-		NextTickListEntry nextTickListEntry6 = new NextTickListEntry(x, y, z, blockID);
-		byte b7 = 8;
-		if(this.scheduledUpdatesAreImmediate) {
-			if(this.checkChunksExist(nextTickListEntry6.xCoord - b7, nextTickListEntry6.yCoord - b7, nextTickListEntry6.zCoord - b7, nextTickListEntry6.xCoord + b7, nextTickListEntry6.yCoord + b7, nextTickListEntry6.zCoord + b7)) {
-				int i8 = this.getBlockId(nextTickListEntry6.xCoord, nextTickListEntry6.yCoord, nextTickListEntry6.zCoord);
-				if(i8 == nextTickListEntry6.blockID && i8 > 0) {
-					Block.blocksList[i8].updateTick(this, nextTickListEntry6.xCoord, nextTickListEntry6.yCoord, nextTickListEntry6.zCoord, this.rand);
-				}
-			}
-
-		} else {
-			if(this.checkChunksExist(x - b7, y - b7, z - b7, x + b7, y + b7, z + b7)) {
-				if(blockID > 0) {
-					nextTickListEntry6.setScheduledTime((long)tickRate + this.worldInfo.getWorldTime());
-				}
-
-				if(!this.scheduledTickSet.contains(nextTickListEntry6)) {
-					this.scheduledTickSet.add(nextTickListEntry6);
-					this.scheduledTickTreeSet.add(nextTickListEntry6);
-				}
-			}
-
-		}
+		this.blockTickScheduler.scheduleBlockUpdate(x, y, z, blockID, tickRate);
 	}
 
 	public void updateEntities() {
@@ -2231,33 +2204,7 @@ public List<AxisAlignedBB> getCollidingBoundingBoxes(Entity entity1, AxisAligned
 	}
 
 	public boolean TickUpdates(boolean z1) {
-		int i2 = this.scheduledTickTreeSet.size();
-		if(i2 != this.scheduledTickSet.size()) {
-			throw new IllegalStateException("TickNextTick list out of synch");
-		} else {
-			if(i2 > 1000) {
-				i2 = 1000;
-			}
-
-			for(int i3 = 0; i3 < i2; ++i3) {
-				NextTickListEntry nextTickListEntry4 = (NextTickListEntry)this.scheduledTickTreeSet.first();
-				if(!z1 && nextTickListEntry4.scheduledTime > this.worldInfo.getWorldTime()) {
-					break;
-				}
-
-				this.scheduledTickTreeSet.remove(nextTickListEntry4);
-				this.scheduledTickSet.remove(nextTickListEntry4);
-				byte b5 = 8;
-				if(this.checkChunksExist(nextTickListEntry4.xCoord - b5, nextTickListEntry4.yCoord - b5, nextTickListEntry4.zCoord - b5, nextTickListEntry4.xCoord + b5, nextTickListEntry4.yCoord + b5, nextTickListEntry4.zCoord + b5)) {
-					int i6 = this.getBlockId(nextTickListEntry4.xCoord, nextTickListEntry4.yCoord, nextTickListEntry4.zCoord);
-					if(i6 == nextTickListEntry4.blockID && i6 > 0) {
-						Block.blocksList[i6].updateTick(this, nextTickListEntry4.xCoord, nextTickListEntry4.yCoord, nextTickListEntry4.zCoord, this.rand);
-					}
-				}
-			}
-
-			return this.scheduledTickTreeSet.size() != 0;
-		}
+		return this.blockTickScheduler.tickUpdates(z1);
 	}
 
 	public void randomDisplayUpdates(int i1, int i2, int i3) {
@@ -2667,14 +2614,7 @@ public List<AxisAlignedBB> getCollidingBoundingBoxes(Entity entity1, AxisAligned
 	}
 
 	public void s_func_32005_b(long j1) {
-		long j3 = j1 - this.worldInfo.getWorldTime();
-
-		NextTickListEntry nextTickListEntry6;
-		for(Iterator<NextTickListEntry> iterator5 = this.scheduledTickSet.iterator(); iterator5.hasNext(); nextTickListEntry6.scheduledTime += j3) {
-			nextTickListEntry6 = (NextTickListEntry)iterator5.next();
-		}
-
-		this.setWorldTime(j1);
+		this.blockTickScheduler.shiftScheduledTimes(j1);
 	}
 
 	public long getRandomSeed() {
