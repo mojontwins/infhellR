@@ -66,7 +66,7 @@ public class Block {
 	public static final Block stone = (new BlockStone(1, 1)).setHardness(1.5F).setResistance(10.0F).setStepSound(soundStoneFootstep).setBlockName("stone").setIsUrban(true).setCreativeTab(CreativeTabs.tabBlock);
 	public static final BlockGrass grass = (BlockGrass)(new BlockGrass(2)).setHardness(0.6F).setStepSound(soundGrassFootstep).setBlockName("grass");
 	public static final Block dirt = (new BlockDirt(3, 2)).setHardness(0.5F).setStepSound(soundGravelFootstep).setBlockName("dirt");
-	public static final Block cobblestone = (new Block(4, 16, Material.rock)).setHardness(2.0F).setResistance(10.0F).setStepSound(soundStoneFootstep).setBlockName("stonebrick").setIsUrban(true).setCreativeTab(CreativeTabs.tabBlock);
+	public static final Block cobblestone = (new BlockCobblestone(4, 16)).setHardness(2.0F).setResistance(10.0F).setStepSound(soundStoneFootstep).setBlockName("stonebrick").setIsUrban(true).setCreativeTab(CreativeTabs.tabBlock);
 	public static final Block planks = (new Block(5, 4, Material.wood)).setHardness(2.0F).setResistance(5.0F).setStepSound(soundWoodFootstep).setBlockName("wood").setRequiresSelfNotify().setIsUrban(true).setCreativeTab(CreativeTabs.tabBlock);
 	public static final Block sapling = (new BlockSapling(6, 15)).setHardness(0.0F).setStepSound(soundGrassFootstep).setBlockName("sapling").setRequiresSelfNotify();
 	public static final Block bedrock = (new Block(7, 17, Material.rock)).setBlockUnbreakable().setResistance(6000000.0F).setStepSound(soundStoneFootstep).setBlockName("bedrock").disableStats().setCreativeTab(CreativeTabs.tabBlock);
@@ -110,7 +110,7 @@ public class Block {
 	public static final Block brick = (new Block(45, 7, Material.rock)).setHardness(2.0F).setResistance(10.0F).setStepSound(soundStoneFootstep).setBlockName("brick").setIsUrban(true).setCreativeTab(CreativeTabs.tabBlock);
 	public static final Block tnt = (new BlockTNT(46, 8)).setHardness(0.0F).setStepSound(soundGrassFootstep).setBlockName("tnt");
 	public static final Block bookShelf = (new BlockBookshelf(47, 35)).setHardness(1.5F).setStepSound(soundWoodFootstep).setBlockName("bookshelf");
-	public static final Block cobblestoneMossy = (new Block(48, 36, Material.rock)).setHardness(2.0F).setResistance(10.0F).setStepSound(soundStoneFootstep).setBlockName("stoneMoss").setIsUrban(true).setCreativeTab(CreativeTabs.tabBlock);
+	public static final Block cobblestoneMossy = (new BlockCobblestone(48, 36)).setHardness(2.0F).setResistance(10.0F).setStepSound(soundStoneFootstep).setBlockName("stoneMoss").setIsUrban(true).setCreativeTab(CreativeTabs.tabBlock);
 	public static final Block obsidian = (new BlockObsidian(49, 37)).setHardness(10.0F).setResistance(2000.0F).setStepSound(soundStoneFootstep).setBlockName("obsidian").setIsUrban(true);
 	public static final Block torchWood = (new BlockTorch(50, 80)).setHardness(0.0F).setLightValue(0.9375F).setStepSound(soundWoodFootstep).setBlockName("torch").setRequiresSelfNotify();
 	public static final BlockFire fire = (BlockFire)(new BlockFire(51, 31)).setHardness(0.0F).setLightValue(1.0F).setStepSound(soundWoodFootstep).setBlockName("fire").disableStats().setRequiresSelfNotify();
@@ -237,6 +237,9 @@ public class Block {
 	// City overhaul update
 	public static final Block cementPowder = new BlockCementPowder(169, 11 * 16 + 1).setHardness(0.8F).setStepSound(soundGravelFootstep).setBlockName("cementPowder").setIsUrban(true);
 	public static final Block cement = new BlockCement(170, Material.rock).setHardness(2.0F).setResistance(10.0F).setStepSound(soundStoneFootstep).setBlockName("cement").setIsUrban(true).setCreativeTab(CreativeTabs.tabBlock);
+	
+	// Moss update
+	public static final Block surfaceMoss = (new BlockSurfaceMoss(171, 12 * 16 + 4)).setHardness(0.1F).setResistance(0.1F).setStepSound(soundGrassFootstep).setBlockName("surfaceMoss");
 	
 	// Special
 	public static final Block structureVoid = new Block(217, 49, Material.air);
@@ -729,6 +732,11 @@ public class Block {
 	}
 	
 	public boolean canGrowMushrooms() {
+		return false;
+	}
+
+	/** Whether surface moss ({@link BlockSurfaceMoss}) can grow on this block. */
+	public boolean canGrowMoss() {
 		return false;
 	}
 

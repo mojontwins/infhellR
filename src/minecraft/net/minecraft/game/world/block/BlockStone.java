@@ -19,6 +19,10 @@ public class BlockStone extends Block {
 		
 		this.displayOnCreativeTab = CreativeTabs.tabBlock;
 	}
+	
+	public boolean canGrowMoss() {
+		return true;
+	}
 
 	public int idDropped(int metadata, Random rand) {
 		return Block.cobblestone.blockID;

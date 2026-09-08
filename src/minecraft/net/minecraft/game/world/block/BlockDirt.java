@@ -12,5 +12,9 @@ public class BlockDirt extends Block {
 	
 	public boolean canGrowPlants() {
 		return true;
-	}	
+	}
+	
+	public boolean canGrowMoss() {
+		return true;
+	}
 }

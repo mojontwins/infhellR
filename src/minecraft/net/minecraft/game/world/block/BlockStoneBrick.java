@@ -18,6 +18,11 @@ public class BlockStoneBrick extends Block implements IBlockWithSubtypes {
 	}
 
 	@Override
+	public boolean canGrowMoss() {
+		return true;
+	}
+
+	@Override
 	public int getBlockTextureFromSideAndMetadata(int side, int meta) {
 		if(meta >= this.brickTextures.length) meta = 0;
 		return this.brickTextures [meta];

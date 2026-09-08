@@ -84,6 +84,41 @@ public class WorldChunkManager {
     }
 
     /**
+     * Computes the biome temperature and humidity at a single block coordinate,
+     * mirroring {@link #loadBlockGeneratorData} exactly (same generators,
+     * variation noise, fuzz, squash curve, cold offset and clamps) without
+     * touching the shared cached arrays.
+     *
+     * @return a new two-element array {temperature, humidity}, each in [0, 1]
+     */
+    public double[] getTemperatureAndHumidityAt(int x, int z) {
+        double[] temperatureArray = this.tempNoise.generateNoiseOctaves(
+                null, x, z, 1, 1, this.temperatureScale, this.temperatureScale, this.temperatureExponent);
+        double[] humidityArray = this.humidityNoise.generateNoiseOctaves(
+                null, x, z, 1, 1, this.humidityScale, this.humidityScale, this.humidityExponent);
+        double[] variationArray = this.variationNoise.generateNoiseOctaves(
+                null, x, z, 1, 1, this.variationScale, this.variationScale, this.variationExponent);
+
+        double v = variationArray[0] * 1.1D + 0.5D;
+
+        // Temperature branch (same fuzz + squash curve as loadBlockGeneratorData).
+        double fuzz = this.temperatureFuzzPercent;
+        double noFuzz = 1.0D - fuzz;
+        double temperature = (temperatureArray[0] * 0.15D + 0.7D) * noFuzz + v * fuzz;
+        temperature = 1.0D - (1.0D - temperature) * (1.0D - temperature);
+        if (this.cold) temperature -= 0.5D;
+        temperature = Math.max(0.0D, Math.min(1.0D, temperature));
+
+        // Humidity branch.
+        fuzz = this.humidityFuzzPercent;
+        noFuzz = 1.0D - fuzz;
+        double humidity = (humidityArray[0] * 0.15D + 0.5D) * noFuzz + v * fuzz;
+        humidity = Math.max(0.0D, Math.min(1.0D, humidity));
+
+        return new double[] { temperature, humidity };
+    }
+
+    /**
      * Returns the biome array for a terrain-generation pass (coarse grid).
      *
      * @see #loadBlockGeneratorData

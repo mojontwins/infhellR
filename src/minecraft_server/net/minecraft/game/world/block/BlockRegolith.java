@@ -24,4 +24,8 @@ public class BlockRegolith extends Block {
 	public boolean canGrowPlants() {
 		return true;
 	}
+	
+	public boolean canGrowMoss() {
+		return true;
+	}
 }

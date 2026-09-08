@@ -23,4 +23,9 @@ public class BlockChippedWood extends BlockLog {
 		return Block.chippedWood.blockID;
 	} 
 	
+	// Chipped wood is a log subtype, but eroded/weathered surfaces don't host moss.
+	public boolean canGrowMoss() {
+		return false;
+	}
+	
 }

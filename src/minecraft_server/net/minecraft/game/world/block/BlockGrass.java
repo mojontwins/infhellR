@@ -19,6 +19,10 @@ public class BlockGrass extends Block implements IBlockWithSubtypes {
 		this.displayOnCreativeTab = CreativeTabs.tabBlock;
 	}
 
+	public boolean canGrowMoss() {
+		return true;
+	}
+
 	public int getBlockTexture(IBlockAccess blockAccess, int x, int y, int z, int side) {
 		int meta = blockAccess.getBlockMetadata(x, y, z);
 		

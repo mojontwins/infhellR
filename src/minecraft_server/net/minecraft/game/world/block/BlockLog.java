@@ -123,4 +123,8 @@ public class BlockLog extends Block {
 	public boolean canGrowMushrooms() {
 		return true;
 	}
+	
+	public boolean canGrowMoss() {
+		return true;
+	}
 }

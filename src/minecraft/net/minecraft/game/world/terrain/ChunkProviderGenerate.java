@@ -37,6 +37,7 @@ import net.minecraft.game.world.terrain.generate.WorldGenLiquids;
 import net.minecraft.game.world.terrain.generate.WorldGenMinable;
 import net.minecraft.game.world.terrain.generate.WorldGenPumpkin;
 import net.minecraft.game.world.terrain.generate.WorldGenReed;
+import net.minecraft.game.world.terrain.generate.WorldGenSurfaceMoss;
 import net.minecraft.game.world.terrain.generate.WorldGenTallGrass;
 
 
@@ -1031,6 +1032,20 @@ public class ChunkProviderGenerate implements IChunkProvider {
 			}
 		}
 		
+		// Surface moss: only attempt on humid, temperate land (after snow cover).
+		double[] mossClimate = this.worldObj.getWorldChunkManager().getTemperatureAndHumidityAt(x0 + 8, z0 + 8);
+		double mossTemperature = mossClimate[0];
+		double mossHumidity = mossClimate[1];
+		if(mossHumidity > 0.5D && mossTemperature > 0.4D && mossTemperature < 0.6D) {
+			int mossAttempts = 1 + (int)((mossHumidity - 0.5D) * 8.0D);
+			for(int moss = 0; moss < mossAttempts; ++moss) {
+				int mossX = x0 + this.rand.nextInt(16) + 8;
+				int mossZ = z0 + this.rand.nextInt(16) + 8;
+				int mossY = this.worldObj.getLandSurfaceHeightValue(mossX, mossZ);
+				(new WorldGenSurfaceMoss()).generate(this.worldObj, this.rand, mossX, mossY, mossZ);
+			}
+		}
+
 		BlockSand.fallInstantly = false;
 		thisChunk.beingDecorated = false;
 	}
