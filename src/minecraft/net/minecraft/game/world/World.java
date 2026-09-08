@@ -1471,28 +1471,65 @@ public List<AxisAlignedBB> getCollidingBoundingBoxes(Entity entity1, AxisAligned
 		return this.entityQueryService.isAABBInMaterial(axisAlignedBB1, material2);
 	}
 
-	public Explosion createExplosion(Entity entity1, double d2, double d4, double d6, float f8) {
-		return this.newExplosion(entity1, d2, d4, d6, f8, false);
+	/**
+	 * Convenience wrapper around {@link #newExplosion} that always detonates a non-flaming
+	 * explosion.
+	 */
+	public Explosion createExplosion(Entity exploder, double x, double y, double z, float radius) {
+		return this.newExplosion(exploder, x, y, z, radius, false);
 	}
 	
-	public Explosion createBlockExplosion(Entity entity1, double d2, double d4, double d6, float f8, int blockID) {
-		return this.newBlockExplosion(entity1, d2, d4, d6, f8, blockID, false);
+	/**
+	 * Convenience wrapper around {@link #newBlockExplosion} that always detonates a non-flaming
+	 * block explosion.
+	 */
+	public Explosion createBlockExplosion(Entity exploder, double x, double y, double z, float radius, int blockID) {
+		return this.newBlockExplosion(exploder, x, y, z, radius, blockID, false);
 	}
 
-	public Explosion newExplosion(Entity entity1, double d2, double d4, double d6, float f8, boolean z9) {
-		Explosion explosion10 = new Explosion(this, entity1, d2, d4, d6, f8);
-		explosion10.isFlaming = z9;
-		explosion10.doExplosion();
-		explosion10.doEffects(true);
-		return explosion10;
+	/**
+	 * Creates an explosion at the given position and detonates it immediately, clearing blocks and
+	 * damaging/launching nearby entities. The base implementation also plays the explosion sound
+	 * and spawns the particle effects; the dedicated server overrides this method to send the
+	 * destroyed block positions to every nearby player instead.
+	 *
+	 * @param exploder  the entity that caused the explosion, or null
+	 * @param x         the explosion's X position
+	 * @param y         the explosion's Y position
+	 * @param z         the explosion's Z position
+	 * @param radius    the explosion's size/radius
+	 * @param flaming   whether to leave fires on destroyed surfaces
+	 * @return the resolved explosion
+	 */
+	public Explosion newExplosion(Entity exploder, double x, double y, double z, float radius, boolean flaming) {
+		Explosion explosion = new Explosion(this, exploder, x, y, z, radius);
+		explosion.isFlaming = flaming;
+		explosion.doExplosion();
+		explosion.doEffects(true);
+		return explosion;
 	}
 	
-	public Explosion newBlockExplosion(Entity entity1, double d2, double d4, double d6, float f8, int blockID, boolean z9) {
-		Explosion explosion10 = new Explosion(this, entity1, d2, d4, d6, f8, blockID);
-		explosion10.isFlaming = z9;
-		explosion10.doExplosion();
-		explosion10.doEffects(true);
-		return explosion10;
+	/**
+	 * Creates a block explosion at the given position and detonates it immediately. Unlike
+	 * {@link #newExplosion}, every destroyed block position is replaced with the given {@code blockID}
+	 * instead of dropping the block as an item. The dedicated server overrides this method to send
+	 * the destroyed block positions to every nearby player instead.
+	 *
+	 * @param exploder  the entity that caused the explosion, or null
+	 * @param x         the explosion's X position
+	 * @param y         the explosion's Y position
+	 * @param z         the explosion's Z position
+	 * @param radius    the explosion's size/radius
+	 * @param blockID   the block to place over every destroyed position
+	 * @param flaming   whether to leave fires on destroyed surfaces
+	 * @return the resolved explosion
+	 */
+	public Explosion newBlockExplosion(Entity exploder, double x, double y, double z, float radius, int blockID, boolean flaming) {
+		Explosion explosion = new Explosion(this, exploder, x, y, z, radius, blockID);
+		explosion.isFlaming = flaming;
+		explosion.doExplosion();
+		explosion.doEffects(true);
+		return explosion;
 	}
 
 	public float getBlockDensity(Vec3D vec3D1, AxisAlignedBB axisAlignedBB2) {
