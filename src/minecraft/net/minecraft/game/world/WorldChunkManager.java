@@ -92,6 +92,9 @@ public class WorldChunkManager {
      * @return a new two-element array {temperature, humidity}, each in [0, 1]
      */
     public double[] getTemperatureAndHumidityAt(int x, int z) {
+        if(this.tempNoise == null) {
+            return new double[] { 0.5D, 0.5D };
+        }
         double[] temperatureArray = this.tempNoise.generateNoiseOctaves(
                 null, x, z, 1, 1, this.temperatureScale, this.temperatureScale, this.temperatureExponent);
         double[] humidityArray = this.humidityNoise.generateNoiseOctaves(
@@ -101,11 +104,11 @@ public class WorldChunkManager {
 
         double v = variationArray[0] * 1.1D + 0.5D;
 
-        // Temperature branch (same fuzz + squash curve as loadBlockGeneratorData).
+        // Temperature branch (same fuzz mixture as loadBlockGeneratorData;
+        // mapping is linear — broad palette: every world spans cold to hot).
         double fuzz = this.temperatureFuzzPercent;
         double noFuzz = 1.0D - fuzz;
         double temperature = (temperatureArray[0] * 0.15D + 0.7D) * noFuzz + v * fuzz;
-        temperature = 1.0D - (1.0D - temperature) * (1.0D - temperature);
         if (this.cold) temperature -= 0.5D;
         temperature = Math.max(0.0D, Math.min(1.0D, temperature));
 
@@ -166,7 +169,6 @@ public class WorldChunkManager {
                 double fuzz = this.temperatureFuzzPercent;
                 double noFuzz = 1.0D - fuzz;
                 double temp = (buffer[idx] * 0.15D + 0.7D) * noFuzz + v * fuzz;
-                temp = 1.0D - (1.0D - temp) * (1.0D - temp);
                 buffer[idx] = Math.max(0.0D, Math.min(1.0D, temp));
                 ++idx;
             }
@@ -176,7 +178,9 @@ public class WorldChunkManager {
 
     // ─── Noise scaling parameters ────────────────────────────────────────────────
     // These were tuned by hand to produce biome sizes roughly 2× larger than
-    // vanilla Beta 1.7.3 while maintaining the same distribution shape.
+    // vanilla Beta 1.7.3. The temperature→biome mapping is LINEAR (no squash
+    // curve): together with the per-world low-frequency offset this gives every
+    // world a broad spread from cold to hot biomes, reachable by walking.
 
     /** Noise frequency multiplier for temperature. */
     public double temperatureScale       = 0.0125D;
@@ -250,9 +254,8 @@ public class WorldChunkManager {
                 noFuzz = 1.0D - fuzz;
                 double humidity = (this.humidity[idx] * 0.15D + 0.5D) * noFuzz + v * fuzz;
 
-                // Squash curve (approximates squared falloff).
-                temperature = 1.0D - (1.0D - temperature) * (1.0D - temperature);
-
+                // Linear mapping (no squash): preserves the full temperature
+                // range so every world spans cold, temperate, and hot biomes.
                 if (this.cold) temperature -= 0.5D;
 
                 temperature = Math.max(0.0D, Math.min(1.0D, temperature));

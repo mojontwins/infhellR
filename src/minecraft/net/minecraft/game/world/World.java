@@ -2989,6 +2989,24 @@ public List<AxisAlignedBB> getCollidingBoundingBoxes(Entity entity, AxisAlignedB
 	public BiomeGenBase getBiomeGenAt(int x, int z) {
 		return this.getChunkFromChunkCoords(x >> 4, z >> 4).getBiomeGenAt(x & 15, z & 15);
 	}
+
+	/** Returns the temperature at the given world coordinates (chunk-cached where loaded). */
+	public float getTemperatureAt(int x, int z) {
+		int chunkX = x >> 4;
+		int chunkZ = z >> 4;
+		return this.chunkExists(chunkX, chunkZ)
+				? this.getChunkFromChunkCoords(chunkX, chunkZ).getTemperatureAt(x & 15, z & 15)
+				: (float)this.getWorldChunkManager().getTemperatureAndHumidityAt(x, z)[0];
+	}
+
+	/** Returns the humidity at the given world coordinates (chunk-cached where loaded). */
+	public float getHumidityAt(int x, int z) {
+		int chunkX = x >> 4;
+		int chunkZ = z >> 4;
+		return this.chunkExists(chunkX, chunkZ)
+				? this.getChunkFromChunkCoords(chunkX, chunkZ).getHumidityAt(x & 15, z & 15)
+				: (float)this.getWorldChunkManager().getTemperatureAndHumidityAt(x, z)[1];
+	}
 	
 	/** Returns the world access at the given index. */
 	public IWorldAccess getWorldAccess(int index) {

@@ -12,6 +12,7 @@ import net.minecraft.game.physics.AxisAlignedBB;
 import net.minecraft.game.world.ChunkPosition;
 import net.minecraft.game.world.EnumSkyBlock;
 import net.minecraft.game.world.World;
+import net.minecraft.game.world.WorldChunkManager;
 import net.minecraft.game.world.block.Block;
 import net.minecraft.game.world.block.BlockContainer;
 import net.minecraft.game.world.block.tileentity.TileEntity;
@@ -45,6 +46,10 @@ public class Chunk {
 	public boolean hasEntities;
 	public long lastSaveTime;
 	public BiomeGenBase [] biomeGenCache = null;
+	/** Per-column temperature for this chunk's 16x16 (index x << 4 | z), null until seeded/populated. */
+	public float[] temperatureCache = null;
+	/** Per-column humidity for this chunk's 16x16 (index x << 4 | z), null until seeded/populated. */
+	public float[] humidityCache = null;
 	public boolean hasBuilding = false;
 	public boolean hasRoad = false;
 	public boolean isOcean = false;
@@ -834,9 +839,13 @@ public class Chunk {
 	}
 	
 	public void refreshCaches() {
+		WorldChunkManager manager = this.worldObj.getWorldChunkManager();
 		BiomeGenBase biomeGen [] = null;
-		biomeGen = this.worldObj.getWorldChunkManager().loadBlockGeneratorData(biomeGen, this.xPosition << 4, this.zPosition << 4, 16, 16);
+		biomeGen = manager.loadBlockGeneratorData(biomeGen, this.xPosition << 4, this.zPosition << 4, 16, 16);
 		this.biomeGenCache = biomeGen.clone();
+		if(manager.temperature != null) {
+			this.setClimateCache(manager.temperature, manager.humidity);
+		}
 	}
 	
 	public BiomeGenBase getBiomeGenAt (int x, int z) {
@@ -845,6 +854,56 @@ public class Chunk {
 			this.refreshCaches();
 		}
 		return this.biomeGenCache [x << 4 | z];
+	}
+
+	public float getTemperatureAt (int x, int z) {
+		if(this.temperatureCache == null) {
+			this.refreshCaches();
+		}
+		return this.temperatureCache [x << 4 | z];
+	}
+
+	public float getHumidityAt (int x, int z) {
+		if(this.humidityCache == null) {
+			this.refreshCaches();
+		}
+		return this.humidityCache [x << 4 | z];
+	}
+
+	/** Seeds the per-column climate caches from the given temperature/humidity grids (index x << 4 | z). */
+	public void setClimateCache(float[] temperature, float[] humidity) {
+		if(temperature == null || humidity == null) {
+			return;
+		}
+		if(this.temperatureCache == null) {
+			this.temperatureCache = new float[256];
+		}
+		if(this.humidityCache == null) {
+			this.humidityCache = new float[256];
+		}
+		int length = Math.min(temperature.length, Math.min(humidity.length, 256));
+		for(int i = 0; i < length; ++i) {
+			this.temperatureCache[i] = temperature[i];
+			this.humidityCache[i] = humidity[i];
+		}
+	}
+
+	/** Seeds the per-column climate caches from the manager's double grids (index x << 4 | z). */
+	public void setClimateCache(double[] temperature, double[] humidity) {
+		if(temperature == null || humidity == null) {
+			return;
+		}
+		if(this.temperatureCache == null) {
+			this.temperatureCache = new float[256];
+		}
+		if(this.humidityCache == null) {
+			this.humidityCache = new float[256];
+		}
+		int length = Math.min(temperature.length, Math.min(humidity.length, 256));
+		for(int i = 0; i < length; ++i) {
+			this.temperatureCache[i] = (float)temperature[i];
+			this.humidityCache[i] = (float)humidity[i];
+		}
 	}
 
 	public boolean setBlockIDWithMetadataNoLights(int x, int y, int z, int id, int metadata) {

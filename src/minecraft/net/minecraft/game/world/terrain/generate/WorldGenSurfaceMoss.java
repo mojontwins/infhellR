@@ -27,10 +27,9 @@ public class WorldGenSurfaceMoss extends WorldGenerator {
 		if(groundBlock == null || !groundBlock.canGrowMoss()) return true;
 
 		// The anchor must sit in a strictly humid, temperate climate.
-		double[] climate = world.getWorldChunkManager().getTemperatureAndHumidityAt(x, z);
-		double temperature = climate[0];
-		double humidity = climate[1];
-		if(humidity <= 0.6D || temperature <= 0.4D || temperature >= 0.6D) return true;
+		float temperature = world.getTemperatureAt(x, z);
+		float humidity = world.getHumidityAt(x, z);
+		if(humidity <= 0.6F || temperature <= 0.4F || temperature >= 0.6F) return true;
 
 		world.setBlock(x, y + 1, z, Block.surfaceMoss.blockID);
 

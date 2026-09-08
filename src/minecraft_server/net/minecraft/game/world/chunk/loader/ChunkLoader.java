@@ -11,6 +11,7 @@ import net.minecraft.game.entity.EntityList;
 import net.minecraft.game.world.World;
 import net.minecraft.game.world.WorldInfo;
 import net.minecraft.game.world.block.tileentity.TileEntity;
+import net.minecraft.game.world.biome.BiomeGenBase;
 import net.minecraft.game.world.chunk.Chunk;
 import net.minecraft.game.world.chunk.CompressedStreamTools;
 import net.minecraft.game.world.chunk.NibbleArray;
@@ -140,6 +141,24 @@ public class ChunkLoader implements IChunkLoader {
 		
 		chunk0.hasEntities = false;
 		
+		if(chunk0.biomeGenCache != null) {
+			byte[] biomes = new byte[256];
+			for(int i = 0; i < 256; ++i) {
+				biomes[i] = (byte)chunk0.biomeGenCache[i].biomeCode;
+			}
+			nBTTagCompound2.setByteArray("Biomes", biomes);
+		}
+		if(chunk0.temperatureCache != null && chunk0.humidityCache != null) {
+			byte[] temperature = new byte[256];
+			byte[] humidity = new byte[256];
+			for(int i = 0; i < 256; ++i) {
+				temperature[i] = (byte)(int)(chunk0.temperatureCache[i] * 255.0F);
+				humidity[i] = (byte)(int)(chunk0.humidityCache[i] * 255.0F);
+			}
+			nBTTagCompound2.setByteArray("Temperature", temperature);
+			nBTTagCompound2.setByteArray("Humidity", humidity);
+		}
+		
 		NBTTagList nBTTagList3 = new NBTTagList();
 		NBTTagCompound nBTTagCompound7;
 		{
@@ -220,6 +239,26 @@ public class ChunkLoader implements IChunkLoader {
 
 		if(!chunk4.blocklightMap.isValid()) {
 			chunk4.blocklightMap = new NibbleArray(chunk4.blocks.length);
+		}
+
+		byte[] biomeCodes = nBTTagCompound1.getByteArray("Biomes");
+		byte[] temperature = nBTTagCompound1.getByteArray("Temperature");
+		byte[] humidity = nBTTagCompound1.getByteArray("Humidity");
+		if(biomeCodes.length == 256) {
+			BiomeGenBase[] biomes = new BiomeGenBase[256];
+			for(int i = 0; i < 256; ++i) {
+				biomes[i] = BiomeGenBase.getBiomeByCode(biomeCodes[i] & 255);
+			}
+			chunk4.biomeGenCache = biomes;
+		}
+		if(temperature.length == 256 && humidity.length == 256) {
+			float[] temperatureGrid = new float[256];
+			float[] humidityGrid = new float[256];
+			for(int i = 0; i < 256; ++i) {
+				temperatureGrid[i] = (temperature[i] & 255) / 255.0F;
+				humidityGrid[i] = (humidity[i] & 255) / 255.0F;
+			}
+			chunk4.setClimateCache(temperatureGrid, humidityGrid);
 		}
 
 		NBTTagList nBTTagList5 = nBTTagCompound1.getTagList("Entities");

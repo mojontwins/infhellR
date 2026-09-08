@@ -39,6 +39,11 @@ public class WorldChunkManagerHell extends WorldChunkManager {
     }
 
     @Override
+    public double[] getTemperatureAndHumidityAt(int x, int z) {
+        return new double[] { this.temperatureHell, this.humidityHell };
+    }
+
+    @Override
     public BiomeGenBase[] getBiomesForGeneration(int x, int z, int width, int length) {
         this.generatedBiomes = this.loadBlockGeneratorData(this.generatedBiomes, x, z, width, length);
         return this.generatedBiomes;

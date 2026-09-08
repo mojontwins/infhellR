@@ -6,7 +6,9 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import javax.imageio.ImageIO;
@@ -145,6 +147,21 @@ public class BiomeGenBase {
 	public BiomeGenBase setCode(int code) {
 		this.biomeCode = code;
 		return this;
+	}
+	
+	/** Lazily-built reverse lookup of biome by {@link #biomeCode}. */
+	private static Map<Integer, BiomeGenBase> codeToBiomeMap = null;
+	
+	/** Returns the biome registered with the given code, or {@link #biomeDefault} if unknown. */
+	public static BiomeGenBase getBiomeByCode(int code) {
+		if(codeToBiomeMap == null) {
+			codeToBiomeMap = new HashMap<Integer, BiomeGenBase>();
+			for(BiomeGenBase biome : biomeList) {
+				codeToBiomeMap.put(biome.biomeCode, biome);
+			}
+		}
+		BiomeGenBase biome = codeToBiomeMap.get(code);
+		return biome == null ? biomeDefault : biome;
 	}
 	
 	public boolean isPermaFrost() {

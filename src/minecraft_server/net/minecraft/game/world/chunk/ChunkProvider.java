@@ -11,6 +11,8 @@ import java.util.Set;
 import net.minecraft.game.IProgressUpdate;
 import net.minecraft.game.entity.player.EntityPlayer;
 import net.minecraft.game.world.World;
+import net.minecraft.game.world.WorldChunkManager;
+import net.minecraft.game.world.biome.BiomeGenBase;
 import net.minecraft.game.world.chunk.loader.IChunkLoader;
 
 public class ChunkProvider implements IChunkProvider {
@@ -85,6 +87,7 @@ public class ChunkProvider implements IChunkProvider {
 			}
 		}
 
+		
 		return chunk;
 	}
 
@@ -105,6 +108,14 @@ public class ChunkProvider implements IChunkProvider {
 				Chunk chunk3 = this.chunkLoader.loadChunk(this.worldObj, i1, i2);
 				if(chunk3 != null) {
 					chunk3.lastSaveTime = this.worldObj.getWorldTime();
+					if(chunk3.biomeGenCache == null) {
+						WorldChunkManager manager = this.worldObj.getWorldChunkManager();
+						BiomeGenBase[] biomesForGeneration = manager.loadBlockGeneratorData(null, i1 * 16, i2 * 16, 16, 16);
+						chunk3.biomeGenCache = biomesForGeneration;
+						if(manager.temperature != null) {
+							chunk3.setClimateCache(manager.temperature, manager.humidity);
+						}
+					}
 				}
 
 				return chunk3;

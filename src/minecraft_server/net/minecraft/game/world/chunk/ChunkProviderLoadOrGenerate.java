@@ -4,6 +4,7 @@ import java.io.IOException;
 import net.minecraft.game.IProgressUpdate;
 
 import net.minecraft.game.world.World;
+import net.minecraft.game.world.WorldChunkManager;
 import net.minecraft.game.world.chunk.loader.IChunkLoader;
 import net.minecraft.game.world.biome.BiomeGenBase;
 
@@ -137,11 +138,19 @@ public class ChunkProviderLoadOrGenerate implements IChunkProvider {
 				if(chunk3 != null) {
 					chunk3.lastSaveTime = this.worldObj.getWorldTime();
 					
-					BiomeGenBase [] biomesForGeneration = null;
-					biomesForGeneration = this.worldObj.getWorldChunkManager().loadBlockGeneratorData(biomesForGeneration, posX * 16, posZ * 16, 16, 16);
-					
-					// A reference of the biomeGenCache object
-					chunk3.biomeGenCache = biomesForGeneration;
+					if(chunk3.biomeGenCache == null) {
+						BiomeGenBase [] biomesForGeneration = null;
+						biomesForGeneration = this.worldObj.getWorldChunkManager().loadBlockGeneratorData(biomesForGeneration, posX * 16, posZ * 16, 16, 16);
+						
+						// A reference of the biomeGenCache object
+						chunk3.biomeGenCache = biomesForGeneration;
+						
+						// Seed the per-column climate caches from the same ramp pass.
+						WorldChunkManager manager = this.worldObj.getWorldChunkManager();
+						if(manager.temperature != null) {
+							chunk3.setClimateCache(manager.temperature, manager.humidity);
+						}
+					}
 				}
 
 				return chunk3;

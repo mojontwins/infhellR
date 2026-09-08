@@ -201,6 +201,10 @@ public class GuiIngame extends Gui {
 
 		String memoryText;
 		if(GameSettingsValues.showDebugInfo) {
+			int x = (int)this.mc.thePlayer.posX;
+			int y = (int)this.mc.thePlayer.posY;
+			int z = (int)this.mc.thePlayer.posZ;
+			
 			GL11.glPushMatrix();
 			if(Minecraft.hasPaidCheckTime > 0L) {
 				GL11.glTranslatef(0.0F, 32.0F, 0.0F);
@@ -219,7 +223,7 @@ public class GuiIngame extends Gui {
 			memoryText = "Allocated: " + totalMemory * 100L / maxMemory + "% (" + totalMemory / 1024L / 1024L + "MB)";
 			this.drawString(font, memoryText, scaledWidth - font.getStringWidth(memoryText) - 2, 12, 14737632);
 			
-			font.drawStringWithShadow("Pos: " + (int)this.mc.thePlayer.posX + ", " + (int)this.mc.thePlayer.posY + ", " + (int)this.mc.thePlayer.posZ + " [" + (int)this.mc.thePlayer.rotationYaw + "]", 2, 42, 0xFFFFFF);
+			font.drawStringWithShadow("Pos: " + x + ", " + y + ", " + z + " [" + (int)this.mc.thePlayer.rotationYaw + "]", 2, 42, 0xFFFFFF);
 			
 			float timeAdjusted = (float) (this.mc.theWorld.worldInfo.getWorldTime() % 24000);
 			font.drawStringWithShadow("Time: " + this.twoDigits((int)((timeAdjusted / 1000.0F) + 6) % 24) + ":" + this.twoDigits((int)((timeAdjusted % 1000.0F) * 60 / 1000)), 2, 52, 0xFFFFFF);
@@ -228,7 +232,7 @@ public class GuiIngame extends Gui {
 			this.drawString(font, seedText, scaledWidth - font.getStringWidth(seedText) - 2, 22, 14737632);
 			
 			if (!this.mc.theWorld.isRemote) {
-				String biomeText = "Biome: " + this.mc.theWorld.getBiomeGenAt((int)this.mc.thePlayer.posX, (int)this.mc.thePlayer.posZ).biomeName;
+				String biomeText = "Biome: " + this.mc.theWorld.getBiomeGenAt(x, z).biomeName + " T:" + this.twoDecimals(this.mc.theWorld.getTemperatureAt(x, z)) + " H:" + this.twoDecimals(this.mc.theWorld.getHumidityAt(x, z));
 				this.drawString(font, biomeText, scaledWidth - font.getStringWidth(biomeText) - 2, 32, 14737632);
 			}
 			
@@ -316,6 +320,10 @@ public class GuiIngame extends Gui {
 		GL11.glPopMatrix();
 		GL11.glEnable(GL11.GL_ALPHA_TEST);
 		GL11.glDisable(GL11.GL_BLEND);
+	}
+
+	public String twoDecimals(float v) {		
+		return "" + ((float)((int)(v * 100)) / 100.0F);
 	}
 
 	private void renderPumpkinBlur(int screenWidth, int screenHeight) {

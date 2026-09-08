@@ -11,6 +11,7 @@ import net.minecraft.game.IProgressUpdate;
 import net.minecraft.game.MathHelper;
 import net.minecraft.game.world.Weather;
 import net.minecraft.game.world.World;
+import net.minecraft.game.world.WorldChunkManager;
 import net.minecraft.game.world.block.Block;
 import net.minecraft.game.world.chunk.Chunk;
 import net.minecraft.game.world.chunk.ChunkProviderSky;
@@ -287,6 +288,13 @@ public class ChunkProviderGenerate implements IChunkProvider {
 		
 		// Cache biomes in chunk
 		chunk.biomeGenCache = this.biomesForGeneration.clone();
+
+		// Harvest the temperature/humidity ramp computed by loadBlockGeneratorData
+		// so the chunk's per-column climate caches need no extra noise pass.
+		WorldChunkManager worldChunkManager = this.worldObj.getWorldChunkManager();
+		if(worldChunkManager.temperature != null) {
+			chunk.setClimateCache(worldChunkManager.temperature, worldChunkManager.humidity);
+		}
 
 		// New approach to preselect chunks for cities
 		boolean isUrbanChunk = this.worldObj.getWorldChunkManager().isUrbanChunk(chunkX, chunkZ);
@@ -1033,11 +1041,10 @@ public class ChunkProviderGenerate implements IChunkProvider {
 		}
 		
 		// Surface moss: only attempt on humid, temperate land (after snow cover).
-		double[] mossClimate = this.worldObj.getWorldChunkManager().getTemperatureAndHumidityAt(x0 + 8, z0 + 8);
-		double mossTemperature = mossClimate[0];
-		double mossHumidity = mossClimate[1];
-		if(mossHumidity > 0.5D && mossTemperature > 0.4D && mossTemperature < 0.6D) {
-			int mossAttempts = 1 + (int)((mossHumidity - 0.5D) * 8.0D);
+		float mossTemperature = this.worldObj.getTemperatureAt(x0 + 8, z0 + 8);
+		float mossHumidity = this.worldObj.getHumidityAt(x0 + 8, z0 + 8);
+		if(mossHumidity > 0.5F && mossTemperature > 0.4F && mossTemperature < 0.6F) {
+			int mossAttempts = 1 + (int)((mossHumidity - 0.5F) * 8.0F);
 			for(int moss = 0; moss < mossAttempts; ++moss) {
 				int mossX = x0 + this.rand.nextInt(16) + 8;
 				int mossZ = z0 + this.rand.nextInt(16) + 8;
