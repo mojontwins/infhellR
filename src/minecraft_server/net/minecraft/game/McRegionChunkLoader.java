@@ -27,7 +27,11 @@ public class McRegionChunkLoader implements IChunkLoader {
 			if(!nBTTagCompound5.hasKey("Level")) {
 				System.out.println("Chunk file at " + i2 + "," + i3 + " is missing level data, skipping");
 				return null;
-			} else if(!nBTTagCompound5.getCompoundTag("Level").hasKey("Blocks")) {
+			} else if(!nBTTagCompound5.getCompoundTag("Level").hasKey("Blocks") && nBTTagCompound5.getCompoundTag("Level").getInteger("Height") != Chunk.SECTION_HEIGHT) {
+				/* New-format chunks store their blocks as a SubchunkMask plus parallel section
+				   lists with Height = SECTION_HEIGHT, so the absent "Blocks" tag is expected
+				   there. Only reject a chunk when it has neither the classic Blocks array nor
+				   the new-format height marker — i.e. it is genuinely missing block data. */
 				System.out.println("Chunk file at " + i2 + "," + i3 + " is missing block data, skipping");
 				return null;
 			} else {
