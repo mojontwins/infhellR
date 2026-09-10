@@ -161,6 +161,8 @@ public class ChunkLoader implements IChunkLoader {
 			// New format: mask-ordered parallel subchunk lists. A subchunk that was never
 			// materialized has no entry and its bit in SubchunkMask is clear.
 			nBTTagCompound2.setInteger("Height", Chunk.SECTION_HEIGHT);
+			// Stamps the light planes as Starlight-verified; loads missing this tag relight once.
+			nBTTagCompound2.setByte("LightVersion", (byte)1);
 			int mask = 0;
 			for(int section = 0; section < Chunk.SUBCHUNK_COUNT; ++section) {
 				if(chunk0.sectionBlocks[section] != null) {
@@ -271,6 +273,10 @@ public class ChunkLoader implements IChunkLoader {
 		boolean subchunkFormat = storedHeight == Chunk.SECTION_HEIGHT;
 		boolean hasSkyPlanes = false;
 		boolean hasBlockPlanes = false;
+		// LightVersion was only written by builds that sliced legacy light planes correctly. Legacy
+		// chunks rebuilt by the first 256-height build carried scrambled planes with no marker; the
+		// missing tag makes the Starlight relight below run exactly once to heal them.
+		boolean hasLightVersion = false;
 
 		if(subchunkFormat) {
 			// New format: reconstruct the chunk from the mask-ordered parallel subchunk lists.
@@ -306,6 +312,7 @@ public class ChunkLoader implements IChunkLoader {
 			// The light planes are complete only if every mask entry has a matching list element.
 			hasSkyPlanes = skyList != null && skyList.tagCount() >= listIndex;
 			hasBlockPlanes = blockLightList != null && blockLightList.tagCount() >= listIndex;
+			hasLightVersion = nBTTagCompound1.hasKey("LightVersion");
 			chunk4.recomputeEmptyFlags();
 		} else {
 			// Legacy format: slice the flat 128-tall arrays into the eager subchunks 0-7.
@@ -328,22 +335,49 @@ public class ChunkLoader implements IChunkLoader {
 				chunk4.loadFlatBlocks(flatBlocks, flatData);
 
 				// Move the saved light nibbles into their per-subchunk planes.
+				// The legacy flat planes are column-major: the 128 y-nibbles of a column
+				// ((x,z), base (x<<11|z<<7) nibbles / (x<<10|z<<6) bytes) are stored contiguously,
+				// so each subchunk's 16-local-y nibbles of a column are 8 *strided* bytes. Copying
+				// contiguous section-sized blocks (as done initially) scrambled the columns and
+				// blacked out every migrated world.
 				int flatSectionCount = 128 >> 4;
 				int nibblesPerSection = Chunk.SECTION_SIZE * Chunk.SECTION_SIZE * Chunk.SECTION_SIZE >> 1;
+				int flatByteLength = flatSectionCount * nibblesPerSection;
 				byte[] flatSky = nBTTagCompound1.getByteArray("SkyLight");
 				byte[] flatBlock = nBTTagCompound1.getByteArray("BlockLight");
-				if(flatSky.length >= flatSectionCount * nibblesPerSection) {
+				if(flatSky.length >= flatByteLength) {
 					hasSkyPlanes = true;
 					for(int section = 0; section < flatSectionCount; ++section) {
-						System.arraycopy(flatSky, section * nibblesPerSection, chunk4.skyLightMap[section].data, 0, nibblesPerSection);
+						NibbleArray plane = chunk4.skyLightMap[section];
+						for(int columnBase = 0; columnBase < 256; ++columnBase) {
+							int x = columnBase >> 4;
+							int z = columnBase & 15;
+							// Flat source: 8 bytes (16 y-nibbles) at the section's slice of the
+							// column. Section-plane destination: the column's 8 nibble bytes
+							// (local-y 0-15, packed even-y low like the flat layout).
+							int sourceByte = (x << 10) | (z << 6) | (section << 3);
+							int destByte = (x << 7) | (z << 3);
+							System.arraycopy(flatSky, sourceByte, plane.data, destByte, 8);
+						}
 					}
 				}
-				if(flatBlock.length >= flatSectionCount * nibblesPerSection) {
+				if(flatBlock.length >= flatByteLength) {
 					hasBlockPlanes = true;
 					for(int section = 0; section < flatSectionCount; ++section) {
-						System.arraycopy(flatBlock, section * nibblesPerSection, chunk4.blockLightMap[section].data, 0, nibblesPerSection);
+						NibbleArray plane = chunk4.blockLightMap[section];
+						for(int columnBase = 0; columnBase < 256; ++columnBase) {
+							int x = columnBase >> 4;
+							int z = columnBase & 15;
+							int sourceByte = (x << 10) | (z << 6) | (section << 3);
+							int destByte = (x << 7) | (z << 3);
+							System.arraycopy(flatBlock, sourceByte, plane.data, destByte, 8);
+						}
 					}
 				}
+				// Original legacy files never carried the scrambled-plane state: with the strided
+				// slice above their light is fully trustworthy, so skip the automatic relight only
+				// when a plane is actually absent (handled by the regen condition below).
+				hasLightVersion = true;
 			}
 		}
 
@@ -362,10 +396,11 @@ public class ChunkLoader implements IChunkLoader {
 			chunk4.landSurfaceHeightMap = landSurfaceHeightMap;
 		}
 
-		// If the height map or any light plane is missing, rebuild everything through Starlight:
-		// initSkylight descends from y = 256 through the null top subchunks and only writes into
-		// the materialized sections, so no top-half allocation occurs during migration.
-		if(chunk4.heightMap == null || chunk4.heightMap.length != 256 || !hasSkyPlanes || !hasBlockPlanes) {
+		// If the height map or any light plane is missing the Starlight stamp, rebuild everything
+		// through initLightingForRealNotJustHeightmap: initSkylight descends from y = 256 through
+		// the null top subchunks and only writes into the materialized sections, so no top-half
+		// allocation occurs during migration.
+		if(chunk4.heightMap == null || chunk4.heightMap.length != 256 || !hasSkyPlanes || !hasBlockPlanes || !hasLightVersion) {
 			chunk4.heightMap = new byte[256];
 			chunk4.generateHeightMap();
 			chunk4.generateLandSurfaceHeightMap();
