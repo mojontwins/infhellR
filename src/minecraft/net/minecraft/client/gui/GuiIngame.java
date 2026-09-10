@@ -210,7 +210,7 @@ public class GuiIngame extends Gui {
 				GL11.glTranslatef(0.0F, 32.0F, 0.0F);
 			}
 
-			font.drawStringWithShadow("Minecraft " + Version.getVersion() + " (" + this.mc.debug + ")", 2, 2, 0xFFFFFF);
+			font.drawStringWithShadow("InfHell " + Version.getVersion() + " (" + this.mc.debug + ")", 2, 2, 0xFFFFFF);
 			font.drawStringWithShadow(this.mc.debugInfoRenders(), 2, 12, 0xFFFFFF);
 			font.drawStringWithShadow(this.mc.getEntityDebug(), 2, 22, 0xFFFFFF);
 			font.drawStringWithShadow(this.mc.debugInfoEntities(), 2, 32, 0xFFFFFF);
