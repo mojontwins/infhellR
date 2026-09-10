@@ -229,6 +229,86 @@ public class Chunk {
 	}
 
 	/**
+	 * Exports the block ids of the lower 128-high region into a flat generation-style buffer
+	 * ({@code x << 11 | z << 7 | y}). City generation still edits terrain through such a buffer,
+	 * but in-world chunks have already been sliced into subchunks and dropped their flat storage,
+	 * so the edit is staged locally and written back with {@link #importFlatBlocks128}.
+	 *
+	 * @return a 32768-element flat buffer; unmaterialized sections read as air
+	 */
+	public byte[] exportFlatBlocks128() {
+		byte[] flat = new byte[(SECTION_HEIGHT >> 1) * 256];
+		for(int x = 0; x < 16; ++x) {
+			for(int z = 0; z < 16; ++z) {
+				int flatColumnBase = (x << 4 | z) << 7;      // (x*16 + z) * 128
+				int subchunkColumnBase = (x << 4 | z) << 4;  // (x*16 + z) * 16
+				for(int section = 0; section < FLAT_SECTION_COUNT; ++section) {
+					byte[] sectionBlockData = this.sectionBlocks[section];
+					if(sectionBlockData != null) {
+						System.arraycopy(sectionBlockData, subchunkColumnBase, flat, flatColumnBase + (section << 4), SECTION_SIZE);
+					}
+				}
+			}
+		}
+		return flat;
+	}
+
+	/** Exports the metadata of the lower 128-high region; see {@link #exportFlatBlocks128}. */
+	public byte[] exportFlatData128() {
+		byte[] flat = new byte[(SECTION_HEIGHT >> 1) * 256];
+		for(int x = 0; x < 16; ++x) {
+			for(int z = 0; z < 16; ++z) {
+				int flatColumnBase = (x << 4 | z) << 7;      // (x*16 + z) * 128
+				int subchunkColumnBase = (x << 4 | z) << 4;  // (x*16 + z) * 16
+				for(int section = 0; section < FLAT_SECTION_COUNT; ++section) {
+					byte[] sectionMetaData = this.sectionData[section];
+					if(sectionMetaData != null) {
+						System.arraycopy(sectionMetaData, subchunkColumnBase, flat, flatColumnBase + (section << 4), SECTION_SIZE);
+					}
+				}
+			}
+		}
+		return flat;
+	}
+
+	/**
+	 * Applies a flat 128-high block/metadata pair back into subchunk storage, the reverse of
+	 * {@link #exportFlatBlocks128}/{@link #exportFlatData128}. Sections that would become pure
+	 * air are not materialized; a section gains storage the first time it carries a block.
+	 * Mirrors {@link #loadFlatBlocks} (empty flags and the materialized count are refreshed),
+	 * but lighting is deliberately left untouched, matching the historical direct-array writes.
+	 *
+	 * @param blocks the flat block ids to apply (generation layout)
+	 * @param data   the flat metadata to apply (generation layout)
+	 */
+	public void importFlatBlocks128(byte[] blocks, byte[] data) {
+		if(blocks == null || data == null) {
+			return;
+		}
+		for(int x = 0; x < 16; ++x) {
+			for(int z = 0; z < 16; ++z) {
+				int flatColumnBase = (x << 4 | z) << 7;      // (x*16 + z) * 128
+				int subchunkColumnBase = (x << 4 | z) << 4;  // (x*16 + z) * 16
+				for(int section = 0; section < FLAT_SECTION_COUNT; ++section) {
+					boolean hasContent = false;
+					for(int k = 0; k < SECTION_SIZE && !hasContent; ++k) {
+						if((blocks[flatColumnBase + (section << 4) + k] & 255) != 0) {
+							hasContent = true;
+						}
+					}
+					if(!hasContent) {
+						continue;
+					}
+					this.ensureSubchunk(section);
+					System.arraycopy(blocks, flatColumnBase + (section << 4), this.sectionBlocks[section], subchunkColumnBase, SECTION_SIZE);
+					System.arraycopy(data, flatColumnBase + (section << 4), this.sectionData[section], subchunkColumnBase, SECTION_SIZE);
+				}
+			}
+		}
+		this.recomputeEmptyFlags();
+	}
+
+	/**
 	 * Rebuilds the per-subchunk empty flags and the materialized subchunk count from scratch.
 	 * Used after bulk writes ({@link #loadFlatBlocks}, {@link #setChunkData}) where keeping
 	 * per-cell airness up to date is impractical.
