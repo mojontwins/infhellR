@@ -3,6 +3,7 @@ package net.minecraft.game.world.block;
 import java.util.Random;
 
 import net.minecraft.game.container.creativetab.CreativeTabs;
+import net.minecraft.game.item.Item;
 import net.minecraft.game.world.material.Material;
 
 public class BlockBookshelf extends Block {
@@ -17,6 +18,10 @@ public class BlockBookshelf extends Block {
 	}
 
 	public int quantityDropped(Random rand) {
-		return 0;
+		return 3;
+	}
+	
+	public int idDrooped(int meta) {
+		return Item.book.shiftedIndex;
 	}
 }

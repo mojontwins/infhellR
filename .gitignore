@@ -2,6 +2,8 @@
 *
 
 # Track all .md files anywhere
+!docs/
+!docs/*
 !*.md
 
 # Track .gitignore itself and build.bat

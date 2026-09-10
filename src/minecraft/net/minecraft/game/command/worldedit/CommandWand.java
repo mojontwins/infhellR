@@ -28,7 +28,10 @@ public class CommandWand extends CommandWorldEdit {
 		EntityItem entityItem13 = new EntityItem(theWorld, thePlayer.posX + d7, thePlayer.posY + d9, thePlayer.posZ + d11, new ItemStack(Item.magicWand));
 		entityItem13.delayBeforeCanPickup = 10;
 		theWorld.spawnEntityInWorld(entityItem13);
-					
+		
+		this.theCommandSender.printMessage(theWorld, "WORLD EDIT MAGIC WAND");
+		this.theCommandSender.printMessage(theWorld, "USE sets 1st point, SNEAK+USE sets 2nd point");		
+		
 		return 1;
 	}
 
