@@ -3,6 +3,7 @@ package net.minecraft.game.world.terrain.generate;
 import java.util.Random;
 
 import net.minecraft.game.world.block.Block;
+import net.minecraft.game.world.chunk.Chunk;
 import net.minecraft.game.world.terrain.generate.tree.EnumTreeType;
 import net.minecraft.game.world.World;
 
@@ -42,7 +43,7 @@ public class WorldGenBaobab extends WorldGenMojon {
 	
 	@Override
 	public boolean generate(World world, Random rand, int x0, int y0, int z0) {
-		if(y0 + this.height > world.getWorldHeight() - 2) return false;
+		if(y0 + this.height > Chunk.SECTION_HEIGHT - 2) return false;
 		
 		int width = 2 + rand.nextInt(4);
 		if(width > 3) width = 3;

@@ -3,6 +3,7 @@ package net.minecraft.game.world.terrain.generate.tree;
 import java.util.Random;
 import net.minecraft.game.world.World;
 import net.minecraft.game.world.block.Block;
+import net.minecraft.game.world.chunk.Chunk;
 import net.minecraft.game.world.terrain.generate.WorldGenerator;
 
 public class WorldGenTrees extends WorldGenerator {
@@ -12,7 +13,7 @@ public class WorldGenTrees extends WorldGenerator {
 		
 		int i6 = rand.nextInt(3) + 4;
 		boolean z7 = true;
-		if(y >= 1 && y + i6 + 3 < 128) {
+		if(y >= 1 && y + i6 + 3 < Chunk.SECTION_HEIGHT) {
 			int i8;
 			int i10;
 			int i11;
@@ -29,7 +30,7 @@ public class WorldGenTrees extends WorldGenerator {
 
 				for(i10 = x - b9; i10 <= x + b9 && z7; ++i10) {
 					for(i11 = z - b9; i11 <= z + b9 && z7; ++i11) {
-						if(i8 >= 0 && i8 < 128) {
+						if(i8 >= 0 && i8 < Chunk.SECTION_HEIGHT) {
 							i12 = world.getBlockId(i10, i8, i11);
 							if(i12 != 0 && i12 != Block.leaves.blockID) {
 								z7 = false;
@@ -47,7 +48,7 @@ public class WorldGenTrees extends WorldGenerator {
 				i8 = world.getBlockId(x, y - 1, z);
 				Block block = Block.blocksList[i8];
 				
-				if(block != null && block.canGrowPlants() && y < 127 - i6) {
+				if(block != null && block.canGrowPlants() && y < Chunk.SECTION_HEIGHT - 1 - i6) {
 				//if((i8 == Block.grass.blockID || i8 == Block.dirt.blockID) && y < 128 - i6 - 1) {
 					world.setBlock(x, y - 1, z, Block.dirt.blockID);
 

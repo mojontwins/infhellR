@@ -34,7 +34,7 @@ public class ChunkCache implements IBlockAccess {
     /**
      * @param world the world
      * @param x1    min block X of the region
-     * @param y1    min block Y (unused � always 0)
+     * @param y1    min block Y (unused — always 0)
      * @param z1    min block Z of the region
      * @param x2    max block X of the region
      * @param y2    max block Y (unused)
@@ -51,22 +51,22 @@ public class ChunkCache implements IBlockAccess {
         for (int cx = this.chunkX; cx <= maxChunkX; ++cx) {
             for (int cz = this.chunkZ; cz <= maxChunkZ; ++cz) {
                 this.chunkArray[cx - this.chunkX][cz - this.chunkZ] = world.getChunkFromChunkCoords(cx, cz);
-			}
-		}
+            }
+        }
 
-		this.originBlockX = this.chunkX << 4;
-		this.originBlockZ = this.chunkZ << 4;
-	}
+        this.originBlockX = this.chunkX << 4;
+        this.originBlockZ = this.chunkZ << 4;
+    }
 
     @Override
     public int getBlockId(int x, int y, int z) {
-        if (y < 0 || y >= 128) {
-				return 0;
-			}
+        if (y < 0 || y >= Chunk.SECTION_HEIGHT) {
+            return 0;
+        }
         if ((x & ~15) == this.originBlockX && (z & ~15) == this.originBlockZ) {
             Chunk origin = this.chunkArray[0][0];
             return origin == null ? 0 : origin.getBlockID(x & 15, y, z & 15);
-		}
+        }
 
         int cx = (x >> 4) - this.chunkX;
         int cz = (z >> 4) - this.chunkZ;
@@ -74,32 +74,32 @@ public class ChunkCache implements IBlockAccess {
                 && cz >= 0 && cz < this.chunkArray[cx].length) {
             Chunk chunk = this.chunkArray[cx][cz];
             return chunk == null ? 0 : chunk.getBlockID(x & 15, y, z & 15);
-		}
+        }
         return 0;
-	}
+    }
 
     @Override
     public TileEntity getBlockTileEntity(int x, int y, int z) {
         int cx = (x >> 4) - this.chunkX;
         int cz = (z >> 4) - this.chunkZ;
         return this.chunkArray[cx][cz].getChunkBlockTileEntity(x & 15, y, z & 15);
-	}
+    }
 
     @Override
     public EntityBlockEntity getBlockEntity(int x, int y, int z) {
         int cx = (x >> 4) - this.chunkX;
         int cz = (z >> 4) - this.chunkZ;
         return this.chunkArray[cx][cz].getChunkBlockEntity(x & 15, y, z & 15);
-	}
+    }
 
     @Override
     public float getBrightness(int x, int y, int z, int face) {
         int light = this.getLightValue(x, y, z);
         if (light < face) {
             light = face;
-					}
+        }
         return this.world.worldProvider.lightBrightnessTable[light];
-					}
+    }
 
     @Override
     public int getLightBrightnessForSkyBlocks(int x, int y, int z, int skyLight) {
@@ -107,39 +107,39 @@ public class ChunkCache implements IBlockAccess {
         int blockLightVal = this.getSkyBlockTypeBrightness(EnumSkyBlock.Block, x, y, z);
         if (blockLightVal < skyLight) {
             blockLightVal = skyLight;
-					}
+        }
         return skyLightVal << 20 | blockLightVal << 4;
-					}
+    }
 
     @Override
     public float getLightBrightness(int x, int y, int z) {
         return this.world.worldProvider.lightBrightnessTable[this.getLightValue(x, y, z)];
-			}
+    }
 
     @Override
     public int getBlockMetadata(int x, int y, int z) {
-        if (y < 0 || y >= 128) {
-				return 0;
-				}
+        if (y < 0 || y >= Chunk.SECTION_HEIGHT) {
+            return 0;
+        }
         if ((x & ~15) == this.originBlockX && (z & ~15) == this.originBlockZ) {
             return this.chunkArray[0][0].getBlockMetadata(x & 15, y, z & 15);
-		}
+        }
         int cx = (x >> 4) - this.chunkX;
         int cz = (z >> 4) - this.chunkZ;
         return this.chunkArray[cx][cz].getBlockMetadata(x & 15, y, z & 15);
-	}
+    }
 
     @Override
     public Material getBlockMaterial(int x, int y, int z) {
         int id = this.getBlockId(x, y, z);
         Block block = Block.blocksList[id];
-		return block == null ? Material.air : block.blockMaterial;
-	}
+        return block == null ? Material.air : block.blockMaterial;
+    }
 
     @Override
-	public WorldChunkManager getWorldChunkManager() {
+    public WorldChunkManager getWorldChunkManager() {
         return this.world.getWorldChunkManager();
-	}
+    }
 
     @Override
     public boolean isBlockOpaqueCube(int x, int y, int z) {
@@ -159,7 +159,7 @@ public class ChunkCache implements IBlockAccess {
         return block == null;
     }
 
-    // --- Internal helpers --------------------------------------------------------
+    // ─── Internal helpers ────────────────────────────────────────────────────────
 
     /**
      * Computes the combined sky + block light value at a block position.
@@ -190,24 +190,24 @@ public class ChunkCache implements IBlockAccess {
                     int maxNeighbour = Math.max(Math.max(lightN, lightS), Math.max(lightE, lightW));
                     int above = this.getLightValueExt(x, y + 1, z, false);
                     return Math.max(maxNeighbour, above);
-	}
-	}
-	
-		if(y < 0) {
+                }
+            }
+
+            if (y < 0) {
                 return 0;
-		}
-            if (y >= 128) {
+            }
+            if (y >= Chunk.SECTION_HEIGHT) {
                 int light = 15 - this.world.getSkylightSubtracted();
                 return Math.max(light, 0);
-		}
+            }
 
             int cx = (x >> 4) - this.chunkX;
             int cz = (z >> 4) - this.chunkZ;
             return this.chunkArray[cx][cz].getBlockLightValue(
                     x & 15, y, z & 15, this.world.getSkylightSubtracted());
-				}
+        }
         return 15;
-				}
+    }
 
     /**
      * Returns the stored light level for a sky or block light propagation type
@@ -230,7 +230,7 @@ public class ChunkCache implements IBlockAccess {
                     neighbourY = y - 1;
                 } else {
                     neighbourY = y + 1;
-				}
+                }
 
                 int bAbove = this.getSpecialBlockBrightness(type, x, neighbourY, z);
                 int bEast  = this.getSpecialBlockBrightness(type, x + 1, y, z);
@@ -244,14 +244,14 @@ public class ChunkCache implements IBlockAccess {
                 if (bNorth > max) max = bNorth;
                 if (bSouth > max) max = bSouth;
                 return max;
-			} else {
-				int cx = (x >> 4) - this.chunkX;
-				int cz = (z >> 4) - this.chunkZ;
+            } else {
+                int cx = (x >> 4) - this.chunkX;
+                int cz = (z >> 4) - this.chunkZ;
                 return this.chunkArray[cx][cz].getSavedLightValue(type, x & 15, y, z & 15);
-			}
-		}
+            }
+        }
         return type.defaultLightValue;
-	}
+    }
 
     /**
      * Reads the stored light value from the chunk data without neighbour-brightness lookup.
@@ -264,7 +264,7 @@ public class ChunkCache implements IBlockAccess {
             int cx = (x >> 4) - this.chunkX;
             int cz = (z >> 4) - this.chunkZ;
             return this.chunkArray[cx][cz].getSavedLightValue(type, x & 15, y, z & 15);
-		}
+        }
         return type.defaultLightValue;
-	}
+    }
 }

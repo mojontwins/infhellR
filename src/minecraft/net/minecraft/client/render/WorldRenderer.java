@@ -207,11 +207,18 @@ public class WorldRenderer {
 				// light lookups during rendering then avoid repeated world access.
 				ChunkCache chunkCache = new ChunkCache(this.worldObj, xMin - margin, yMin - margin, zMin - margin, xMax + margin, yMax + margin, zMax + margin);
 
-				// Fast-path access to the raw block ids of the underlying section.
-				// EmptyChunk (outside the loaded world) reports a null block array and
-				// every pass is skipped via the null check inside the pass loop.
+				// Fast-path access to the raw block ids of this 16-tall section (subchunk).
+				// EmptyChunk (outside the loaded world) and all-air / not-yet-materialized
+				// subchunks report null here and every pass is skipped via the null check
+				// inside the pass loop (avoids the 4096-cell scan for implicit-air sections).
 				Chunk renderChunk = this.worldObj.getChunkFromChunkCoords(this.posX >> 4, this.posZ >> 4);
-				byte[] renderChunkBlocks = renderChunk != null ? renderChunk.blocks : null;
+				byte[] renderChunkBlocks = null;
+				if(renderChunk != null) {
+					int subchunkIndex = this.posY >> 4;
+					if(subchunkIndex >= 0 && subchunkIndex < Chunk.SUBCHUNK_COUNT && !renderChunk.isSubchunkEmpty(subchunkIndex)) {
+						renderChunkBlocks = renderChunk.sectionBlocks[subchunkIndex];
+					}
+				}
 
 				++chunksUpdated;
 				RenderBlocks renderBlocks = new RenderBlocks(chunkCache);
@@ -235,9 +242,9 @@ public class WorldRenderer {
 					for(int y = yMin; y < yMax; ++y) {
 						for(int z = zMin; z < zMax; ++z) {
 							for(int x = xMin; x < xMax; ++x) {
-								// Direct block id lookup from the section-relative index:
-								// ((x&15)<<11) | ((z&15)<<7) | (y&127), converted to unsigned.
-								int blockId = renderChunkBlocks[(x & 15) << 11 | (z & 15) << 7 | (y & 127)] & 255;
+								// Direct block id lookup from the subchunk-local index:
+								// ((x&15)<<8) | ((z&15)<<4) | (y&15), converted to unsigned.
+								int blockId = renderChunkBlocks[(x & 15) << 8 | (z & 15) << 4 | (y & 15)] & 255;
 								if(blockId > 0) {
 									// Open the pass display list the first time a block is found.
 									if(!hasGlList) {

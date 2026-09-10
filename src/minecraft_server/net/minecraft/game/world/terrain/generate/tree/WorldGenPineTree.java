@@ -3,6 +3,7 @@ package net.minecraft.game.world.terrain.generate.tree;
 import java.util.Random;
 
 import net.minecraft.game.world.block.Block;
+import net.minecraft.game.world.chunk.Chunk;
 import net.minecraft.game.world.World;
 import net.minecraft.game.world.terrain.generate.WorldGenMojon;
 
@@ -109,7 +110,7 @@ public class WorldGenPineTree extends WorldGenMojon {
 		this.height -= 4;
 		
 		// Huge fir version
-		if(y0 + this.height > world.getWorldHeight() - 2) return false;
+		if(y0 + this.height > Chunk.SECTION_HEIGHT - 2) return false;
 		
 		// Check if tree fits / valid soil
 		if(!this.validGround(world, x0, y0 - 1, z0)) return false;

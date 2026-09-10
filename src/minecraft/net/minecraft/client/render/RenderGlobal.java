@@ -254,7 +254,8 @@ public class RenderGlobal implements IWorldAccess {
 			this.prevReposY = -9999.0D;
 			this.prevReposZ = -9999.0D;
 			this.renderChunksWide = numBlocks / 16 + 1;
-		this.renderChunksTall = 8;
+		// One renderer per 16-tall subchunk; a 256-block world needs all 16 stacked slabs.
+		this.renderChunksTall = 16;
 			this.renderChunksDeep = numBlocks / 16 + 1;
 		this.worldRenderers = new WorldRenderer[this.renderChunksWide * this.renderChunksTall * this.renderChunksDeep];
 		this.sortedWorldRenderers = new WorldRenderer[this.renderChunksWide * this.renderChunksTall * this.renderChunksDeep];
@@ -1266,9 +1267,14 @@ public class RenderGlobal implements IWorldAccess {
 			}
 
 			for(int i2 = j; i2 <= i1; ++i2) {
-				int j2 = i2 % this.renderChunksTall;
+				// The Y loop index is already a 16-block section number; clamp it into the
+				// renderer column instead of wrapping via % so updates at y >= 128 invalidate
+				// the correct upper renderer rather than wrapping to the bottom one.
+				int j2 = i2;
 				if(j2 < 0) {
-					j2 += this.renderChunksTall;
+					j2 = 0;
+				} else if(j2 >= this.renderChunksTall) {
+					j2 = this.renderChunksTall - 1;
 				}
 
 				for(int k2 = k; k2 <= j1; ++k2) {

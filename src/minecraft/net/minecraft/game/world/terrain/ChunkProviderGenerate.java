@@ -441,6 +441,9 @@ public class ChunkProviderGenerate implements IChunkProvider {
 
 		// Calculate lights
 		chunk.generateHeightMap();
+		// Terrain generation is done: slice the flat 128-high generation buffers into runtime
+		// subchunks now that every gen-stage writer (city, features, MapGens) has finished.
+		chunk.loadFlatBlocks(blockArray, metadata);
 		chunk.generateSkylightMap();
 
 		// Done

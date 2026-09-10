@@ -207,6 +207,10 @@ public class ChunkProviderHell implements IChunkProvider {
 		// Generate caves
 		this.caveGenerator.generate(this, this.worldObj, chunkX, chunkZ, blockArray);
 
+		// Terrain generation is done; slice the flat buffers into runtime subchunks so the light
+		// engine (initLightingForRealNotJustHeightmap) can write per-section light values.
+		chunk.loadFlatBlocks(blockArray, metadata);
+
 		// Done
 		return chunk;	
 	}

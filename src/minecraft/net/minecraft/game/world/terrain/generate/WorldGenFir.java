@@ -3,6 +3,7 @@ package net.minecraft.game.world.terrain.generate;
 import java.util.Random;
 
 import net.minecraft.game.world.block.Block;
+import net.minecraft.game.world.chunk.Chunk;
 import net.minecraft.game.world.terrain.generate.tree.EnumTreeType;
 import net.minecraft.game.world.World;
 
@@ -32,7 +33,7 @@ public class WorldGenFir extends WorldGenMojon {
 		if(this.large) {
 			// Big fir version
 			
-			if(y0 + this.height > world.getWorldHeight() - 2) return false;
+			if(y0 + this.height > Chunk.SECTION_HEIGHT - 2) return false;
 			
 			// Check if tree fits / valid soil
 			
@@ -95,7 +96,7 @@ public class WorldGenFir extends WorldGenMojon {
 			// Normal fir version
 			
 			this.height -= 3; if(this.height < 3) this.height = 3;
-			if(y0 + this.height > world.getWorldHeight() - 2) return false;
+			if(y0 + this.height > Chunk.SECTION_HEIGHT - 2) return false;
 			
 			// Check if tree fits / valid soil
 			if(!this.validGround(world, x0, y0 - 1, z0)) return false;

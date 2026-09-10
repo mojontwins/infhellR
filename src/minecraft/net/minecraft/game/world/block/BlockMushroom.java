@@ -2,6 +2,7 @@ package net.minecraft.game.world.block;
 
 import java.util.Random;
 import net.minecraft.game.world.World;
+import net.minecraft.game.world.chunk.Chunk;
 import net.minecraft.game.world.terrain.generate.WorldGenBigMushroom;
 
 public class BlockMushroom extends BlockFlower {
@@ -23,7 +24,7 @@ public class BlockMushroom extends BlockFlower {
 	}
 
 	public boolean canBlockStay(World world1, int i2, int i3, int i4) {
-		return i3 >= 0 && i3 < 128 ? world1.getFullBlockLightValue(i2, i3, i4) < 13 && this.canThisPlantGrowOnThisBlockID(world1.getBlockId(i2, i3 - 1, i4)) : false;
+		return i3 >= 0 && i3 < Chunk.SECTION_HEIGHT ? world1.getFullBlockLightValue(i2, i3, i4) < 13 && this.canThisPlantGrowOnThisBlockID(world1.getBlockId(i2, i3 - 1, i4)) : false;
 	}
 
 	public boolean growBigMushroom(World world, int x, int y, int z, Random rand) {

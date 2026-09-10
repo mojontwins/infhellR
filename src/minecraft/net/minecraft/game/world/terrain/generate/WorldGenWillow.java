@@ -4,6 +4,7 @@ import java.util.Random;
 
 import net.minecraft.game.world.block.Block;
 import net.minecraft.game.world.block.BlockPos;
+import net.minecraft.game.world.chunk.Chunk;
 import net.minecraft.game.world.terrain.generate.tree.EnumTreeType;
 import net.minecraft.game.Direction;
 import net.minecraft.game.world.World;
@@ -30,7 +31,7 @@ public class WorldGenWillow extends WorldGenMojon {
 		
 		// Check if tree can grow here
 		if(!this.validGround(world, x0, y0 - 1, z0)) return false;
-		if(y0 + this.height > world.getWorldHeight() - 2) return false;
+		if(y0 + this.height > Chunk.SECTION_HEIGHT - 2) return false;
 		
 		// Make trunk
 		

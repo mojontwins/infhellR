@@ -10,6 +10,7 @@ import net.minecraft.game.world.Weather;
 import net.minecraft.game.world.World;
 import net.minecraft.game.world.WorldProvider;
 import net.minecraft.game.world.WorldSettings;
+import net.minecraft.game.world.chunk.Chunk;
 import net.minecraft.game.world.chunk.ChunkCoordinates;
 import net.minecraft.game.world.chunk.IChunkProvider;
 import net.minecraft.network.packet.Packet255KickDisconnect;
@@ -87,7 +88,7 @@ public class WorldClient extends World {
 		}
 
 		if(!load) {
-			this.markBlocksDirty(x * 16, 0, z * 16, x * 16 + 15, 128, z * 16 + 15);
+			this.markBlocksDirty(x * 16, 0, z * 16, x * 16 + 15, Chunk.SECTION_HEIGHT, z * 16 + 15);
 		}
 
 	}

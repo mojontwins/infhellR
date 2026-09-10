@@ -32,6 +32,7 @@ import net.minecraft.game.world.World;
 import net.minecraft.game.world.block.tileentity.TileEntity;
 import net.minecraft.game.world.block.tileentity.TileEntityDispenser;
 import net.minecraft.game.world.block.tileentity.TileEntityFurnace;
+import net.minecraft.game.world.chunk.Chunk;
 import net.minecraft.game.world.chunk.ChunkCoordIntPair;
 import net.minecraft.game.world.chunk.ChunkCoordinates;
 import net.minecraft.network.packet.Packet;
@@ -253,9 +254,9 @@ public class EntityPlayerMP extends EntityPlayer implements ICrafting {
 				if (shouldSend) {
 					WorldServer world = this.mcServer.getWorldManager(this.dimension);
 					this.loadedChunks.remove(chunk);
-					this.playerNetServerHandler.sendPacket(new Packet51MapChunk(chunk.chunkXPos * 16, 0, chunk.chunkZPos * 16, 16, 128, 16, world));
+					this.playerNetServerHandler.sendPacket(new Packet51MapChunk(chunk.chunkXPos * 16, 0, chunk.chunkZPos * 16, 16, Chunk.SECTION_HEIGHT, 16, world));
 					List<TileEntity> tiles = world.getTileEntityList(chunk.chunkXPos * 16, 0, chunk.chunkZPos * 16,
-							chunk.chunkXPos * 16 + 16, 128, chunk.chunkZPos * 16 + 16);
+							chunk.chunkXPos * 16 + 16, Chunk.SECTION_HEIGHT, chunk.chunkZPos * 16 + 16);
 					for (int i = 0; i < tiles.size(); ++i) {
 						this.getTileEntityInfo((TileEntity) tiles.get(i));
 					}

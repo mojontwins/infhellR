@@ -3,6 +3,7 @@ package net.minecraft.game.world.terrain.generate;
 import java.util.Random;
 
 import net.minecraft.game.world.block.Block;
+import net.minecraft.game.world.chunk.Chunk;
 import net.minecraft.game.world.terrain.generate.tree.EnumTreeType;
 import net.minecraft.game.world.World;
 
@@ -27,7 +28,7 @@ public class WorldGenCypress extends WorldGenMojon {
 	public boolean generate(World world, Random rand, int x0, int y0, int z0) {
 		// May this tree grow here?
 		
-		if(y0 + this.height > world.getWorldHeight() - 2) return false;
+		if(y0 + this.height > Chunk.SECTION_HEIGHT - 2) return false;
 		if(!this.validGround(world, x0, y0 - 1, z0)) return false;
 		
 		for(int y = 0; y < this.height * 2; y ++) {

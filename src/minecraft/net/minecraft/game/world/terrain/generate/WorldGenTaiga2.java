@@ -4,6 +4,7 @@ import java.util.Random;
 
 import net.minecraft.game.world.World;
 import net.minecraft.game.world.block.Block;
+import net.minecraft.game.world.chunk.Chunk;
 import net.minecraft.game.world.terrain.generate.tree.EnumTreeType;
 
 public class WorldGenTaiga2 extends WorldGenerator {
@@ -18,7 +19,7 @@ public class WorldGenTaiga2 extends WorldGenerator {
 		int i8 = i6 - i7;
 		int i9 = 2 + random2.nextInt(2);
 		boolean z10 = true;
-		if(i4 >= 1 && i4 + i6 + 1 <= 128) {
+		if(i4 >= 1 && i4 + i6 + 1 <= Chunk.SECTION_HEIGHT) {
 			int i11;
 			int i13;
 			int i15;
@@ -32,7 +33,7 @@ public class WorldGenTaiga2 extends WorldGenerator {
 
 				for(i13 = i3 - i21; i13 <= i3 + i21 && z10; ++i13) {
 					for(int i14 = i5 - i21; i14 <= i5 + i21 && z10; ++i14) {
-						if(i11 >= 0 && i11 < 128) {
+						if(i11 >= 0 && i11 < Chunk.SECTION_HEIGHT) {
 							i15 = world1.getBlockId(i13, i11, i14);
 							if(i15 != 0 && i15 != Block.leaves.blockID) {
 								z10 = false;
@@ -48,7 +49,7 @@ public class WorldGenTaiga2 extends WorldGenerator {
 				return false;
 			} else {
 				i11 = world1.getBlockId(i3, i4 - 1, i5);
-				if((i11 == Block.grass.blockID || i11 == Block.dirt.blockID) && i4 < 128 - i6 - 1) {
+				if((i11 == Block.grass.blockID || i11 == Block.dirt.blockID) && i4 < Chunk.SECTION_HEIGHT - i6 - 1) {
 					world1.setBlock(i3, i4 - 1, i5, Block.dirt.blockID);
 					i21 = random2.nextInt(2);
 					i13 = 1;

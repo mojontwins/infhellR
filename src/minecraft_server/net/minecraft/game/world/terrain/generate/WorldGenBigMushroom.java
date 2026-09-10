@@ -3,6 +3,7 @@ package net.minecraft.game.world.terrain.generate;
 import java.util.Random;
 import net.minecraft.game.world.World;
 import net.minecraft.game.world.block.Block;
+import net.minecraft.game.world.chunk.Chunk;
 
 // Adapted from r1.2.5
 
@@ -28,7 +29,7 @@ public class WorldGenBigMushroom extends WorldGenerator {
 
         int j = rand.nextInt(3) + 4;
 
-        if (y < 1 || y + j + 1 >= 127) {
+        if (y < 1 || y + j + 1 >= Chunk.SECTION_HEIGHT - 1) {
             return false;
         }
 
@@ -46,7 +47,7 @@ public class WorldGenBigMushroom extends WorldGenerator {
 
             for (int xx = x - byte0; xx <= x + byte0; xx++) {
                 for (int zz = z - byte0; zz <= z + byte0; zz++) {
-                    if (yy >= 0 && yy < 127) {
+                    if (yy >= 0 && yy < Chunk.SECTION_HEIGHT - 1) {
                         int blockID = world.getBlockId(xx, yy, zz);
 
                         if (blockID != 0 && blockID != Block.leaves.blockID) {

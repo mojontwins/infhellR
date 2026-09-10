@@ -64,7 +64,7 @@ import net.minecraft.game.world.block.BlockState;
  * {@link AtmosphereCalculator}).
  */
 public class World implements IBlockAccess {
-	private static final int blocksToTickPerFrame = 80;	
+	private static final int blocksToTickPerFrame = 10;	// LCG random-tick probes per materialised subchunk (see updateBlocksAndPlayCaveSounds)	
 
 	/** Chebyshev chunk radius around each player within which entities receive full updates (AI, movement, collisions). */
 	public int entitySimulationRadiusChunks = 8;
@@ -473,7 +473,7 @@ public class World implements IBlockAccess {
 
 	/** Returns the block ID at the given world coordinates, or 0 if y is out of range. */
 	public int getBlockId(int x, int y, int z) {
-		if (y < 0 || y >= 128) return 0;
+		if (y < 0 || y >= Chunk.SECTION_HEIGHT) return 0;
 		return this.getChunkFromChunkCoords(x >> 4, z >> 4).getBlockID(x & 15, y, z & 15);
 	}
 	
@@ -505,7 +505,7 @@ public class World implements IBlockAccess {
 	
 	/** Returns true if the block position is within the valid height range and its chunk is loaded. */
 	public boolean blockExists(int x, int y, int z) {
-		return y >= 0 && y < 128 ? this.chunkExists(x >> 4, z >> 4) : false;
+		return y >= 0 && y < Chunk.SECTION_HEIGHT ? this.chunkExists(x >> 4, z >> 4) : false;
 	}
 	
 	/** Returns true if the block at the given position is within valid height and its chunk is loaded. */
@@ -523,7 +523,7 @@ public class World implements IBlockAccess {
 	 * The six coordinates are the lower and upper bounds on each axis.
 	 */
 	public boolean checkChunksExist(int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
-		if(maxY >= 0 && minY < 128) {
+		if(maxY >= 0 && minY < Chunk.SECTION_HEIGHT) {
 			minX >>= 4;
 			minY >>= 4;
 			minZ >>= 4;
@@ -562,7 +562,7 @@ public class World implements IBlockAccess {
 
 	/** Sets the block ID and metadata at the given world coordinates, returning success. */
 	public boolean setBlockAndMetadata(int x, int y, int z, int id, int metadata) {
-		if(y < 0 || y >= 128) return false;
+		if(y < 0 || y >= Chunk.SECTION_HEIGHT) return false;
 		return this.getChunkFromChunkCoords(x >> 4, z >> 4).setBlockIDWithMetadata(x & 15, y, z & 15, id, metadata);
 	}
 
@@ -573,7 +573,7 @@ public class World implements IBlockAccess {
 	
 	/** Sets the block ID at the given world coordinates, returning success. */
 	public boolean setBlock(int x, int y, int z, int id) {
-		if(y < 0 || y >= 128) return false;
+		if(y < 0 || y >= Chunk.SECTION_HEIGHT) return false;
 		return this.getChunkFromChunkCoords(x >> 4, z >> 4).setBlockID(x & 15, y, z & 15, id);
 	}
 	
@@ -605,7 +605,7 @@ public class World implements IBlockAccess {
 
 	/** Returns the metadata of the block at the given world coordinates, or 0 if out of range. */
 	public int getBlockMetadata(int x, int y, int z) {
-		if (y < 0 || y >= 128) return 0;
+		if (y < 0 || y >= Chunk.SECTION_HEIGHT) return 0;
 		return this.getChunkFromChunkCoords(x >> 4, z >> 4).getBlockMetadata(x & 15, y, z & 15);
 	}
 
@@ -634,7 +634,7 @@ public class World implements IBlockAccess {
 
 	/** Sets the metadata of the block at the given world coordinates, returning success. */
 	public boolean setBlockMetadata(int x, int y, int z, int metadata) {
-		if (y < 0 || y >= 128) return false;
+		if (y < 0 || y >= Chunk.SECTION_HEIGHT) return false;
 		this.getChunkFromChunkCoords(x >> 4, z >> 4).setBlockMetadata(x & 15, y, z & 15, metadata);
 		return true;
 	}
@@ -749,8 +749,8 @@ public class World implements IBlockAccess {
 		if(y < 0) {
 			return 0;
 		} else {
-			if(y >= 128) {
-				y = 127;
+			if(y >= Chunk.SECTION_HEIGHT) {
+				y = Chunk.SECTION_HEIGHT - 1;
 			}
 
 			return this.getChunkFromChunkCoords(x >> 4, z >> 4).getBlockLightValue(x & 15, y, z & 15, 0);
@@ -798,8 +798,8 @@ public class World implements IBlockAccess {
 		if(y < 0) {
 			return 0;
 		} else {
-			if(y >= 128) {
-				y = 127;
+			if(y >= Chunk.SECTION_HEIGHT) {
+				y = Chunk.SECTION_HEIGHT - 1;
 			}
 
 			Chunk chunk = this.getChunkFromChunkCoords(x >> 4, z >> 4);
@@ -813,7 +813,7 @@ public class World implements IBlockAccess {
 	public boolean canExistingBlockSeeTheSky(int x, int y, int z) {
 		if(y < 0) {
 			return false;
-		} else if(y >= 128) {
+		} else if(y >= Chunk.SECTION_HEIGHT) {
 			return true;
 		} else if(!this.chunkExists(x >> 4, z >> 4)) {
 			return false;
@@ -899,7 +899,7 @@ public class World implements IBlockAccess {
 				y = 0;
 			}
 
-			if(y >= 128) {
+			if(y >= Chunk.SECTION_HEIGHT) {
 				return skyBlockType.defaultLightValue;
 			} else {
 				int chunkX = x >> 4;
@@ -943,11 +943,11 @@ public class World implements IBlockAccess {
 			y = 0;
 		}
 
-		if(y >= 128) {
-			y = 127;
+		if(y >= Chunk.SECTION_HEIGHT) {
+			y = Chunk.SECTION_HEIGHT - 1;
 		}
 
-		if(y >= 0 && y < 128) {
+		if(y >= 0 && y < Chunk.SECTION_HEIGHT) {
 			int chunkX = x >> 4;
 			int chunkZ = z >> 4;
 			if(!this.chunkExists(chunkX, chunkZ)) {
@@ -964,7 +964,7 @@ public class World implements IBlockAccess {
 	/** Sets the light value of the given sky-block type, notifying listeners if it changed. */
 	public void setLightValue(EnumSkyBlock skyBlockType, int x, int y, int z, int brightness) {
 		if(y >= 0) {
-			if(y < 128) {
+			if(y < Chunk.SECTION_HEIGHT) {
 				if(this.chunkExists(x >> 4, z >> 4)) {
 					Chunk chunk = this.getChunkFromChunkCoords(x >> 4, z >> 4);
 					int previous = chunk.getSavedLightValue(skyBlockType, x & 15, y, z & 15);
@@ -1533,7 +1533,7 @@ public List<AxisAlignedBB> getCollidingBoundingBoxes(Entity entity, AxisAlignedB
 		int blockX = MathHelper.floor_double(entity.posX);
 		int blockZ = MathHelper.floor_double(entity.posZ);
 		byte viewRadius = 32;
-		if(!doTick || this.checkChunksExist(blockX - viewRadius, 0, blockZ - viewRadius, blockX + viewRadius, 128, blockZ + viewRadius)) {
+		if(!doTick || this.checkChunksExist(blockX - viewRadius, 0, blockZ - viewRadius, blockX + viewRadius, Chunk.SECTION_HEIGHT, blockZ + viewRadius)) {
 			entity.lastTickPosX = entity.posX;
 			entity.lastTickPosY = entity.posY;
 			entity.lastTickPosZ = entity.posZ;
@@ -2264,16 +2264,25 @@ public List<AxisAlignedBB> getCollidingBoundingBoxes(Entity entity, AxisAlignedB
 				}
 			}
 
-			// Tick X random blocks
-			for(int i = 0; i < World.blocksToTickPerFrame; ++i) {
-				this.updateLCG = this.updateLCG * 3 + this.DIST_HASH_MAGIC;
-				tIndex = this.updateLCG >> 2;
-				x = tIndex & 15;
-				z = tIndex >> 8 & 15;
-				y = tIndex >> 16 & 127;
-				blockId = (int) chunk.blocks[x << 11 | z << 7 | y] & 0xff; 
-				if(Block.tickOnLoad[blockId]) {
-					Block.blocksList[blockId].updateTick(this, x + originX, y, z + originZ, this.rand);
+			// Tick random blocks: iterate each materialised subchunk with a fixed per-subchunk
+			// LCG budget (World.blocksToTickPerFrame probes). A fresh chunk therefore performs
+			// the same 10 * 8 = 80 probes as the historical flat clean loop, while the per-cell
+			// tick probability stays constant as more subchunks are built upward.
+			for(int subchunkIndex = 0; subchunkIndex < chunk.getSubchunkCount(); ++subchunkIndex) {
+				if(chunk.isSubchunkEmpty(subchunkIndex)) {
+					continue;
+				}
+
+				for(int i = 0; i < World.blocksToTickPerFrame; ++i) {
+					this.updateLCG = this.updateLCG * 3 + this.DIST_HASH_MAGIC;
+					tIndex = this.updateLCG >> 2;
+					x = tIndex & 15;
+					z = tIndex >> 6 & 15;
+					y = (subchunkIndex << 4) | (tIndex >> 10 & 15);
+					blockId = chunk.getBlockID(x, y, z);
+					if(Block.tickOnLoad[blockId]) {
+						Block.blocksList[blockId].updateTick(this, x + originX, y, z + originZ, this.rand);
+					}
 				}
 			}
 		}
@@ -2626,8 +2635,8 @@ public List<AxisAlignedBB> getCollidingBoundingBoxes(Entity entity, AxisAlignedB
 			yStart = 0;
 		}
 
-		if(yEnd > 128) {
-			yEnd = 128;
+		if(yEnd > Chunk.SECTION_HEIGHT) {
+			yEnd = Chunk.SECTION_HEIGHT;
 		}
 
 		for(int cx = chunkXFrom; cx <= chunkXTo; ++cx) {
@@ -2676,8 +2685,8 @@ public List<AxisAlignedBB> getCollidingBoundingBoxes(Entity entity, AxisAlignedB
 				y1 = 0;
 			}
 
-			if(y2 > 128) {
-				y2 = 128;
+			if(y2 > Chunk.SECTION_HEIGHT) {
+				y2 = Chunk.SECTION_HEIGHT;
 			}
 
 			for(int xChunk = xChunkFrom; xChunk <= xChunkTo; ++xChunk) {
@@ -3030,7 +3039,7 @@ public List<AxisAlignedBB> getCollidingBoundingBoxes(Entity entity, AxisAlignedB
 
 	/** Returns true if the block at (x,y,z) is covered by leaves within 16 blocks above. */
 	public boolean isUnderLeaves(int x, int y, int z) {
-		for(int i = 0; i < 16 && y < 128; i ++) {
+		for(int i = 0; i < 16 && y < Chunk.SECTION_HEIGHT; i ++) {
 			if(this.getBlockId(x, y, z) == Block.leaves.blockID && this.getBlockMetadata(x, y, z) == 7) return true;
 			y ++;
 		}

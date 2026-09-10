@@ -36,7 +36,14 @@ public class ChunkProviderClient implements IChunkProvider {
 		byte[] blockData = new byte[32768];
 		byte[] metaData = new byte[32768];
 		Chunk chunk = new Chunk(this.worldObj, blockData, metaData, x, z);
-		Arrays.fill(chunk.skylightMap.data, (byte) -1);
+		// Slice the flat 128-tall buffers into the eager subchunks 0-7 (the upper subchunks
+		// stay null, i.e. implicitly air and fully lit) and drop the flat storage.
+		chunk.loadFlatBlocks(blockData, metaData);
+		// Mark every materialized subchunk's skylight as "uninitialised" (0xFF): a value the
+		// light engine cannot produce, so the incoming full-chunk light planes are trusted.
+		for(int section = 0; section < chunk.subchunkCount; ++section) {
+			Arrays.fill(chunk.skyLightMap[section].data, (byte) -1);
+		}
 		this.chunkMapping.add(ChunkCoordIntPair.chunkXZ2Long(x, z), chunk);
 		chunk.isChunkLoaded = true;
 		return chunk;
