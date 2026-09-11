@@ -1,6 +1,9 @@
 package net.minecraft.client.render.block;
 
+import org.lwjgl.opengl.GL11;
+
 import net.minecraft.client.render.RenderBlocks;
+import net.minecraft.client.render.Tessellator;
 import net.minecraft.game.world.block.Block;
 
 /**
@@ -80,5 +83,36 @@ public final class RenderBlockFence implements BlockRenderHandler {
 		
 		return true;
 	
+	}
+	
+	@Override
+	public void renderBlockOnInventory(RenderBlocks renderBlocks, Block block, int metadata, float brightness) {
+		Tessellator tessellator = Tessellator.instance;
+		GL11.glTranslatef(-0.5F, -0.5F, -0.5F);
+		float widthThick = 0.125F;
+		float widthThin = 0.0625F;
+		
+		for(int pass = 0; pass < 4; ++pass) {
+			switch (pass) {
+			case 0: block.setBlockBounds(0.5F - widthThick, 0.0F, 0.0F, 0.5F + widthThick, 1.0F, widthThick * 2.0F); break;
+			case 1: block.setBlockBounds(0.5F - widthThick, 0.0F, 1.0F - widthThick * 2.0F, 0.5F + widthThick, 1.0F, 1.0F); break;
+			case 2: block.setBlockBounds(0.5F - widthThin, 1.0F - widthThin * 3.0F, -widthThin * 2.0F, 0.5F + widthThin, 1.0F - widthThin, 1.0F + widthThin * 2.0F); break;
+			case 3: block.setBlockBounds(0.5F - widthThin, 0.5F - widthThin * 3.0F, -widthThin * 2.0F, 0.5F + widthThin, 0.5F - widthThin, 1.0F + widthThin * 2.0F);
+			}
+
+			renderBlocks.renderAllFaces = true;
+			renderBlocks.overrideBlockTexture = -1;
+			for(int side = 0; side < 6; ++side) {
+				tessellator.startDrawingQuads();
+				float[] normal = RenderBlocks.SIDE_NORMALS[side];
+				tessellator.setNormal(normal[0], normal[1], normal[2]);
+				RenderBlockUtil.applyInventoryColor(renderBlocks, block, metadata, brightness * RenderBlocks.SHADE_PER_FACE [side]);
+				renderBlocks.renderFace(block, side, 0.0D, 0.0D, 0.0D, block.getBlockTextureFromSideAndMetadata(side, metadata));
+				tessellator.draw();
+			}
+		}
+
+		block.setBlockBounds(0.0F, 0.0F, 0.0F, 1.0F, 1.0F, 1.0F);
+		GL11.glTranslatef(0.5F, 0.5F, 0.5F);
 	}
 }

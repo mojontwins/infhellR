@@ -3,8 +3,8 @@ package net.minecraft.game.world.block;
 import java.util.Random;
 
 import net.minecraft.game.MathHelper;
-import net.minecraft.game.container.creativetab.CreativeTabs;
 import net.minecraft.game.entity.EntityLiving;
+import net.minecraft.game.entity.misc.EntityItem;
 import net.minecraft.game.entity.player.EntityPlayer;
 import net.minecraft.game.item.ItemStack;
 import net.minecraft.game.world.IBlockAccess;
@@ -12,7 +12,6 @@ import net.minecraft.game.world.World;
 import net.minecraft.game.world.block.tileentity.TileEntity;
 import net.minecraft.game.world.block.tileentity.TileEntityFurnace;
 import net.minecraft.game.world.material.Material;
-import net.minecraft.game.entity.misc.EntityItem;
 
 public class BlockFurnace extends BlockContainer {
 	private Random furnaceRand = new Random();
@@ -23,8 +22,6 @@ public class BlockFurnace extends BlockContainer {
 		super(i1, Material.rock);
 		this.isActive = z2;
 		this.blockIndexInTexture = 45;
-		
-		this.displayOnCreativeTab = CreativeTabs.tabDeco;
 	}
 
 	public int idDropped(int i1, Random random2) {

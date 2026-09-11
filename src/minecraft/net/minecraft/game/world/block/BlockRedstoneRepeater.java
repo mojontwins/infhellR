@@ -20,8 +20,6 @@ public class BlockRedstoneRepeater extends Block {
 		super(i1, 6, Material.circuits);
 		this.isRepeaterPowered = z2;
 		this.setBlockBounds(0.0F, 0.0F, 0.0F, 1.0F, 0.125F, 1.0F);
-		
-		this.displayOnCreativeTab = CreativeTabs.tabRedstone;
 	}
 
 	public boolean renderAsNormalBlock() {

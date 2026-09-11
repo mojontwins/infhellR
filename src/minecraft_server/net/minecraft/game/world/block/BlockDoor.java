@@ -157,7 +157,8 @@ public class BlockDoor extends Block {
 				z7 = true;
 			}
 
-			if(!world.isBlockNormalCube(x, y - 1, z)) {
+			//if(!world.isBlockNormalCube(x, y - 1, z)) {
+			if(!this.isSupportForDoor(world, x, y - 1, z)) {
 				world.setBlockWithNotify(x, y, z, 0);
 				z7 = true;
 				if(world.getBlockId(x, y + 1, z) == this.blockID) {

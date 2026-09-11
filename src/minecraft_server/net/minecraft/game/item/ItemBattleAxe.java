@@ -16,7 +16,9 @@ public class ItemBattleAxe extends ItemAxe {
 		new ItemStack(Block.pumpkin, 1, -1),
 		new ItemStack(Block.pumpkinLantern, 1, -1),
 		new ItemStack(Block.chippedWood, 1, -1),
-		new ItemStack(Block.thinPlanks, 1, -1)
+		new ItemStack(Block.thinPlanks, 1, -1),
+		new ItemStack(Block.stairDouble, 1, 2), 
+		new ItemStack(Block.stairSingle, 1, 2)
 	};
 
 	public ItemBattleAxe(int i1, EnumToolMaterial enumToolMaterial2, boolean silkTouch) {

@@ -98,11 +98,7 @@ public final class RenderBlockStairs implements BlockRenderHandler {
 				tessellator.startDrawingQuads();
 				float[] normal = RenderBlocks.SIDE_NORMALS[side];
 				tessellator.setNormal(normal[0], normal[1], normal[2]);
-				float shade = side == 0 ? 0.5F
-				             : side == 1 ? 1.0F
-				             : side == 2 || side == 3 ? 0.8F
-				             : 0.6F;
-				RenderBlockUtil.applyInventoryColor(renderBlocks, block, metadata, brightness * shade);
+				RenderBlockUtil.applyInventoryColor(renderBlocks, block, metadata, brightness * RenderBlocks.SHADE_PER_FACE [side]);
 				renderBlocks.renderFace(block, side, 0.0D, 0.0D, 0.0D, block.getBlockTextureFromSideAndMetadata(side, metadata));
 				tessellator.draw();
 			}

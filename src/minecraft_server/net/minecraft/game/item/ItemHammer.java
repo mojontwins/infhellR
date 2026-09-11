@@ -26,6 +26,7 @@ public class ItemHammer extends ItemPickaxe {
 		return 16;
 	}
 	
+	@Override
 	public float getStrVsBlock(ItemStack itemStack1, Block block2, int metadata) {
 		return 1.5F * ( block2 == null || block2.blockMaterial != Material.iron && block2.blockMaterial != Material.rock ? super.getStrVsBlock(itemStack1, block2, metadata) : this.efficiencyOnProperMaterial );
 	}
