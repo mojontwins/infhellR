@@ -108,9 +108,13 @@ public class RenderGlobal implements IWorldAccess {
 		byte maxChunkDim = 65;
 		byte maxChunkHeight = 16;
 		*/
-		// Try this thx Birevan
+		// Worst-case renderer grid for a 256-block world: renderChunksWide/Deep each grow to
+		// numBlocks / 16 + 1 with numBlocks capped at 400 (max render distance) → 26, and the
+		// 256-height renderer uses renderChunksTall = 16, so up to 26 * 26 * 16 = 10816
+		// WorldRenderers. The occlusion-query buffer and display-list range below must cover that
+		// count, or glOcclusionQueryBase.get(chunkIndex) throws IndexOutOfBoundsException on load.
 		byte maxChunkDim = 34;
-		byte maxChunkHeight = 8;
+		byte maxChunkHeight = 16;
 		
 		this.glRenderListBase = GLAllocation.generateDisplayLists(maxChunkDim * maxChunkDim * maxChunkHeight * 3);
 		this.occlusionEnabled = minecraft.getOpenGlCapsChecker().checkARBOcclusion();
