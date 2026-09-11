@@ -167,8 +167,16 @@ public class Chunk {
 
 	/**
 	 * Allocates the four storage planes (block ids, metadata, sky light, block light) for the
-	 * given subchunk the first time anything writes into it. Sky light is pre-filled at full
-	 * brightness and block light at zero; the light engine then overwrites the real values.
+	 * given subchunk the first time anything writes into it. Both light planes start at zero,
+	 * matching vanilla {@code ExtendedBlockStorage}: the real values are written afterwards by
+	 * the lighting pipeline (the vanilla top-down gradient in {@link #generateSkylightMap()}
+	 * followed by the increase-only Starlight init in {@link #initLightingForRealNotJustHeightmap()}).
+	 *
+	 * <p>The "fully lit open sky" state is represented by a <b>null</b> subchunk — {@link
+	 * #getSavedLightValue} reports sky 15 for it — never by pre-filling a materialized plane.
+	 * Pre-filling would break the increase-only engine: it can only ever raise a stored nibble,
+	 * so a pre-filled 15 under any opaque block (roof, terrain, water) could never be lowered
+	 * and every interior cavity would stay scanner-bright forever.</p>
 	 *
 	 * @param section subchunk index (0-15); section s covers world Y {@code s*16 .. (s*16)+15}
 	 */
@@ -178,7 +186,6 @@ public class Chunk {
 			this.sectionBlocks[section] = new byte[cellCount];
 			this.sectionData[section] = new byte[cellCount];
 			this.skyLightMap[section] = new NibbleArray(cellCount);
-			this.skyLightMap[section].setAll(15);
 			this.blockLightMap[section] = new NibbleArray(cellCount);
 			this.isEmpty[section] = true;
 			if(section + 1 > this.subchunkCount) {
@@ -1449,11 +1456,14 @@ public class Chunk {
 		}
 	}
 
-	/** Resets every materialized subchunk's sky nibbles to full brightness before a relight pass. */
+	/** Resets both light planes of every materialized subchunk to zero ahead of a full relight pass. */
 	public void clearAllLights() {
 		for(int section = 0; section < SUBCHUNK_COUNT; ++section) {
 			if(this.skyLightMap[section] != null) {
-				this.skyLightMap[section].setAll(15);
+				this.skyLightMap[section].setAll(0);
+			}
+			if(this.blockLightMap[section] != null) {
+				this.blockLightMap[section].setAll(0);
 			}
 		}
 	}
@@ -1473,6 +1483,12 @@ public class Chunk {
 	}
 	
 	public void initLightingForRealNotJustHeightmap() {
+		// Always rebuild from a zeroed slate: both Starlight init passes are pure increases, so any
+		// stored light (e.g. the all-bright planes saved by the sky pre-fill bug, or planes carried
+		// over from a legacy slice) would otherwise pin every occluded cell at its stored value
+		// forever. Clearing first makes this a complete, self-contained relight for every caller.
+		this.clearAllLights();
+
 		this.worldObj.blockLight.initBlockLight(this.xPosition, this.zPosition);
 
 		if (!this.worldObj.worldProvider.hasNoSky) {

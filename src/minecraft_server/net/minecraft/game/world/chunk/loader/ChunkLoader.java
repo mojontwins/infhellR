@@ -161,8 +161,11 @@ public class ChunkLoader implements IChunkLoader {
 			// New format: mask-ordered parallel subchunk lists. A subchunk that was never
 			// materialized has no entry and its bit in SubchunkMask is clear.
 			nBTTagCompound2.setInteger("Height", Chunk.SECTION_HEIGHT);
-			// Stamps the light planes as Starlight-verified; loads missing this tag relight once.
-			nBTTagCompound2.setByte("LightVersion", (byte)1);
+			// Versions the light planes so loaders can identify saves that predate a lighting fix.
+			// Version 2 marks light produced after the sky-plane pre-fill bug was removed (see
+			// Chunk.ensureSubchunk); planes stamped at or below 1, or with no tag at all, are
+			// rebuilt exactly once on load.
+			nBTTagCompound2.setByte("LightVersion", (byte)2);
 			int mask = 0;
 			for(int section = 0; section < Chunk.SUBCHUNK_COUNT; ++section) {
 				if(chunk0.sectionBlocks[section] != null) {
@@ -273,9 +276,9 @@ public class ChunkLoader implements IChunkLoader {
 		boolean subchunkFormat = storedHeight == Chunk.SECTION_HEIGHT;
 		boolean hasSkyPlanes = false;
 		boolean hasBlockPlanes = false;
-		// LightVersion was only written by builds that sliced legacy light planes correctly. Legacy
-		// chunks rebuilt by the first 256-height build carried scrambled planes with no marker; the
-		// missing tag makes the Starlight relight below run exactly once to heal them.
+		// LightVersion stamps which build produced the light planes: 2 = post pre-fill fix (trusted),
+		// 1 = first 256-height build (all-bright from the sky pre-fill) and legacy slices that could
+		// be scrambled; anything below 2 makes the Starlight relight below run exactly once to heal.
 		boolean hasLightVersion = false;
 
 		if(subchunkFormat) {
@@ -312,7 +315,10 @@ public class ChunkLoader implements IChunkLoader {
 			// The light planes are complete only if every mask entry has a matching list element.
 			hasSkyPlanes = skyList != null && skyList.tagCount() >= listIndex;
 			hasBlockPlanes = blockLightList != null && blockLightList.tagCount() >= listIndex;
-			hasLightVersion = nBTTagCompound1.hasKey("LightVersion");
+			// Only light stamped by a post-fix build (version >= 2) is trusted as-is; version 1 or
+			// an absent tag means the planes may be all-bright (saved by the pre-fill bug) and are
+			// rebuilt once through the relight branch below.
+			hasLightVersion = nBTTagCompound1.getByte("LightVersion") >= 2;
 			chunk4.recomputeEmptyFlags();
 		} else {
 			// Legacy format: slice the flat 128-tall arrays into the eager subchunks 0-7.

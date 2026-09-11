@@ -640,7 +640,7 @@ public class StarlightEngine {
 		}
 	}
 
-protected final void propagateNeighbourLevels(final int chunkX, final int chunkZ) {
+	protected final void propagateNeighbourLevels(final int chunkX, final int chunkZ) {
 		for (int currSectionY = (Chunk.SECTION_HEIGHT >> 4) - 1; currSectionY >= 0; --currSectionY) {
 			for (final AxisDirection direction : ONLY_HORIZONTAL_DIRECTIONS) {
 				final int neighbourOffX = direction.x;

@@ -807,11 +807,11 @@ public class RenderGlobal implements IWorldAccess {
 			GL11.glEnable(GL11.GL_ALPHA_TEST);
 			GL11.glEnable(GL11.GL_FOG);
 			GL11.glPopMatrix();
-			if(this.worldObj.worldProvider.func_28112_c()) {
-				GL11.glColor3f(f3 * 0.2F + 0.04F, f4 * 0.2F + 0.04F, f5 * 0.6F + 0.1F);
-			} else {
-				GL11.glColor3f(f3, f4, f5);
-			}
+			// Paint the underside of the sky box with the current fog color (EntityRenderer
+			// recomputes fogColorRed/Green/Blue via updateFogColor each frame, before renderSky),
+			// so the strip of skybox below the horizon blends seamlessly into the fog at ground
+			// level instead of showing the pure sky color.
+			GL11.glColor3f(this.mc.entityRenderer.fogColorRed, this.mc.entityRenderer.fogColorGreen, this.mc.entityRenderer.fogColorBlue);
 
 			GL11.glDisable(GL11.GL_TEXTURE_2D);
 			GL11.glCallList(this.glSkyList2);
