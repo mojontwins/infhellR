@@ -6,15 +6,17 @@ import net.minecraft.game.entity.EntityLiving;
 import net.minecraft.game.world.block.Block;
 
 public class ItemTool extends Item {
-	private Block[] blocksEffectiveAgainst;
+	// Each entry stores a block:metadata pair the tool is effective against.
+	// itemID = block.blockID; damage = metadata (or -1 for any metadata).
+	private ItemStack[] stacksEffectiveAgainst;
 	protected float efficiencyOnProperMaterial = 4.0F;
 	private int damageVsEntity;
 	protected EnumToolMaterial toolMaterial;
 
-	protected ItemTool(int id, int attackDmg, EnumToolMaterial enumToolMaterial3, Block[] block4, boolean silkTouch) {
+	protected ItemTool(int id, int attackDmg, EnumToolMaterial enumToolMaterial3, ItemStack[] stacks, boolean silkTouch) {
 		super(id);
 		this.toolMaterial = enumToolMaterial3;
-		this.blocksEffectiveAgainst = block4;
+		this.stacksEffectiveAgainst = stacks;
 		this.maxStackSize = 1;
 		this.setMaxDamage(enumToolMaterial3.getMaxUses());
 		this.efficiencyOnProperMaterial = enumToolMaterial3.getEfficiencyOnProperMaterial();
@@ -25,8 +27,9 @@ public class ItemTool extends Item {
 	}
 
 	public float getStrVsBlock(ItemStack itemStack1, Block block2) {
-		for(int i3 = 0; i3 < this.blocksEffectiveAgainst.length; ++i3) {
-			if(this.blocksEffectiveAgainst[i3] == block2) {
+		for(int i3 = 0; i3 < this.stacksEffectiveAgainst.length; ++i3) {
+			ItemStack stack = this.stacksEffectiveAgainst[i3];
+			if(stack.itemID == block2.blockID && (stack.itemDamage == -1 || stack.itemDamage == 0)) {
 				return this.efficiencyOnProperMaterial;
 			}
 		}

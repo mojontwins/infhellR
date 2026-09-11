@@ -5,33 +5,34 @@ import net.minecraft.game.world.World;
 import net.minecraft.game.world.block.Block;
 
 public class ItemAxe extends ItemTool {
-	private static Block[] blocksEffectiveAgainst = new Block[]{
-		Block.planks, 
-		Block.bookShelf, 
-		Block.wood, 
-		Block.chest,
-		Block.ladder,
-		Block.pressurePlatePlanks,
-		Block.signPost,
-		Block.signWall,
-		Block.stairCompactPlanks,
-		Block.workbench,
-		Block.doorWood,
-		Block.fence,
-		Block.woodenSpikes,
-		Block.jukebox,
-		Block.pumpkin,
-		Block.pumpkinLantern,
-		Block.chippedWood,
-		Block.thinPlanks
+	// Effective against these block:metadata pairs (damage -1 = any metadata)
+	private static ItemStack[] stacksEffectiveAgainst = new ItemStack[]{
+		new ItemStack(Block.planks, 1, -1), 
+		new ItemStack(Block.bookShelf, 1, -1), 
+		new ItemStack(Block.wood, 1, -1), 
+		new ItemStack(Block.chest, 1, -1),
+		new ItemStack(Block.ladder, 1, -1),
+		new ItemStack(Block.pressurePlatePlanks, 1, -1),
+		new ItemStack(Block.signPost, 1, -1),
+		new ItemStack(Block.signWall, 1, -1),
+		new ItemStack(Block.stairCompactPlanks, 1, -1),
+		new ItemStack(Block.workbench, 1, -1),
+		new ItemStack(Block.doorWood, 1, -1),
+		new ItemStack(Block.fence, 1, -1),
+		new ItemStack(Block.woodenSpikes, 1, -1),
+		new ItemStack(Block.jukebox, 1, -1),
+		new ItemStack(Block.pumpkin, 1, -1),
+		new ItemStack(Block.pumpkinLantern, 1, -1),
+		new ItemStack(Block.chippedWood, 1, -1),
+		new ItemStack(Block.thinPlanks, 1, -1)
 	};
 
 	protected ItemAxe(int i1, EnumToolMaterial enumToolMaterial2, boolean silkTouch) {
-		super(i1, 3, enumToolMaterial2, blocksEffectiveAgainst, silkTouch);
+		super(i1, 3, enumToolMaterial2, stacksEffectiveAgainst, silkTouch);
 	}
 	
-	protected ItemAxe(int i1, int damageModifier, EnumToolMaterial enumToolMaterial, Block[] blocksEffectiveAgainst, boolean silkTouch) {
-		super(i1, damageModifier, enumToolMaterial, blocksEffectiveAgainst, silkTouch);
+	protected ItemAxe(int i1, int damageModifier, EnumToolMaterial enumToolMaterial, ItemStack[] stacksEffectiveAgainst, boolean silkTouch) {
+		super(i1, damageModifier, enumToolMaterial, stacksEffectiveAgainst, silkTouch);
 	}
 	
 	public boolean onItemUse(ItemStack itemStack, EntityPlayer entityPlayer, World world, int x, int y, int z, int side) {
