@@ -26,10 +26,10 @@ public class ItemTool extends Item {
 		this.displayOnCreativeTab = CreativeTabs.tabTools;
 	}
 
-	public float getStrVsBlock(ItemStack itemStack1, Block block2) {
+	public float getStrVsBlock(ItemStack itemStack1, Block block2, int metadata) {
 		for(int i3 = 0; i3 < this.stacksEffectiveAgainst.length; ++i3) {
 			ItemStack stack = this.stacksEffectiveAgainst[i3];
-			if(stack.itemID == block2.blockID && (stack.itemDamage == -1 || stack.itemDamage == 0)) {
+			if(stack.itemID == block2.blockID && (stack.itemDamage == -1 || stack.itemDamage == metadata)) {
 				return this.efficiencyOnProperMaterial;
 			}
 		}

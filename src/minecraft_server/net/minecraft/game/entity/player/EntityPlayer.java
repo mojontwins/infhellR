@@ -613,8 +613,8 @@ public abstract class EntityPlayer extends EntityLiving {
 		this.worldObj.spawnEntityInWorld(entityItem1);
 	}
 
-	public float getCurrentPlayerStrVsBlock(Block block1) {
-		float f2 = this.inventory.getStrVsBlock(block1);
+	public float getCurrentPlayerStrVsBlock(Block block1, int metadata) {
+		float f2 = this.inventory.getStrVsBlock(block1, metadata);
 		if(this.isInsideOfMaterial(Material.water)) {
 			f2 /= 5.0F;
 		}

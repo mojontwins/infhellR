@@ -459,7 +459,7 @@ public class Block {
 	}
 
 	public float blockStrength(EntityPlayer entityPlayer1, int metadata) {
-		return this.blockHardness < 0.0F ? 0.0F : (!entityPlayer1.canHarvestBlock(this, metadata) ? 1.0F / this.blockHardness / 100.0F : entityPlayer1.getCurrentPlayerStrVsBlock(this) / this.blockHardness / 30.0F);
+		return this.blockHardness < 0.0F ? 0.0F : (!entityPlayer1.canHarvestBlock(this, metadata) ? 1.0F / this.blockHardness / 100.0F : entityPlayer1.getCurrentPlayerStrVsBlock(this, this.damageDropped(metadata)) / this.blockHardness / 30.0F);
 	}
 
 	public void dropBlockAsItem(World world, int x, int y, int z, int meta) {

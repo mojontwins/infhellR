@@ -84,8 +84,8 @@ public final class ItemStack {
 		return z7;
 	}
 
-	public float getStrVsBlock(Block block1) {
-		return this.getItem().getStrVsBlock(this, block1);
+	public float getStrVsBlock(Block block1, int metadata) {
+		return this.getItem().getStrVsBlock(this, block1, metadata);
 	}
 
 	public ItemStack useItemRightClick(World world1, EntityPlayer entityPlayer2) {

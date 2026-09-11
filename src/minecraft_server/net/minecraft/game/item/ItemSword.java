@@ -23,7 +23,7 @@ public class ItemSword extends Item {
 		this.displayOnCreativeTab = CreativeTabs.tabCombat;
 	}
 
-	public float getStrVsBlock(ItemStack itemStack1, Block block2) {
+	public float getStrVsBlock(ItemStack itemStack1, Block block2, int metadata) {
 		return block2.blockID == Block.web.blockID ? 15.0F : 1.5F;
 	}
 
