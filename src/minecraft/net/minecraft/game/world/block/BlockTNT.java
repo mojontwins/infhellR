@@ -71,4 +71,14 @@ public class BlockTNT extends Block {
 	public boolean blockActivated(World world1, int i2, int i3, int i4, EntityPlayer entityPlayer5) {
 		return super.blockActivated(world1, i2, i3, i4, entityPlayer5);
 	}
+	
+	@Override
+	public int getEncouragementToFire() {
+		return 15;
+	}
+
+	@Override
+	public int getAbilityToCatchFire() {
+		return 100;
+	}
 }

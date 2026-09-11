@@ -5,21 +5,24 @@ import net.minecraft.game.entity.Entity;
 import net.minecraft.game.world.block.Block;
 
 public class ItemBattleAxe extends ItemAxe {
-	private static Block[] blocksEffectiveAgainst = new Block[]{
-		Block.ladder,
-		Block.pressurePlatePlanks,
-		Block.signPost,
-		Block.signWall,
-		Block.fence,
-		Block.woodenSpikes,
-		Block.pumpkin,
-		Block.pumpkinLantern,
-		Block.chippedWood,
-		Block.thinPlanks
+	// Effective against these block:metadata pairs (damage -1 = any metadata)
+	private static ItemStack[] stacksEffectiveAgainst = new ItemStack[]{
+		new ItemStack(Block.ladder, 1, -1),
+		new ItemStack(Block.pressurePlatePlanks, 1, -1),
+		new ItemStack(Block.signPost, 1, -1),
+		new ItemStack(Block.signWall, 1, -1),
+		new ItemStack(Block.fence, 1, -1),
+		new ItemStack(Block.woodenSpikes, 1, -1),
+		new ItemStack(Block.pumpkin, 1, -1),
+		new ItemStack(Block.pumpkinLantern, 1, -1),
+		new ItemStack(Block.chippedWood, 1, -1),
+		new ItemStack(Block.thinPlanks, 1, -1),
+		new ItemStack(Block.stairDouble, 1, 2), 
+		new ItemStack(Block.stairSingle, 1, 2)
 	};
 
 	public ItemBattleAxe(int i1, EnumToolMaterial enumToolMaterial2, boolean silkTouch) {
-		super(i1, 4, enumToolMaterial2, blocksEffectiveAgainst, silkTouch);
+		super(i1, 4, enumToolMaterial2, stacksEffectiveAgainst, silkTouch);
 		this.displayOnCreativeTab = CreativeTabs.tabCombat;
 	}
 	

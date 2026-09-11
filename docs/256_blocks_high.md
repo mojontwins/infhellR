@@ -64,6 +64,29 @@ eager; subchunks 8–15 (y 128–255) allocate only on first write. A `null` sub
 reads as implicit open air, fully lit. This keeps fresh-terrain memory at today's
 footprint.
 
+**Fork divergence — the flat arrays are NOT removed (gen-buffer retention).** The
+reference assumed generation writes only into *local* scratch buffers. This
+codebase does not: many gen-stage consumers mutate the *public* `chunk.blocks` /
+`chunk.data` flat fields through the `Chunk` object itself — `MapGenCity.generate(..., chunk.blocks, chunk.data)`
+(`ChunkProviderGenerate.buildOnChunk`), `BiomeGenBase.generate(..., chunk)`,
+`MapGenUnderwater.setChunk(chunk)`, `FeatureProvider`, `BuildingHighway`,
+`BlockArrayUtils`, and the city `Building*` subclasses. Rewriting all of them to
+section arrays would be the wide, mechanical churn the reference never documented.
+So `byte[] blocks` / `byte[] data` stay as the **flat 128-high generation buffers**
+(same type, same `x << 11 | z << 7 | y` indexing), and the subchunk planes are
+added next to them as parallel arrays (`sectionBlocks` / `sectionData`,
+`skyLightMap` / `blockLightMap`, `isEmpty`, `subchunkCount`, and the
+`SECTION_SIZE` / `SECTION_HEIGHT` / `SUBCHUNK_COUNT` constants). `provideChunk`
+generates into the flat buffers as today, then **`loadFlatBlocks()` slices them
+into subchunks 0–7 and releases them (`this.blocks = this.data = null`)**;
+`setBlockID*` / `setBlockMetadata` / `getBlockID` / light accessors /
+`getChunkData` / `setChunkData` are **sections-only** after that — no flat/section
+sync is ever maintained. The only flat fallback is `getBlockID` reading
+`this.blocks` when `this.blocks != null && y < 128`, which keeps the transient
+**unsliced** `justGenerateForHeight` chunks (height-query only, never written)
+working. Memory still lands at today's footprint: 8 eager subchunks × 12 288 B =
+98 304 B once the flat buffers are freed.
+
 A simpler-but-heavier **interim** (grow the flat arrays in place to 65536 bytes)
 is documented in **Appendix A** — useful if a small diff is preferred over the
 reference's memory footprint, and a stepping-stone to the subchunk model.
@@ -119,10 +142,13 @@ Subchunk index `s` covers world y = `s * 16` to `s * 16 + 15`.
 the same reason as the reference: `WorldRenderer` scans all slabs per rebuild, so
 allocating on read would materialize the entire top half on the first render pass.
 
-The four flat arrays are removed from `Chunk` and replaced by per-subchunk
-parallel arrays: `byte[16][] blocks`, `byte[16][] data`
-(`NibbleArray[16] data` if compacted — see Appendix B),
-`NibbleArray[16] skyLightMap / blockLightMap`.
+The per-subchunk planes live in parallel arrays on `Chunk`:
+`byte[16][] sectionBlocks`, `byte[16][] sectionData` (full-byte metadata —
+`NibbleArray[16] data` if ever compacted — see Appendix B), and
+`NibbleArray[16] skyLightMap / blockLightMap`, with `boolean[] isEmpty` and
+`int subchunkCount` alongside. The flat `blocks` / `data` are kept only as
+128-high generation buffers and released once sliced (see the divergence note
+under Primary design above).
 
 ### Three independent vertical systems
 
@@ -322,17 +348,22 @@ to both trees and run the parity checker** (`check_parity.py`). Client-only file
 - `SECTION_HEIGHT` = 256 (public; world and generators share it).
 - `SUBCHUNK_COUNT` = `SECTION_HEIGHT / SECTION_SIZE` = 16.
 
-**Fields (replace the four flat arrays):**
-- `byte[] blocks` → `byte[16][] blocks` (+ `int subchunkCount`).
-- `byte[] data` (full-byte metadata) → `byte[16][] data` — **full byte per cell**
-  in each subchunk, `4096 B` per subchunk. This preserves the current full-byte
-  metadata (the `"NewFormat"` layout). Optionally `NibbleArray[16] data` (see
-  Appendix B).
-- `NibbleArray skylightMap` → `NibbleArray[16] skyLightMap` (2048 B per subchunk).
-- `NibbleArray blocklightMap` → `NibbleArray[16] blockLightMap` (2048 B per subchunk).
+**Fields (keep the flat gen buffers, add the section arrays):** the flat
+`byte[] blocks` / `byte[] data` stay as 128-high generation buffers (gen-stage
+consumers write them directly — see the Fork-divergence note); add the
+per-subchunk storage:
+- `byte[16][] sectionBlocks` / `byte[16][] sectionData` (full-byte metadata,
+  **4096 B** per subchunk — preserves the `"NewFormat"` layout) +
+  `int subchunkCount`.
+- `NibbleArray skylightMap` → `NibbleArray[16] skyLightMap` (2048 B per subchunk);
+  `NibbleArray blocklightMap` → `NibbleArray[16] blockLightMap` (2048 B per subchunk).
 - **`boolean[] isEmpty` (new):** per-subchunk empty flag driving the render
   scan-skip (see Rendering above); `true` for `null` subchunks, cleared on first
   write, re-set when the last block is removed.
+- **`loadFlatBlocks()` (new):** slices the flat `blocks`/`data` into sections
+  0–7, then **nulls the flat fields** (`this.blocks = this.data = null`).
+  Chunks created via `new Chunk(world, blocks, metadata, x, z)` that are *not*
+  sliced (`justGenerateForHeight`) keep their flat buffers for height queries.
 
 **Methods:**
 - `getBlockID(x,y,z)`: read-only; a `null` subchunk returns 0 (air). Never allocates.
@@ -453,6 +484,29 @@ set. See **Save format** below.
 - `ChunkProviderHell` / `ChunkProviderSky` keep their own 32768 buffers and
   128-rolls; verify no regression (see Manual Verification).
 
+#### `terrain/generate/* — WorldGenerator height guards (gameplay-callable)`
+
+World **generation** stays 128-tall: `provideChunk`, `populate`,
+`replaceBlocksForBiome`, `waterFallMaxHeight = 128`, the `rand.nextInt(128)`
+height rolls, and the `y > 0 && y < 128` guards keep their 128 bounds — terrain
+is produced only in the bottom 128 layers; the top half is player-writable only.
+Random Y coordinates drawn at `populate` time therefore stay in `[0, 128)`;
+**do not lift them.**
+
+But several `WorldGenerator` subclasses are **also invoked during gameplay**, and
+the world is now 256 tall. Sapling / bonemeal growth calls the tree generators
+from `BlockSapling.updateTick` (`WorldGenTrees`, `WorldGenBigTree`,
+`WorldGenForest`, `WorldGenMushroom`, plus mod variants: cypress, willow, bo3,
+amazon, streetlight, …), and those can run **above y = 128** (e.g. a sapling
+planted on a platform at y = 200). Audit every gameplay-callable generator for
+hardcoded 128 ceilings — `127` / `128` bounds, `> 128` / `& 127` Y-masks, height
+clamps, and random Y rolls used for placement / trunk / leaf extents — and lift
+them to `Chunk.SECTION_HEIGHT` so growth works anywhere in `[0, 255]`.
+Generators used only in the gen/populate stage (ores, caves, ravines,
+mineshafts, city, moss, …) keep 128. Growth already flows through
+`world.setBlock*` → section-aware `Chunk` accessors, so only the generators'
+**internal Y ceilings** need changing.
+
 #### `world/SpawnerAnimals.java`
 
 - (optional behaviour change) `MAX_SPAWN_HEIGHT` 128 → `SECTION_HEIGHT`, and the
@@ -566,10 +620,13 @@ re-save, upgrading a world in place.
 ## Implementation Order
 
 1. **`NibbleArray`** — index formula update to subchunk-local (`x<<8|z<<4|yLocal`).
-2. **`Chunk`** — subchunk storage (`byte[16][] blocks`, `byte[16][] data`,
-   `NibbleArray[16] skyLightMap/blockLightMap`), `getBlockID`/`setBlockID*` with
-   lazy allocation, `isEmpty` flag maintenance, height maps, `getSubchunkCount`,
-   entity buckets `List[16]`, `setChunkData`/`getChunkData` fan-out.
+2. **`Chunk`** — add subchunk storage (`byte[16][] sectionBlocks`,
+   `byte[16][] sectionData`, `NibbleArray[16] skyLightMap/blockLightMap`,
+   `boolean[] isEmpty`, `int subchunkCount`), `getBlockID`/`setBlockID*` with
+   lazy allocation, `loadFlatBlocks()` slice-and-release, `isEmpty` flag
+   maintenance, height maps, `getSubchunkCount`, entity buckets `List[16]`,
+   `setChunkData`/`getChunkData` fan-out. (Flat `blocks`/`data` retained as gen
+   buffers and nulled by `loadFlatBlocks`.)
 3. **`ChunkProviderGenerate`** (+ Hell/Sky) — generate into flat buffer, then slice
    into 8 eager subchunks; upper 8 `null`. (Apply the reference's ordering:
    generate *before* slicing.)
@@ -581,13 +638,19 @@ re-save, upgrading a world in place.
    Shape reference: `InfdevProject/Main/minecraft_r1.2.5/.../StarlightEngine.java`.
 5. **`World`** — guards to `SECTION_HEIGHT`; random-tick loop over subchunks.
 6. **`ChunkCache`**, **`SpawnerAnimals`**, **`BiomeGenBase`** — constant references.
-7. **`ChunkLoader`** — new save format (Height tag + SubchunkMask + lists) and
+7. **Gameplay-callable `WorldGenerator` audit** — lift 128-height guards inside
+   tree/sapling/bonemeal generators (and any generator reachable from a gameplay
+   `updateTick`/event, e.g. `BlockSapling` → `WorldGenTrees`/`WorldGenBigTree`/
+   `WorldGenForest`/`WorldGenMushroom` + mod variants) to `SECTION_HEIGHT` so
+   growth works above y = 127. Gen-stage-only generators keep 128 (see
+   Files That Change).
+8. **`ChunkLoader`** — new save format (Height tag + SubchunkMask + lists) and
    legacy migration (light regeneration goes through Starlight — see Save format).
-8. **`RenderGlobal`** + **`WorldRenderer`** + **`ChunkProviderClient`** —
+9. **`RenderGlobal`** + **`WorldRenderer`** + **`ChunkProviderClient`** —
    `renderChunksTall = 16`, `chunkY = y >> 4`, per-subchunk reads, empty-subchunk
    scan-skip, skylight-sentinel fan-out (client only).
-9. **`EntityPlayerMP`** — server chunk delivery ySize = 256.
-10. **Compile both trees** (`build.bat`) and run **`check_parity.py`** — confirm only
+10. **`EntityPlayerMP`** — server chunk delivery ySize = 256.
+11. **Compile both trees** (`build.bat`) and run **`check_parity.py`** — confirm only
     the intended files differ and shared files are byte-identical client/server
     (including both `StarlightEngine.java` copies).
 
@@ -632,6 +695,10 @@ re-save, upgrading a world in place.
 9. **Light persistence on save/reload:** place light sources and a shaded structure
    straddling y = 128, save, reload, and confirm light values survive (subchunk sky/
    block-light planes written and read back) and no full re-light is forced.
+10. **Gameplay growth above y = 127:** build a platform at y = 200, plant a
+    sapling and bone-meal it; a tree grows fully above y = 128, is lit and
+    rendered, and persists across save/reload. Repeat for a mushroom and a
+    mod-native tree (cypress/willow/bo3) if their saplings exist.
 
 ---
 

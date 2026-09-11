@@ -6,21 +6,22 @@ import net.minecraft.game.world.block.Block;
 import net.minecraft.game.world.material.Material;
 
 public class ItemSpade extends ItemTool {
-	private static Block[] blocksEffectiveAgainst = new Block[]{
-		Block.grass, 
-		Block.dirt, 
-		Block.sand, 
-		Block.gravel, 
-		Block.snow, 
-		Block.blockSnow, 
-		Block.blockClay, 
-		Block.tilledField,
-		Block.dirtPath,
-		Block.cementPowder
+	// Effective against these block:metadata pairs (damage -1 = any metadata)
+	private static ItemStack[] stacksEffectiveAgainst = new ItemStack[]{
+		new ItemStack(Block.grass, 1, -1), 
+		new ItemStack(Block.dirt, 1, -1), 
+		new ItemStack(Block.sand, 1, -1), 
+		new ItemStack(Block.gravel, 1, -1), 
+		new ItemStack(Block.snow, 1, -1), 
+		new ItemStack(Block.blockSnow, 1, -1), 
+		new ItemStack(Block.blockClay, 1, -1), 
+		new ItemStack(Block.tilledField, 1, -1),
+		new ItemStack(Block.dirtPath, 1, -1),
+		new ItemStack(Block.cementPowder, 1, -1)
 	};
 
 	public ItemSpade(int id, EnumToolMaterial enumToolMaterial2, boolean silkTouch) {
-		super(id, 1, enumToolMaterial2, blocksEffectiveAgainst, silkTouch);
+		super(id, 1, enumToolMaterial2, stacksEffectiveAgainst, silkTouch);
 	}
 
 	public boolean canHarvestBlock(Block block1) {

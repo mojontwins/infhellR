@@ -108,9 +108,13 @@ public class RenderGlobal implements IWorldAccess {
 		byte maxChunkDim = 65;
 		byte maxChunkHeight = 16;
 		*/
-		// Try this thx Birevan
+		// Worst-case renderer grid for a 256-block world: renderChunksWide/Deep each grow to
+		// numBlocks / 16 + 1 with numBlocks capped at 400 (max render distance) → 26, and the
+		// 256-height renderer uses renderChunksTall = 16, so up to 26 * 26 * 16 = 10816
+		// WorldRenderers. The occlusion-query buffer and display-list range below must cover that
+		// count, or glOcclusionQueryBase.get(chunkIndex) throws IndexOutOfBoundsException on load.
 		byte maxChunkDim = 34;
-		byte maxChunkHeight = 8;
+		byte maxChunkHeight = 16;
 		
 		this.glRenderListBase = GLAllocation.generateDisplayLists(maxChunkDim * maxChunkDim * maxChunkHeight * 3);
 		this.occlusionEnabled = minecraft.getOpenGlCapsChecker().checkARBOcclusion();
@@ -254,7 +258,8 @@ public class RenderGlobal implements IWorldAccess {
 			this.prevReposY = -9999.0D;
 			this.prevReposZ = -9999.0D;
 			this.renderChunksWide = numBlocks / 16 + 1;
-		this.renderChunksTall = 8;
+		// One renderer per 16-tall subchunk; a 256-block world needs all 16 stacked slabs.
+		this.renderChunksTall = 16;
 			this.renderChunksDeep = numBlocks / 16 + 1;
 		this.worldRenderers = new WorldRenderer[this.renderChunksWide * this.renderChunksTall * this.renderChunksDeep];
 		this.sortedWorldRenderers = new WorldRenderer[this.renderChunksWide * this.renderChunksTall * this.renderChunksDeep];
@@ -806,11 +811,11 @@ public class RenderGlobal implements IWorldAccess {
 			GL11.glEnable(GL11.GL_ALPHA_TEST);
 			GL11.glEnable(GL11.GL_FOG);
 			GL11.glPopMatrix();
-			if(this.worldObj.worldProvider.func_28112_c()) {
-				GL11.glColor3f(f3 * 0.2F + 0.04F, f4 * 0.2F + 0.04F, f5 * 0.6F + 0.1F);
-			} else {
-				GL11.glColor3f(f3, f4, f5);
-			}
+			// Paint the underside of the sky box with the current fog color (EntityRenderer
+			// recomputes fogColorRed/Green/Blue via updateFogColor each frame, before renderSky),
+			// so the strip of skybox below the horizon blends seamlessly into the fog at ground
+			// level instead of showing the pure sky color.
+			GL11.glColor3f(this.mc.entityRenderer.fogColorRed, this.mc.entityRenderer.fogColorGreen, this.mc.entityRenderer.fogColorBlue);
 
 			GL11.glDisable(GL11.GL_TEXTURE_2D);
 			GL11.glCallList(this.glSkyList2);
@@ -1266,9 +1271,14 @@ public class RenderGlobal implements IWorldAccess {
 			}
 
 			for(int i2 = j; i2 <= i1; ++i2) {
-				int j2 = i2 % this.renderChunksTall;
+				// The Y loop index is already a 16-block section number; clamp it into the
+				// renderer column instead of wrapping via % so updates at y >= 128 invalidate
+				// the correct upper renderer rather than wrapping to the bottom one.
+				int j2 = i2;
 				if(j2 < 0) {
-					j2 += this.renderChunksTall;
+					j2 = 0;
+				} else if(j2 >= this.renderChunksTall) {
+					j2 = this.renderChunksTall - 1;
 				}
 
 				for(int k2 = k; k2 <= j1; ++k2) {

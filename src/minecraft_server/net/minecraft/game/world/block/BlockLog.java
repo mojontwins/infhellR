@@ -127,4 +127,14 @@ public class BlockLog extends Block {
 	public boolean canGrowMoss() {
 		return true;
 	}
+	
+	@Override
+	public int getEncouragementToFire() {
+		return 5;
+	}
+
+	@Override
+	public int getAbilityToCatchFire() {
+		return 5;
+	}
 }

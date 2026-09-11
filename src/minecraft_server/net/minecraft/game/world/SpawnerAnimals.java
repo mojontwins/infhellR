@@ -50,7 +50,7 @@ import net.minecraft.game.world.path.Pathfinder;
  */
 public final class SpawnerAnimals {
 	private static final int CHUNK_SEARCH_RADIUS = 8;
-	private static final int MAX_SPAWN_HEIGHT = 128;
+	private static final int MAX_SPAWN_HEIGHT = Chunk.SECTION_HEIGHT;
 	private static final int SPAWNING_ATTEMPTS_PER_CHUNK = 3;
 	private static final int SPAWN_POSITION_RADIUS = 6;
 	private static final float MIN_SPAWN_DISTANCE_SQ = 576.0F; // 24 blocks^2
@@ -521,7 +521,7 @@ public final class SpawnerAnimals {
 				int bx = MathHelper.floor_double(player.posX) + world.rand.nextInt(32) - world.rand.nextInt(32);
 				int bz = MathHelper.floor_double(player.posZ) + world.rand.nextInt(32) - world.rand.nextInt(32);
 				int by = MathHelper.floor_double(player.posY) + world.rand.nextInt(16) - world.rand.nextInt(16);
-				by = Math.max(1, Math.min(128, by));
+				by = Math.max(1, Math.min(Chunk.SECTION_HEIGHT, by));
 
 				int nightMobIdx = world.rand.nextInt(nightSpawnEntities.length);
 
@@ -613,11 +613,11 @@ public final class SpawnerAnimals {
 		// Walk up to find a valid spawn position
 		while (!canCreatureTypeSpawnAtLocation(EnumCreatureType.monster, world, x, surfaceY, z)
 				&& surfaceY < startY + 16
-				&& surfaceY < 128) {
+				&& surfaceY < Chunk.SECTION_HEIGHT) {
 			++surfaceY;
 		}
 
-		if (surfaceY < startY + 16 && surfaceY < 128) {
+		if (surfaceY < startY + 16 && surfaceY < Chunk.SECTION_HEIGHT) {
 			return surfaceY;
 		}
 		return -1;

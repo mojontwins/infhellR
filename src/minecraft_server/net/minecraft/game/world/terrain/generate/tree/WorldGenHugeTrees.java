@@ -5,6 +5,7 @@ import java.util.Random;
 import net.minecraft.game.MathHelper;
 import net.minecraft.game.world.World;
 import net.minecraft.game.world.block.Block;
+import net.minecraft.game.world.chunk.Chunk;
 import net.minecraft.game.world.terrain.generate.WorldGenerator;
 
 public class WorldGenHugeTrees extends WorldGenerator
@@ -27,7 +28,7 @@ public class WorldGenHugeTrees extends WorldGenerator
 		int i = rand.nextInt(3) + height;
 		boolean flag = true;
 
-		if (y < 1 || y + i + 1 > 128) {
+		if (y < 1 || y + i + 1 > Chunk.SECTION_HEIGHT) {
 			return false;
 		}
 
@@ -44,7 +45,7 @@ public class WorldGenHugeTrees extends WorldGenerator
 
 			for (int xx = x - radius; xx <= x + radius && flag; xx++) {
 				for (int zz = z - radius; zz <= z + radius && flag; zz++) {
-					if (j >= 0 && j < 128) {
+					if (j >= 0 && j < Chunk.SECTION_HEIGHT) {
 						int k2 = world.getBlockId(xx, j, zz);
 
 						if (k2 != 0 && k2 != Block.leaves.blockID && k2 != Block.grass.blockID && k2 != Block.dirt.blockID && k2 != woodId && k2 != Block.sapling.blockID) {

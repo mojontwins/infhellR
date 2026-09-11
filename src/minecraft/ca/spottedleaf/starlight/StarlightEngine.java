@@ -157,33 +157,33 @@ public class StarlightEngine {
 		this.chunkCache[chunkX + 5*chunkZ + this.chunkIndexOffset] = chunk;
 	}
 
-	protected final NibbleArray getNibbleFromCache(final int chunkX, final int chunkZ) {
+	protected final NibbleArray getNibbleFromCache(final int chunkX, final int chunkY, final int chunkZ) {
 		final Chunk chunk = this.getChunkInCache(chunkX, chunkZ);
-		if (chunk == null) return null;
+		if (chunk == null || chunkY < 0 || chunkY >= Chunk.SUBCHUNK_COUNT) return null;
 
-		return this.skylightPropagator ? chunk.skylightMap : chunk.blocklightMap;
+		return this.skylightPropagator ? chunk.skyLightMap[chunkY] : chunk.blockLightMap[chunkY];
 	}
 
 	protected final int getBlockState(final int worldX, final int worldY, final int worldZ) {
 		final Chunk chunk = this.getChunkInCache(worldX >> 4, worldZ >> 4);
 
-		if (chunk == null || worldY < 0 || worldY > 127) {
+		if (chunk == null || worldY < 0 || worldY >= Chunk.SECTION_HEIGHT) {
 			return AIR_BLOCK_STATE;
 		}
 
-		return chunk.getBlockID(worldX & 15, worldY & 127, worldZ & 15);
+		return chunk.getBlockID(worldX & 15, worldY, worldZ & 15);
 	}
 
 
 	protected final int getLightLevel(final int worldX, final int worldY, final int worldZ) {
-		final NibbleArray nibble = this.getNibbleFromCache(worldX >> 4, worldZ >> 4);
+		final NibbleArray nibble = this.getNibbleFromCache(worldX >> 4, worldY >> 4, worldZ >> 4);
 
-		if (nibble != null && worldY >= 0 && worldY <= 127) {
-			return nibble.getNibble(worldX & 15, worldY, worldZ & 15);
+		if (nibble != null && worldY >= 0 && worldY < Chunk.SECTION_HEIGHT) {
+			return nibble.getNibble(worldX & 15, worldY & 15, worldZ & 15);
 		}
 
 		if (this.skylightPropagator) {
-			return worldY > 127 ? 15 : (nibble == null ? 15 : Math.max(0, nibble.getNibble(worldX & 15, 0, worldZ & 15) - worldY)); // best approximation
+			return 15; // implicit full skylight for empty (unmaterialised) sections and anything above the world
 		} else {
 			return 0;
 		}
@@ -194,14 +194,16 @@ public class StarlightEngine {
 	}
 
 	protected final void setLightLevel(final int worldX, final int worldY, final int worldZ, final int level) {
-		final NibbleArray nibble = this.getNibbleFromCache(worldX >> 4, worldZ >> 4);
+		final NibbleArray nibble = this.getNibbleFromCache(worldX >> 4, worldY >> 4, worldZ >> 4);
 
-		if (nibble != null && worldY >= 0 && worldY <= 127) {
-			int existing = nibble.getNibble(worldX & 15, worldY, worldZ & 15);
+		// null nibble: an empty (unmaterialised) section stays implicitly sky=15 / block=0. Writing here would
+		// defeat the lazy-subchunk optimisation, so the write must be a no-op.
+		if (nibble != null && worldY >= 0 && worldY < Chunk.SECTION_HEIGHT) {
+			int existing = nibble.getNibble(worldX & 15, worldY & 15, worldZ & 15);
 			if (existing == level) {
 				return;
 			}
-			nibble.setNibble(worldX & 15, worldY, worldZ & 15, level);
+			nibble.setNibble(worldX & 15, worldY & 15, worldZ & 15, level);
 		}
 	}
 
@@ -296,13 +298,13 @@ public class StarlightEngine {
 				final int offY = posY + propagate.y;
 				final int offZ = posZ + propagate.z;
 
-				if (offY < 0 || offY > 127) {
+				if (offY < 0 || offY >= Chunk.SECTION_HEIGHT) {
 					continue;
 				}
 
-				final NibbleArray currentNibble = this.getNibbleFromCache(offX >> 4, offZ >> 4);
+				final NibbleArray currentNibble = this.getNibbleFromCache(offX >> 4, offY >> 4, offZ >> 4);
 				final int currentLevel;
-				if (currentNibble == null || (currentLevel = currentNibble.getNibble(offX & 15, offY & 127, offZ & 15)) >= (propagatedLightLevel - 1)) {
+				if (currentNibble == null || (currentLevel = currentNibble.getNibble(offX & 15, offY & 15, offZ & 15)) >= (propagatedLightLevel - 1)) {
 					continue; // already at the level we want or unloaded
 				}
 
@@ -311,7 +313,7 @@ public class StarlightEngine {
 
 				final int targetLevel = propagatedLightLevel - Math.max(1, opacityCached);
 				if (targetLevel > currentLevel) {
-					currentNibble.setNibble(offX & 15, offY & 127, offZ & 15, targetLevel);
+					currentNibble.setNibble(offX & 15, offY & 15, offZ & 15, targetLevel);
 					this.postLightUpdate(offX, offY, offZ);
 
 					if (targetLevel > 1) {
@@ -357,14 +359,14 @@ public class StarlightEngine {
 				final int offY = posY + propagate.y;
 				final int offZ = posZ + propagate.z;
 
-				if (offY < 0 || offY > 127) {
+				if (offY < 0 || offY >= Chunk.SECTION_HEIGHT) {
 					continue;
 				}
 
-				final NibbleArray currentNibble = this.getNibbleFromCache(offX >> 4, offZ >> 4);
+				final NibbleArray currentNibble = this.getNibbleFromCache(offX >> 4, offY >> 4, offZ >> 4);
 				final int lightLevel;
 
-				if (currentNibble == null || (lightLevel = currentNibble.getNibble(offX & 15, offY & 127, offZ & 15)) == 0) {
+				if (currentNibble == null || (lightLevel = currentNibble.getNibble(offX & 15, offY & 15, offZ & 15)) == 0) {
 					// already at lowest (or unloaded), nothing we can do
 					continue;
 				}
@@ -399,7 +401,7 @@ public class StarlightEngine {
 									| (FLAG_WRITE_LEVEL);
 				}
 
-				currentNibble.setNibble(offX & 15, offY & 127, offZ & 15, 0);
+				currentNibble.setNibble(offX & 15, offY & 15, offZ & 15, 0);
 				this.postLightUpdate(offX, offY, offZ);
 
 				if (targetLevel > 0) { // we actually need to propagate 0 just in case we find a neighbour...
@@ -478,9 +480,11 @@ public class StarlightEngine {
 			final int encodeOffset = this.coordinateOffset;
 
 			if (this.getLightLevel(worldX, maxPropagationY, worldZ) == 15) {
-				final NibbleArray nibble = this.getNibbleFromCache(worldX >> 4, worldZ >> 4);
 				for (int currY = maxPropagationY; currY >= 0; --currY) {
-					if (nibble.getNibble(worldX & 15, currY & 127, worldZ & 15) != 15) {
+					// per-section nibble: an empty (unmaterialised) section is implicitly 15, so there is
+					// nothing to strike inside it and the strike stops.
+					final NibbleArray nibble = this.getNibbleFromCache(worldX >> 4, currY >> 4, worldZ >> 4);
+					if (nibble == null || nibble.getNibble(worldX & 15, currY & 15, worldZ & 15) != 15) {
 						break;
 					}
 
@@ -491,7 +495,7 @@ public class StarlightEngine {
 							// do not set transparent blocks for the same reason we don't in the checkBlock method
 					);
 
-					nibble.setNibble(worldX & 15, currY & 127, worldZ & 15, 0);
+					nibble.setNibble(worldX & 15, currY & 15, worldZ & 15, 0);
 				}
 			}
 
@@ -572,12 +576,14 @@ public class StarlightEngine {
 			// now setup sources
 			final int worldChunkX = chunkX << 4;
 			final int worldChunkZ = chunkZ << 4;
+			// Skylight starts one block ABOVE the top of the world (y = 256) and falls toward y = 0.
+			final int topOfWorld = Chunk.SECTION_HEIGHT - 1;
 
 			for (int currZ = 0; currZ <= 15; ++currZ) {
 				for (int currX = 0; currX <= 15; ++currX) {
 					final int worldX = currX | worldChunkX;
 					final int worldZ = currZ | worldChunkZ;
-					this.tryPropagateSkylight(this.world, worldX, 127, worldZ);
+					this.tryPropagateSkylight(this.world, worldX, topOfWorld + 1, worldZ);
 				}
 			}
 
@@ -595,10 +601,14 @@ public class StarlightEngine {
 			if (this.world.worldProvider.isNether) {
 				final Chunk chunk = this.getChunkInCache(chunkX, chunkZ);
 				if(chunk != null) {
-					final NibbleArray nibble = this.getNibbleFromCache(chunkX, chunkZ);
 					final int encodeOffset = this.coordinateOffset;
 	
-					for (int y = 0; y <= 127; ++y) {
+					for (int y = 0; y < Chunk.SECTION_HEIGHT; ++y) {
+						// an empty (unmaterialised) section cannot contain any light-emitting blocks, so skip it
+						final NibbleArray nibble = this.getNibbleFromCache(chunkX, y >> 4, chunkZ);
+						if (nibble == null) {
+							continue;
+						}
 						for (int z = 0; z <= 15; ++z) {
 							for (int x = 0; x <= 15; ++x) {
 								final int blockState = chunk.getBlockID(x, y, z);
@@ -608,7 +618,7 @@ public class StarlightEngine {
 								final int emittedLight = Block.lightValue[blockState];
 	
 								if (emittedLight != 0) {
-									nibble.setNibble(x, y, z, emittedLight);
+									nibble.setNibble(x, y & 15, z, emittedLight);
 									this.appendToIncreaseQueue(
 											(((x | (chunkX << 4)) + ((z | (chunkZ << 4)) << 6) + (y << (6 + 6)) + encodeOffset) & ((1L << (6 + 6 + 16)) - 1))
 													| ((emittedLight & 0xFL) << (6 + 6 + 16))
@@ -631,14 +641,16 @@ public class StarlightEngine {
 	}
 
 	protected final void propagateNeighbourLevels(final int chunkX, final int chunkZ) {
-		for (int currSectionY = (127 >> 4); currSectionY >= 0; --currSectionY) {
+		for (int currSectionY = (Chunk.SECTION_HEIGHT >> 4) - 1; currSectionY >= 0; --currSectionY) {
 			for (final AxisDirection direction : ONLY_HORIZONTAL_DIRECTIONS) {
 				final int neighbourOffX = direction.x;
 				final int neighbourOffZ = direction.z;
-	
+
+				// pull skylight section-by-section: an empty (unmaterialised) neighbour section holds
+				// nothing to propagate (it is already at the implicit default).
 				final NibbleArray neighbourNibble = this.getNibbleFromCache(chunkX + neighbourOffX,
-							chunkZ + neighbourOffZ);
-	
+							currSectionY, chunkZ + neighbourOffZ);
+
 				if (neighbourNibble == null) {
 					// can't pull from 0
 					continue;
@@ -681,7 +693,7 @@ public class StarlightEngine {
 
 				for (int currY = currSectionY << 4, maxY = currY | 15; currY <= maxY; ++currY) {
 					for (int i = 0, currX = startX, currZ = startZ; i < 16; ++i, currX += incX, currZ += incZ) {
-						final int level = neighbourNibble.getNibble(currX & 15, currY & 127, currZ & 15);
+						final int level = neighbourNibble.getNibble(currX & 15, currY & 15, currZ & 15);
 	
 						if (level <= 1) {
 							// nothing to propagate

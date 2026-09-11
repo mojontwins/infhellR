@@ -21,5 +21,10 @@ import net.minecraft.game.world.block.Block;
 		renderBlocks.uvRotateTop = 0;
 		return true;
 	}
-
+	
+	@Override
+	// Renders a plain cube for the inventory/drop view.
+	public void renderBlockOnInventory(RenderBlocks renderBlocks, Block block, int metadata, float brightness) {
+		RenderBlockUtil.renderCubeOnInventory(renderBlocks, block, metadata, brightness);
+	}
 }

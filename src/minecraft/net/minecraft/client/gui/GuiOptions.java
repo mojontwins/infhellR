@@ -23,10 +23,10 @@ public class GuiOptions extends GuiScreen {
 		int optionsLen = optionsArray.length;
 
 		for(int i = 0; i < optionsLen; ++i) {
-			EnumOptions option = optionsArray[i];
+			EnumOptions option = optionsArray[i]; 
 			if(!option.isFloat()) {
 				this.controlList.add(new GuiSmallButton(option.getOrdinal(), this.width / 2 - 155 + buttonIndex % 2 * 160, this.height / 6 + 24 * (buttonIndex >> 1), option, this.options.getKeyBinding(option)));
-
+			} else {
 				this.controlList.add(new GuiSlider(option.getOrdinal(), this.width / 2 - 155 + buttonIndex % 2 * 160, this.height / 6 + 24 * (buttonIndex >> 1), option, this.options.getKeyBinding(option), this.options.getOptionFloatValue(option)));
 			}
 

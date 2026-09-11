@@ -155,7 +155,14 @@ public class FeatureOceanRuins extends FeatureVillage {
 	}
 	
 	public boolean badChunkInCorner(World world, int x, int z) {
-		return world.getBiomeGenAt(x, z) instanceof BiomeGenGlacier || !world.isOceanChunk(x, z);
+		// NOTE: this is called with CHUNK coordinates (the caller shifts the AABB corners by >> 4),
+		// so world coords are chunkCoord << 4. We query the biome manager directly rather than
+		// world.getBiomeGenAt() because the latter loads/generates chunks via getChunkFromChunkCoords;
+		// doing so from inside a feature's setup() would recurse (that generated chunk runs
+		// getNearestFeatures, which sets up more features, which call this again on other unloaded
+		// chunks) until the stack overflows. WorldChunkManager.getBiomeGenAt() is pure noise-on-seed,
+		// so it never touches the chunk pipeline.
+		return world.getWorldChunkManager().getBiomeGenAt(x << 4, z << 4) instanceof BiomeGenGlacier || !world.isOceanChunk(x, z);
 	}
 
 	public boolean badChunksOnCorners(World world, FeatureAABB aabb) {

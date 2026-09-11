@@ -439,8 +439,11 @@ public class ChunkProviderGenerate implements IChunkProvider {
 			this.ravineGenerator.generate(this, this.worldObj, chunkX, chunkZ, blockArray);
 		}
 
-		// Calculate lights
-		chunk.generateHeightMap();
+		// Terrain generation is done: slice the flat 128-high generation buffers into runtime
+		// subchunks now that every gen-stage writer (city, features, MapGens) has finished.
+		// Note: generateSkylightMap below recomputes the identical height map itself, so there
+		// is no need for a separate generateHeightMap pass before the slice.
+		chunk.loadFlatBlocks(blockArray, metadata);
 		chunk.generateSkylightMap();
 
 		// Done

@@ -7,6 +7,7 @@ import net.minecraft.game.container.creativetab.CreativeTabs;
 import net.minecraft.game.physics.AxisAlignedBB;
 import net.minecraft.game.world.EnumSkyBlock;
 import net.minecraft.game.world.World;
+import net.minecraft.game.world.chunk.Chunk;
 import net.minecraft.game.world.material.Material;
 
 /**
@@ -45,7 +46,7 @@ public class BlockSurfaceMoss extends Block {
 
 	@Override
 	public boolean canBlockStay(World world, int x, int y, int z) {
-		if(y < 0 || y >= 128) return false;
+		if(y < 0 || y >= Chunk.SECTION_HEIGHT) return false;
 		Block groundBlock = Block.blocksList[world.getBlockId(x, y - 1, z)];
 		return groundBlock != null && groundBlock.canGrowMoss();
 	}

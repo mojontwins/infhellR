@@ -1072,11 +1072,19 @@ public class MapGenCity extends MapGenBase {
 			// Modify if it contains a cross road
 			Chunk chunk = world.getChunkFromChunkCoords(xChunk, zChunk);
 			if(chunk.hasRoad && chunk.roadVariation == 0) {
-				this.raiseTerrain(chunk.baseHeight, chunk.blocks, chunk.data);
+				// This chunk is already in the world, so it was sliced into subchunks when it
+				// was generated and its flat generation buffers have been dropped. Stage the
+				// terrain edit into a local flat 128-high pair and apply it back through the
+				// subchunk storage (raiseTerrain / flattenTerrain / generateStreetFloorSimple are
+				// flat-buffer based, and the historical behaviour wrote straight into the chunk).
+				byte[] data = chunk.exportFlatBlocks128();
+				byte[] meta = chunk.exportFlatData128();
+				this.raiseTerrain(chunk.baseHeight, data, meta);
 				if(!this.desertChunk) {
-					this.flattenTerrain(chunk.baseHeight, chunk.blocks, chunk.data);
+					this.flattenTerrain(chunk.baseHeight, data, meta);
 				}
-				this.generateStreetFloorSimple(0, chunk.baseHeight, 0, chunk.blocks, chunk.data, rand, cityPiece);
+				this.generateStreetFloorSimple(0, chunk.baseHeight, 0, data, meta, rand, cityPiece);
+				chunk.importFlatBlocks128(data, meta);
 				chunk.roadVariation = cityPiece;
 				chunk.isTerrainPopulated = false;
 			}

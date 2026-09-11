@@ -7,6 +7,7 @@ import net.minecraft.game.entity.player.EntityPlayer;
 import net.minecraft.game.world.World;
 import net.minecraft.game.world.block.Block;
 import net.minecraft.game.world.block.BlockFlower;
+import net.minecraft.game.world.chunk.Chunk;
 
 public class ItemBlock extends Item {
 	protected int blockID;
@@ -64,7 +65,10 @@ public class ItemBlock extends Item {
 
 		if(itemStack.stackSize == 0) {
 			return false;
-		} else if(y == 127 && Block.blocksList[this.blockID].blockMaterial.isSolid()) {
+		} else if(y >= Chunk.SECTION_HEIGHT - 1 && Block.blocksList[this.blockID].blockMaterial.isSolid()) {
+			// Keep the topmost world layer unbuildable (the 256-height analog of the vanilla
+			// "y == 127" cap). Before this fix the hardcoded 127 stopped pillaring at the old
+			// 128-block ceiling even though the world is now 256 tall.
 			return false;
 		} else if(world.canBlockBePlacedAt(this.blockID, x, y, z, false, side, itemStack)) {
 			block = Block.blocksList[this.blockID];

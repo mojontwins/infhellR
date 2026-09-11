@@ -8,6 +8,7 @@ import net.minecraft.game.physics.MovingObjectPosition;
 import net.minecraft.game.physics.Vec3D;
 import net.minecraft.game.world.IBlockAccess;
 import net.minecraft.game.world.World;
+import net.minecraft.game.world.chunk.Chunk;
 import net.minecraft.game.world.material.Material;
 
 public class BlockDoor extends Block {
@@ -156,7 +157,8 @@ public class BlockDoor extends Block {
 				z7 = true;
 			}
 
-			if(!world.isBlockNormalCube(x, y - 1, z)) {
+			//if(!world.isBlockNormalCube(x, y - 1, z)) {
+			if(!this.isSupportForDoor(world, x, y - 1, z)) {
 				world.setBlockWithNotify(x, y, z, 0);
 				z7 = true;
 				if(world.getBlockId(x, y + 1, z) == this.blockID) {
@@ -190,7 +192,7 @@ public class BlockDoor extends Block {
 	}
 
 	public boolean canPlaceBlockAt(World world, int x, int y, int z) {
-		return y >= 127 ? false : world.isBlockNormalCube(x, y - 1, z) && super.canPlaceBlockAt(world, x, y, z) && super.canPlaceBlockAt(world, x, y + 1, z);
+		return y >= Chunk.SECTION_HEIGHT - 1 ? false : this.isSupportForDoor(world, x, y - 1, z) && super.canPlaceBlockAt(world, x, y, z) && super.canPlaceBlockAt(world, x, y + 1, z);
 	}
 
 	public static boolean isOpen(int i0) {
@@ -208,5 +210,17 @@ public class BlockDoor extends Block {
 	public boolean getBlocksMovement(IBlockAccess par1IBlockAccess, int par2, int par3, int par4) {
 		int var5 = par1IBlockAccess.getBlockMetadata(par2, par3, par4);
 		return (var5 & 4) != 0;
+	}
+	
+	public boolean isSupportForDoor(World world, int x, int y, int z) {
+		Block block = world.getBlock(x, y, z);
+		if (block == null) return false;
+		if (block.renderAsNormalBlock()) return true;
+		
+		int meta = world.getBlockMetadata(x, y, z);
+		if ((block instanceof BlockStep || block instanceof BlockStairs) && (meta  & 8) != 0) return true;
+		
+		return false;
+		
 	}
 }

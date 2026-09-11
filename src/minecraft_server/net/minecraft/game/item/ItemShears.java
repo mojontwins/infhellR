@@ -25,7 +25,7 @@ public class ItemShears extends Item {
 		return block1.blockID == Block.web.blockID;
 	}
 
-	public float getStrVsBlock(ItemStack itemStack1, Block block2) {
-		return block2.blockID != Block.web.blockID && block2.blockID != Block.leaves.blockID ? (block2.blockID == Block.cloth.blockID ? 5.0F : super.getStrVsBlock(itemStack1, block2)) : 15.0F;
+	public float getStrVsBlock(ItemStack itemStack1, Block block2, int metadata) {
+		return block2.blockID != Block.web.blockID && block2.blockID != Block.leaves.blockID ? (block2.blockID == Block.cloth.blockID ? 5.0F : super.getStrVsBlock(itemStack1, block2, metadata)) : 15.0F;
 	}
 }

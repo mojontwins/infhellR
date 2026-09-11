@@ -199,10 +199,10 @@ public class InventoryPlayer implements IInventory {
 		itemStack3[i1] = itemStack2;
 	}
 
-	public float getStrVsBlock(Block block1) {
+	public float getStrVsBlock(Block block1, int metadata) {
 		float f2 = 1.0F;
 		if(this.mainInventory[this.currentItem] != null) {
-			f2 *= this.mainInventory[this.currentItem].getStrVsBlock(block1);
+			f2 *= this.mainInventory[this.currentItem].getStrVsBlock(block1, metadata);
 		}
 
 		return f2;

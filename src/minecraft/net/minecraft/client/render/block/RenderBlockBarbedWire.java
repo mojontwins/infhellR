@@ -16,7 +16,7 @@ import net.minecraft.client.render.Tessellator;
 	 * strand are drawn so the wire reads from either side, and a commented-out diffuse-shading block is
 	 * left in place (brightness is applied via {@link Tessellator#setBrightness} instead).
 	 */
-	public final class RenderBlockBarbedWire implements BlockRenderHandler {
+public final class RenderBlockBarbedWire implements BlockRenderHandler {
 	@Override
 	public boolean renderBlock(RenderBlocks renderBlocks, Block block, int x, int y, int z) {
 		Tessellator tessellator = Tessellator.instance;		
@@ -104,4 +104,8 @@ import net.minecraft.client.render.Tessellator;
 		return true;
 	}
 
+	@Override
+	public boolean renderItemIn3d() {
+		return false;
+	}
 }

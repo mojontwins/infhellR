@@ -122,4 +122,15 @@ public class BlockFence extends Block {
 		*/
 		return iBlockAccess1.getBlockId(i2, i3, i4) == this.blockID;
 	}
+	
+	// Only wooden fences burn; the iron fence (iron material) does not.
+	@Override
+	public int getEncouragementToFire() {
+		return this.blockMaterial == Material.wood ? 5 : 0;
+	}
+
+	@Override
+	public int getAbilityToCatchFire() {
+		return this.blockMaterial == Material.wood ? 20 : 0;
+	}
 }

@@ -24,4 +24,14 @@ public class BlockBookshelf extends Block {
 	public int idDrooped(int meta) {
 		return Item.book.shiftedIndex;
 	}
+	
+	@Override
+	public int getEncouragementToFire() {
+		return 30;
+	}
+
+	@Override
+	public int getAbilityToCatchFire() {
+		return 20;
+	}
 }

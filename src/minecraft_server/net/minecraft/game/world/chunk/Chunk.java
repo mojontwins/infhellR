@@ -1,6 +1,7 @@
 package net.minecraft.game.world.chunk;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -22,16 +23,62 @@ import net.minecraft.game.entity.EntityBlockEntity;
 import net.minecraft.game.world.block.BlockEntity;
 
 
+/**
+ * A 16x16 column of the world, 256 blocks tall, stored as a stack of lazily allocated
+ * 16x16x16 subchunks (sections).
+ *
+ * <p><b>Vertical layout.</b> The world height is {@value #SECTION_HEIGHT} blocks split into
+ * {@value #SUBCHUNK_COUNT} subchunks of {@value #SECTION_SIZE} blocks each. Section 0 covers
+ * y 0-15, section 15 covers y 240-255. Each section has its own block-id array, metadata array,
+ * sky-light nibble array and block-light nibble array (all {@code null} until the section is
+ * materialized by {@link #ensureSubchunk}).</p>
+ *
+ * <p><b>Null sections.</b> An unmaterialized section is a pure-air cell: block ids/metadata
+ * read as 0, block light reads as 0 and sky light reads as 15 (full brightness). The Starlight
+ * engine relies on these implicit defaults and never allocates a section purely for lighting.</p>
+ *
+ * <p><b>Flat generation buffers.</b> The {@code blocks}/{@code data} arrays remain the flat
+ * 128-high (16x16x128, index {@code x << 11 | z << 7 | y}) buffers that the terrain generators
+ * write to through direct array access. Once generation finishes, {@link #loadFlatBlocks} slices
+ * those buffers into sections 0-7 and nulls them; from then on the section arrays are the only
+ * storage. ({@code getBlockID}/{@code getBlockMetadata} keep a read-only fallback to the flat
+ * buffers for the transient "just generate for height" chunks that are never sliced.)</p>
+ */
 public class Chunk {
+	/** Edge size of one subchunk in blocks (16). */
+	public static final int SECTION_SIZE = 16;
+	/** Total world height in blocks (256). */
+	public static final int SECTION_HEIGHT = 256;
+	/** Number of stacked subchunks (SECTION_HEIGHT / SECTION_SIZE = 16). */
+	public static final int SUBCHUNK_COUNT = SECTION_HEIGHT >>> 4;
+	/** Number of flat 128-high generation buffer slices fed into subchunks (128 / 16). */
+	private static final int FLAT_SECTION_COUNT = 128 >>> 4;
+
 	public static boolean isLit;
 	
+	/**
+	 * Flat 128-high block-id buffer used ONLY during terrain generation (Option A: generators
+	 * write into this array directly). Null after {@link #loadFlatBlocks} slices it.
+	 */
 	public byte[] blocks;
+	/** Flat 128-high metadata buffer used ONLY during terrain generation. Null after slicing. */
 	public byte[] data;
-	
+
+	/** Per-subchunk block-id arrays; a null entry means the whole section is air. */
+	public byte[][] sectionBlocks;
+	/** Per-subchunk metadata arrays; entries are allocated together with {@link #sectionBlocks}. */
+	public byte[][] sectionData;
+	/** Per-subchunk sky-light nibbles; a null section is implicitly full bright (15). */
+	public NibbleArray[] skyLightMap;
+	/** Per-subchunk block-light nibbles; a null section is implicitly dark (0). */
+	public NibbleArray[] blockLightMap;
+	/** Per-subchunk "contains no blocks?" flag, used by the renderer to skip empty sections. */
+	public boolean[] isEmpty;
+	/** Highest materialized subchunk index plus one; 0 while the chunk has no sections yet. */
+	public int subchunkCount;
+
 	public boolean isChunkLoaded;
 	public World worldObj;
-	public NibbleArray skylightMap;
-	public NibbleArray blocklightMap;
 	public byte[] heightMap;
 	public byte[] landSurfaceHeightMap;
 	public int heightMapMinimum;
@@ -75,11 +122,22 @@ public class Chunk {
 
 	public int buildingY0 = 64;
 
+	/**
+	 * Creates an empty chunk: every subchunk starts unmaterialized and the entity buckets are
+	 * one per subchunk (so entities at y up to 255 find the right bucket).
+	 */
 	@SuppressWarnings("unchecked")
 	public Chunk(World world, int chunkX, int chunkZ) {
 		this.chunkTileEntityMap = new HashMap<ChunkPosition, TileEntity>();
 		this.chunkSpecialEntityMap = new HashMap<ChunkPosition, EntityBlockEntity>();
-		this.entities = (List<Entity> []) new List[8];
+		this.entities = (List<Entity> []) new List[SUBCHUNK_COUNT];
+		this.sectionBlocks = new byte[SUBCHUNK_COUNT][];
+		this.sectionData = new byte[SUBCHUNK_COUNT][];
+		this.skyLightMap = new NibbleArray[SUBCHUNK_COUNT];
+		this.blockLightMap = new NibbleArray[SUBCHUNK_COUNT];
+		this.isEmpty = new boolean[SUBCHUNK_COUNT];
+		Arrays.fill(this.isEmpty, true);
+		this.subchunkCount = 0;
 		this.isTerrainPopulated = false;
 		this.isModified = false;
 		this.hasEntities = false;
@@ -96,12 +154,226 @@ public class Chunk {
 
 	}
 
+	/**
+	 * Creates a chunk wrapping the flat 128-high generation buffers (block ids + metadata).
+	 * The buffers stay consultable via the flat fallback and are finalized by
+	 * {@link #loadFlatBlocks} once terrain generation has finished.
+	 */
 	public Chunk(World world, byte[] blocks, byte[] metadata, int chunkX, int chunkZ) {
 		this(world, chunkX, chunkZ);
 		this.blocks = blocks;
 		this.data = metadata;
-		this.skylightMap = new NibbleArray(blocks.length);
-		this.blocklightMap = new NibbleArray(blocks.length);
+	}
+
+	/**
+	 * Allocates the four storage planes (block ids, metadata, sky light, block light) for the
+	 * given subchunk the first time anything writes into it. Both light planes start at zero,
+	 * matching vanilla {@code ExtendedBlockStorage}: the real values are written afterwards by
+	 * the lighting pipeline (the vanilla top-down gradient in {@link #generateSkylightMap()}
+	 * followed by the increase-only Starlight init in {@link #initLightingForRealNotJustHeightmap()}).
+	 *
+	 * <p>The "fully lit open sky" state is represented by a <b>null</b> subchunk — {@link
+	 * #getSavedLightValue} reports sky 15 for it — never by pre-filling a materialized plane.
+	 * Pre-filling would break the increase-only engine: it can only ever raise a stored nibble,
+	 * so a pre-filled 15 under any opaque block (roof, terrain, water) could never be lowered
+	 * and every interior cavity would stay scanner-bright forever.</p>
+	 *
+	 * @param section subchunk index (0-15); section s covers world Y {@code s*16 .. (s*16)+15}
+	 */
+	public void ensureSubchunk(int section) {
+		if(section >= 0 && section < SUBCHUNK_COUNT && this.sectionBlocks[section] == null) {
+			int cellCount = SECTION_SIZE * SECTION_SIZE * SECTION_SIZE;
+			this.sectionBlocks[section] = new byte[cellCount];
+			this.sectionData[section] = new byte[cellCount];
+			this.skyLightMap[section] = new NibbleArray(cellCount);
+			this.blockLightMap[section] = new NibbleArray(cellCount);
+			this.isEmpty[section] = true;
+			if(section + 1 > this.subchunkCount) {
+				this.subchunkCount = section + 1;
+			}
+		}
+	}
+
+	/**
+	 * Slices the (still flat) 128-high generation buffers into the runtime subchunks. Each flat
+	 * column (address {@code x << 11 | z << 7 | y}) is split into its eight 16-tall segments and
+	 * copied into subchunk-local layout ({@code x << 8 | z << 4 | yLocal}). The flat buffers are
+	 * then dropped ({@code null}) because the sections are the only storage from this point on.
+	 *
+	 * @param blockArray flat 128-high block ids
+	 * @param metadata   flat 128-high metadata
+	 */
+	public void loadFlatBlocks(byte[] blockArray, byte[] metadata) {
+		if(blockArray == null) {
+			return;
+		}
+
+		// Materialize all eight lower sections that still exist in the flat buffers.
+		for(int section = 0; section < FLAT_SECTION_COUNT; ++section) {
+			this.ensureSubchunk(section);
+		}
+
+		// Re-slice each flat column into its subchunk segments. Sections that were already
+		// materialized by a generator (City column writes etc.) are re-copied from the flat
+		// buffer, which mirrors their content, so no information is lost.
+		for(int x = 0; x < 16; ++x) {
+			for(int z = 0; z < 16; ++z) {
+				int flatColumnBase = (x << 4 | z) << 7;      // (x*16 + z) * 128
+				int sectionColumnBase = (x << 4 | z) << 4;   // (x*16 + z) * 16
+				for(int section = 0; section < FLAT_SECTION_COUNT; ++section) {
+					System.arraycopy(blockArray, flatColumnBase + (section << 4), this.sectionBlocks[section], sectionColumnBase, SECTION_SIZE);
+					System.arraycopy(metadata, flatColumnBase + (section << 4), this.sectionData[section], sectionColumnBase, SECTION_SIZE);
+				}
+			}
+		}
+
+		// Recompute the per-subchunk empty flags (sections that came up all air render nothing).
+		this.recomputeEmptyFlags();
+
+		// The flat generation buffers have served their purpose; drop them.
+		this.blocks = null;
+		this.data = null;
+	}
+
+	/**
+	 * Exports the block ids of the lower 128-high region into a flat generation-style buffer
+	 * ({@code x << 11 | z << 7 | y}). City generation still edits terrain through such a buffer,
+	 * but in-world chunks have already been sliced into subchunks and dropped their flat storage,
+	 * so the edit is staged locally and written back with {@link #importFlatBlocks128}.
+	 *
+	 * @return a 32768-element flat buffer; unmaterialized sections read as air
+	 */
+	public byte[] exportFlatBlocks128() {
+		byte[] flat = new byte[(SECTION_HEIGHT >> 1) * 256];
+		for(int x = 0; x < 16; ++x) {
+			for(int z = 0; z < 16; ++z) {
+				int flatColumnBase = (x << 4 | z) << 7;      // (x*16 + z) * 128
+				int subchunkColumnBase = (x << 4 | z) << 4;  // (x*16 + z) * 16
+				for(int section = 0; section < FLAT_SECTION_COUNT; ++section) {
+					byte[] sectionBlockData = this.sectionBlocks[section];
+					if(sectionBlockData != null) {
+						System.arraycopy(sectionBlockData, subchunkColumnBase, flat, flatColumnBase + (section << 4), SECTION_SIZE);
+					}
+				}
+			}
+		}
+		return flat;
+	}
+
+	/** Exports the metadata of the lower 128-high region; see {@link #exportFlatBlocks128}. */
+	public byte[] exportFlatData128() {
+		byte[] flat = new byte[(SECTION_HEIGHT >> 1) * 256];
+		for(int x = 0; x < 16; ++x) {
+			for(int z = 0; z < 16; ++z) {
+				int flatColumnBase = (x << 4 | z) << 7;      // (x*16 + z) * 128
+				int subchunkColumnBase = (x << 4 | z) << 4;  // (x*16 + z) * 16
+				for(int section = 0; section < FLAT_SECTION_COUNT; ++section) {
+					byte[] sectionMetaData = this.sectionData[section];
+					if(sectionMetaData != null) {
+						System.arraycopy(sectionMetaData, subchunkColumnBase, flat, flatColumnBase + (section << 4), SECTION_SIZE);
+					}
+				}
+			}
+		}
+		return flat;
+	}
+
+	/**
+	 * Applies a flat 128-high block/metadata pair back into subchunk storage, the reverse of
+	 * {@link #exportFlatBlocks128}/{@link #exportFlatData128}. Sections that would become pure
+	 * air are not materialized; a section gains storage the first time it carries a block.
+	 * Mirrors {@link #loadFlatBlocks} (empty flags and the materialized count are refreshed),
+	 * but lighting is deliberately left untouched, matching the historical direct-array writes.
+	 *
+	 * @param blocks the flat block ids to apply (generation layout)
+	 * @param data   the flat metadata to apply (generation layout)
+	 */
+	public void importFlatBlocks128(byte[] blocks, byte[] data) {
+		if(blocks == null || data == null) {
+			return;
+		}
+		for(int x = 0; x < 16; ++x) {
+			for(int z = 0; z < 16; ++z) {
+				int flatColumnBase = (x << 4 | z) << 7;      // (x*16 + z) * 128
+				int subchunkColumnBase = (x << 4 | z) << 4;  // (x*16 + z) * 16
+				for(int section = 0; section < FLAT_SECTION_COUNT; ++section) {
+					boolean hasContent = false;
+					for(int k = 0; k < SECTION_SIZE && !hasContent; ++k) {
+						if((blocks[flatColumnBase + (section << 4) + k] & 255) != 0) {
+							hasContent = true;
+						}
+					}
+					if(!hasContent) {
+						continue;
+					}
+					this.ensureSubchunk(section);
+					System.arraycopy(blocks, flatColumnBase + (section << 4), this.sectionBlocks[section], subchunkColumnBase, SECTION_SIZE);
+					System.arraycopy(data, flatColumnBase + (section << 4), this.sectionData[section], subchunkColumnBase, SECTION_SIZE);
+				}
+			}
+		}
+		this.recomputeEmptyFlags();
+	}
+
+	/**
+	 * Rebuilds the per-subchunk empty flags and the materialized subchunk count from scratch.
+	 * Used after bulk writes ({@link #loadFlatBlocks}, {@link #setChunkData}) where keeping
+	 * per-cell airness up to date is impractical.
+	 */
+	public void recomputeEmptyFlags() {
+		int highestMaterialized = -1;
+		for(int section = 0; section < SUBCHUNK_COUNT; ++section) {
+			byte[] sectionBlockData = this.sectionBlocks[section];
+			if(sectionBlockData == null) {
+				this.isEmpty[section] = true;
+				continue;
+			}
+			boolean empty = true;
+			for(int i = 0; i < sectionBlockData.length; ++i) {
+				if((sectionBlockData[i] & 255) != 0) {
+					empty = false;
+					break;
+				}
+			}
+			this.isEmpty[section] = empty;
+			highestMaterialized = section;
+		}
+		this.subchunkCount = highestMaterialized + 1;
+	}
+
+	/**
+	 * Re-checks whether a single materialized section still contains any non-air block and
+	 * updates its empty flag accordingly. Called after a block is removed through the single-cell
+	 * setters, where doing a whole-section scan is cheap (4096 cells).
+	 *
+	 * @param section subchunk index to re-examine
+	 */
+	private void recomputeEmptyFlag(int section) {
+		byte[] sectionBlockData = this.sectionBlocks[section];
+		if(sectionBlockData == null) {
+			this.isEmpty[section] = true;
+			return;
+		}
+		for(int i = 0; i < sectionBlockData.length; ++i) {
+			if((sectionBlockData[i] & 255) != 0) {
+				this.isEmpty[section] = false;
+				return;
+			}
+		}
+		this.isEmpty[section] = true;
+	}
+
+	/** @return the number of materialized subchunks (highest allocated section index + 1). */
+	public int getSubchunkCount() {
+		return this.subchunkCount;
+	}
+
+	/**
+	 * @param section subchunk index
+	 * @return whether the given section has no non-air blocks (renderer scan-skip)
+	 */
+	public boolean isSubchunkEmpty(int section) {
+		return section >= 0 && section < SUBCHUNK_COUNT && this.isEmpty[section];
 	}
 
 	public boolean isAtLocation(int i1, int i2) {
@@ -117,13 +389,13 @@ public class Chunk {
 	}
 
 	public void generateHeightMap() {
-		this.heightMapMinimum = 127;
+		this.heightMapMinimum = SECTION_HEIGHT - 1;
 
 		for(int x = 0; x < 16; ++x) {
 			for(int z = 0; z < 16; ++z) {
-				int height = 127;
+				int height = SECTION_HEIGHT - 1;
 
-				for(int index = x << 11 | z << 7; height > 0 && Block.lightOpacity[this.blocks[index + height - 1] & 255] == 0; --height) {
+				for(; height > 0 && Block.lightOpacity[this.getBlockID(x, height - 1, z)] == 0; --height) {
 				}
 
 				this.heightMap[z << 4 | x] = (byte)height;
@@ -140,28 +412,26 @@ public class Chunk {
 		int index = 0;
 		for(int z = 0; z < 16; z ++) {
 			for(int x = 0; x < 16; x ++) {
-				int y = 127;
-				int baseColumn = x << 11 | z << 7 | y;
-				
+				int y = SECTION_HEIGHT - 1;
+
 				// Changed: not just air but also any non opaque block.
-				while(Block.lightOpacity[this.blocks[baseColumn] & 255] < 255 && y > 0) { y --; baseColumn --; }
-				
+				while(Block.lightOpacity[this.getBlockID(x, y, z)] < 255 && y > 0) { y --; }
+
 				this.landSurfaceHeightMap[index ++] = (byte)y;
 			}
 		}
 	}
 
 	public void generateSkylightMap() {
-		this.heightMapMinimum = 127;
+		this.heightMapMinimum = SECTION_HEIGHT - 1;
 
 		int x;
 		int z;
 		for(x = 0; x < 16; ++x) {
 			for(z = 0; z < 16; ++z) {
-				int height = 127;
+				int height = SECTION_HEIGHT - 1;
 
-				int index;
-				for(index = x << 11 | z << 7; height > 0 && Block.lightOpacity[this.blocks[index + height - 1] & 255] == 0; --height) {
+				for(; height > 0 && Block.lightOpacity[this.getBlockID(x, height - 1, z)] == 0; --height) {
 				}
 
 				this.heightMap[z << 4 | x] = (byte)height;
@@ -171,16 +441,27 @@ public class Chunk {
 
 				if(!this.worldObj.worldProvider.hasNoSky) {
 					int lightLevel = 15;
-					int y = 127;
 
-					do {
-						lightLevel -= Block.lightOpacity[this.blocks[index + y] & 255];
-						if(lightLevel > 0) {
-							this.skylightMap.setNibble(x, y, z, lightLevel);
+					// Walk down from the top of the world, one subchunk at a time, writing the
+					// vanilla sky gradient into every materialized section. Null sections are
+					// implicitly full bright (15), so the running level simply resets above them.
+					for(int section = SUBCHUNK_COUNT - 1; section >= 0; --section) {
+						NibbleArray sectionSky = this.skyLightMap[section];
+						if(sectionSky == null) {
+							lightLevel = 15;
+							continue;
 						}
 
-						--y;
-					} while(y > 0 && lightLevel > 0);
+						int yLocal = SECTION_SIZE - 1;
+						do {
+							lightLevel -= Block.lightOpacity[this.getBlockID(x, section << 4 | yLocal, z)];
+							if(lightLevel > 0) {
+								sectionSky.setNibble(x, yLocal, z, lightLevel);
+							}
+
+							--yLocal;
+						} while(yLocal > 0 && lightLevel > 0);
+					}
 				}
 			}
 		}
@@ -201,7 +482,7 @@ public class Chunk {
 		int newHeight = Math.max(y, columnHeight);
 
 		// But, if blocks beneath the new height are not opaque, lower the value until an opaque block is found
-		for(int idx = x << 11 | z << 7; newHeight > 0 && Block.lightOpacity[this.blocks[idx + newHeight - 1] & 255] == 0; --newHeight) {
+		for(; newHeight > 0 && Block.lightOpacity[this.getBlockID(x, newHeight - 1, z)] == 0; --newHeight) {
 		}
 
 		// newHeight is now at the topmost opaque block.
@@ -217,32 +498,72 @@ public class Chunk {
 		}
 	}
 
+	/**
+	 * Reads a block id, consulting the subchunk array first and falling back to the flat 128-high
+	 * generation buffer for sections that have not been materialized/finalized yet.
+	 *
+	 * @return the block id at (x, y, z); 0 if the cell lies outside the world or is implicit air
+	 */
 	public int getBlockID(int x, int y, int z) {
-		return (int) this.blocks[x << 11 | z << 7 | y] & 0xff;
+		if(y >= 0 && y < SECTION_HEIGHT) {
+			int section = y >> 4;
+			byte[] sectionBlockData = this.sectionBlocks[section];
+			if(sectionBlockData != null) {
+				return sectionBlockData[x << 8 | z << 4 | (y & 15)] & 255;
+			}
+			// Flat fallback: transient "just generate for height" chunks never get sliced, so their
+			// height-only callers keep reading the raw generation buffer.
+			if(this.blocks != null && y < (SECTION_HEIGHT >> 1)) {
+				return this.blocks[x << 11 | z << 7 | y] & 255;
+			}
+		}
+		return 0;
 	}
 
+	/**
+	 * Sets a single block (id + metadata), materializing its subchunk on first use. Height map and
+	 * light are only touched when the block's light behavior actually changes (same fast-path as
+	 * before, now routed through {@link #relightBlock}/{@link #updateLight}).
+	 *
+	 * @return true if the cell changed
+	 */
 	public boolean setBlockIDWithMetadata(int x, int y, int z, int id, int metadata) {
+		if(y < 0 || y >= SECTION_HEIGHT) {
+			return false;
+		}
+
 		int height = this.heightMap[z << 4 | x] & 255;
-		int index = x << 11 | z << 7 | y;
-		int existingId = this.blocks[index] & 255;
-		if(existingId == id && this.data[index] == metadata) {
+		int section = y >> 4;
+		this.ensureSubchunk(section);
+		byte[] sectionBlockData = this.sectionBlocks[section];
+		byte[] sectionMetaData = this.sectionData[section];
+		int index = x << 8 | z << 4 | (y & 15);
+		int existingId = sectionBlockData[index] & 255;
+		if(existingId == id && sectionMetaData[index] == metadata) {
 			return false;
 		} else {
 			int absX = (this.xPosition << 4) | x;
 			int absZ = (this.zPosition << 4) | z;
-			
+
 			Block block = Block.blocksList[existingId];
-			
+
 			// Write new block ID
-			this.blocks[x << 11 | z << 7 | y] = (byte)id;
-			
+			sectionBlockData[index] = (byte)id;
+
 			// Call `onRemoval` from removed block, if applies.
 			if(block != null && !this.worldObj.isRemote) {
 				block.onBlockRemoval(this.worldObj, absX, y, absZ);
 			}
 
 			// Write new metadata
-			this.data[index] = (byte)metadata;
+			sectionMetaData[index] = (byte)metadata;
+
+			// Keep the subchunk empty flag in sync (renderer scan-skip).
+			if(id == 0) {
+				this.recomputeEmptyFlag(section);
+			} else {
+				this.isEmpty[section] = false;
+			}
 
 			// If there's a sky, skylight may need to be recalculated.			
 			if(!this.worldObj.worldProvider.hasNoSky) {
@@ -284,6 +605,13 @@ public class Chunk {
 		}
 	}
 	
+	/**
+	 * Writes a column of blocks (bottom-to-top encoded, with run-length markers) starting at
+	 * world Y {@code y}. Writes go into subchunk storage; when the flat generation buffer is still
+	 * alive the same cells are mirrored there so a later {@link #loadFlatBlocks} sees them.
+	 *
+	 * @return true if light properties changed anywhere in the column (drives relight)
+	 */
 	public boolean setBlockIDAndMetadataColumn(int x, int y, int z, int[] id) {
 		// Column is bottom to top ordered
 		// Metadata is encoded as a most significant byte
@@ -293,7 +621,10 @@ public class Chunk {
 
 		int height = this.heightMap[z << 4 | x] & 255;
 
-		int index = x << 11 | z << 7 | y;
+		// Running flat buffer offset (same addressing the generators use); also the source of the
+		// subchunk-local offset so flat and section writes always stay in sync.
+		int colBase = x << 11 | z << 7;
+		int index = colBase | y;
 
 		boolean lightChanged = false;
 
@@ -302,14 +633,25 @@ public class Chunk {
 			int b = id[i];
 			if(b >= 0) {
 				int newId = b & 255;
-				int existingId = this.blocks[index] & 255;
+				int existingId = this.getBlockID(x, y, z);
 				if(!lightChanged
 					&& (Block.lightOpacity[existingId] != Block.lightOpacity[newId]
 						|| Block.lightValue[existingId]     != Block.lightValue[newId])) {
 					lightChanged = true;
 				}
 
-				this.data[index] = (byte)((b >> 8) & 0xff);
+				// Subchunk write (materializes the section on first use).
+				int colOff = index - colBase;
+				int section = colOff >> 4;
+				this.ensureSubchunk(section);
+				this.sectionBlocks[section][(x << 8 | z << 4) | (colOff & 15)] = (byte)newId;
+				this.sectionData[section][(x << 8 | z << 4) | (colOff & 15)] = (byte)((b >> 8) & 0xff);
+
+				// Mirror into the flat generation buffer while it is still present.
+				if(this.blocks != null && colOff < (SECTION_HEIGHT >> 1)) {
+					this.blocks[index] = (byte)newId;
+					this.data[index] = (byte)((b >> 8) & 0xff);
+				}
 
 				// Call `onRemoval` from removed block, if applies.
 				Block block = Block.blocksList[existingId];
@@ -317,7 +659,13 @@ public class Chunk {
 					block.onBlockRemoval(this.worldObj, absX, y, absZ);
 				}
 
-				this.blocks[index ++] = (byte) newId;
+				if(newId == 0) {
+					this.recomputeEmptyFlag(section);
+				} else {
+					this.isEmpty[section] = false;
+				}
+
+				index ++;
 				y ++;
 			} else if(b < -1) {
 				// A negative value is the count for a run
@@ -325,19 +673,29 @@ public class Chunk {
 				i ++;
 				b = id[i];
 				if(b == -1) {
+					// A skip run: advance the flat offset only (historic behavior).
 					index += c;
 				} else {
 					byte m = (byte) ((b >> 8) & 255);
 					byte b0 = (byte) (b & 255);
 					while (c -- > 0) {
-						int existingId = this.blocks[index] & 255;
+						int existingId = this.getBlockID(x, y, z);
 						if(!lightChanged
 							&& (Block.lightOpacity[existingId] != Block.lightOpacity[b0 & 255]
 								|| Block.lightValue[existingId]     != Block.lightValue[b0 & 255])) {
 							lightChanged = true;
 						}
 
-						this.data[index] = m;
+						int colOff = index - colBase;
+						int section = colOff >> 4;
+						this.ensureSubchunk(section);
+						this.sectionBlocks[section][(x << 8 | z << 4) | (colOff & 15)] = b0;
+						this.sectionData[section][(x << 8 | z << 4) | (colOff & 15)] = m;
+
+						if(this.blocks != null && colOff < (SECTION_HEIGHT >> 1)) {
+							this.blocks[index] = b0;
+							this.data[index] = m;
+						}
 
 						// Call `onRemoval` from removed block, if applies.
 						Block block = Block.blocksList[existingId];
@@ -345,14 +703,20 @@ public class Chunk {
 							block.onBlockRemoval(this.worldObj, absX, y, absZ);
 						}
 
-						this.blocks[index ++] = b0;
+						if((b0 & 255) == 0) {
+							this.recomputeEmptyFlag(section);
+						} else {
+							this.isEmpty[section] = false;
+						}
+
+						index ++;
 						y ++;
 					}
 				}
 			} else {
 				y ++;
 			};
-			if(y == 128) break;
+			if(y >= SECTION_HEIGHT) break;
 		}
 
 		// The topmost block
@@ -373,58 +737,85 @@ public class Chunk {
 		return this.setBlockIDWithMetadata(x, y, z, id, 0);
 	}
 
+	/**
+	 * Reads a block's metadata, consulting the subchunk storage (see {@link #getBlockID} for the
+	 * flat fallback rule).
+	 */
 	public int getBlockMetadata(int x, int y, int z) {
-		return this.data[x << 11 | z << 7 | y] & 0xff;
+		if(y >= 0 && y < SECTION_HEIGHT) {
+			int section = y >> 4;
+			byte[] sectionMetaData = this.sectionData[section];
+			if(sectionMetaData != null) {
+				return sectionMetaData[x << 8 | z << 4 | (y & 15)] & 255;
+			}
+			if(this.data != null && y < (SECTION_HEIGHT >> 1)) {
+				return this.data[x << 11 | z << 7 | y] & 255;
+			}
+		}
+		return 0;
 	}
 
 	public void setBlockMetadata(int x, int y, int z, int meta) {
 		this.isModified = true;
-		this.data[x << 11 | z << 7 | y] = (byte)meta;
+		if(y >= 0 && y < SECTION_HEIGHT) {
+			int section = y >> 4;
+			this.ensureSubchunk(section);
+			this.sectionData[section][x << 8 | z << 4 | (y & 15)] = (byte)meta;
+		}
 	}
 
+	/**
+	 * Reads a saved light nibble. Above the world (or in any unmaterialized section) the answer is
+	 * implicit: sky light is full bright, block light is zero.
+	 */
 	public int getSavedLightValue(EnumSkyBlock enumSkyBlock, int x, int y, int z) {
 		if(y < 0) return 0;
-		if(y > 127) return 15;
-		
-		if(enumSkyBlock == EnumSkyBlock.Sky) {
-			return this.skylightMap.getNibble(x, y, z);
-		}
-		
-		if(enumSkyBlock == EnumSkyBlock.Block) {
-			return this.blocklightMap.getNibble(x, y, z);
-		}
-		
-		return 0;
+		if(y >= SECTION_HEIGHT) return enumSkyBlock == EnumSkyBlock.Sky ? 15 : 0;
+
+		boolean isSky = enumSkyBlock == EnumSkyBlock.Sky;
+		NibbleArray nibbles = isSky ? this.skyLightMap[y >> 4] : this.blockLightMap[y >> 4];
+		if(nibbles == null) return isSky ? 15 : 0;
+
+		return nibbles.getNibble(x, y & 15, z);
 	}
 
+	/**
+	 * Writes a light nibble. Unmaterialized sections are left alone: as far as the light engine is
+	 * concerned they are implicitly sky-15/block-0, and nothing outside the section allocates one.
+	 */
 	public void setLightValue(EnumSkyBlock enumSkyBlock, int x, int y, int z, int l) {
+		if(y < 0 || y >= SECTION_HEIGHT) return;
 		this.isModified = true;
 		if(enumSkyBlock == EnumSkyBlock.Sky) {
-			this.skylightMap.setNibble(x, y, z, l);
+			NibbleArray sky = this.skyLightMap[y >> 4];
+			if(sky != null) {
+				sky.setNibble(x, y & 15, z, l);
+			}
 		} else if(enumSkyBlock == EnumSkyBlock.Block) {
-			this.blocklightMap.setNibble(x, y, z, l);
-		} else {
-			return;
+			NibbleArray block = this.blockLightMap[y >> 4];
+			if(block != null) {
+				block.setNibble(x, y & 15, z, l);
+			}
 		}
 
 	}
 
-	public int getBlockLightValue(int i1, int i2, int i3, int i4) {
-		int i5 = this.skylightMap.getNibble(i1, i2, i3);
-	
-		if(i5 > 0) {
+	public int getBlockLightValue(int x, int y, int z, int skylightSubtracted) {
+		int skylight = this.getSavedLightValue(EnumSkyBlock.Sky, x, y, z);
+
+		if(skylight > 0) {
 			isLit = true;
 		}
 
-		i5 -= i4;
-		
-		int i6 = this.blocklightMap.getNibble(i1, i2, i3);
-		
-		if(i6 > i5) {
-			i5 = i6;
+		skylight -= skylightSubtracted;
+
+		int blockLight = this.getSavedLightValue(EnumSkyBlock.Block, x, y, z);
+
+		if(blockLight > skylight) {
+			skylight = blockLight;
 		}
 
-		return i5;
+		return skylight;
 	}
 
 	public void addEntity(Entity entity1) {
@@ -709,121 +1100,220 @@ public class Chunk {
 		}
 	}
 
-	public int setChunkData(byte[] rawData, int x1, int y1, int z1, int x2, int y2, int z2, int arrayOffset) {
+	/**
+	 * Applies a wire chunk-data region (blocks plane, metadata plane, block-light plane, sky-light
+	 * plane, all column-major over the (x, z) range with contiguous Y) into subchunk storage.
+	 * A section is only materialized when the incoming block plane proves it contains a non-air
+	 * block; pure-air sections stay unmaterialized (implicit air + full sky light + zero block
+	 * light), which keeps client-side storage faithful to the server's materialization.
+	 *
+	 * @return the offset just past everything consumed from {@code rawData}
+	 */
+	public int setChunkData(byte[] rawData, int x1, int y1, int z1, int x2, int y2, int z2, int dataOffset) {
+		int xSize = x2 - x1;
+		int ySize = y2 - y1;
+		int zSize = z2 - z1;
+
+		boolean[] materialize = new boolean[SUBCHUNK_COUNT];
+
+		// Pass 1: scan the block plane to find which sections carry at least one non-air block.
+		int scanOffset = dataOffset;
+		for(int x = x1; x < x2; ++x) {
+			for(int z = z1; z < z2; ++z) {
+				for(int section = y1 >> 4, sectionMax = (y2 - 1) >> 4; section <= sectionMax; ++section) {
+					int yOff = section << 4;
+					int yLocalFrom = Math.max(y1 - yOff, 0);
+					int yLocalTo = Math.min(y2 - yOff, 16);
+					if(!materialize[section]) {
+						for(int k = yLocalFrom; k < yLocalTo && !materialize[section]; ++k) {
+							if(rawData[scanOffset + (k - yLocalFrom)] != 0) {
+								materialize[section] = true;
+							}
+						}
+					}
+					scanOffset += yLocalTo - yLocalFrom;
+				}
+			}
+		}
+
 		int x;
 		int z;
-		int index;
-		int columnSize;
-		
+
+		// Block plane.
 		for(x = x1; x < x2; ++x) {
 			for(z = z1; z < z2; ++z) {
-				index = x << 11 | z << 7 | y1;
-				columnSize = y2 - y1;
-				System.arraycopy(rawData, arrayOffset, this.blocks, index, columnSize);
-				arrayOffset += columnSize;
+				int columnBase = dataOffset;
+				dataOffset += ySize;
+				for(int section = y1 >> 4, sectionMax = (y2 - 1) >> 4; section <= sectionMax; ++section) {
+					if(!materialize[section]) continue;
+					this.ensureSubchunk(section);
+					int yOff = section << 4;
+					int yLocalFrom = Math.max(y1 - yOff, 0);
+					int yLocalTo = Math.min(y2 - yOff, 16);
+					int count = yLocalTo - yLocalFrom;
+					System.arraycopy(rawData, columnBase + (yOff - y1) + yLocalFrom, this.sectionBlocks[section], x << 8 | z << 4 | yLocalFrom, count);
+				}
+			}
+		}
+
+		// Metadata plane.
+		for(x = x1; x < x2; ++x) {
+			for(z = z1; z < z2; ++z) {
+				int columnBase = dataOffset;
+				dataOffset += ySize;
+				for(int section = y1 >> 4, sectionMax = (y2 - 1) >> 4; section <= sectionMax; ++section) {
+					if(!materialize[section]) continue;
+					this.ensureSubchunk(section);
+					int yOff = section << 4;
+					int yLocalFrom = Math.max(y1 - yOff, 0);
+					int yLocalTo = Math.min(y2 - yOff, 16);
+					int count = yLocalTo - yLocalFrom;
+					System.arraycopy(rawData, columnBase + (yOff - y1) + yLocalFrom, this.sectionData[section], x << 8 | z << 4 | yLocalFrom, count);
+				}
+			}
+		}
+
+		// Block light nibble plane (two cells per wire byte).
+		for(x = x1; x < x2; ++x) {
+			for(z = z1; z < z2; ++z) {
+				int columnBase = dataOffset;
+				dataOffset += ySize / 2;
+				for(int section = y1 >> 4, sectionMax = (y2 - 1) >> 4; section <= sectionMax; ++section) {
+					if(!materialize[section]) continue;
+					this.ensureSubchunk(section);
+					int yOff = section << 4;
+					int yLocalFrom = Math.max(y1 - yOff, 0);
+					int yLocalTo = Math.min(y2 - yOff, 16);
+					int count = yLocalTo - yLocalFrom;
+					int srcIndex = columnBase + (yOff - y1 + yLocalFrom) / 2;
+					int destIndex = (x << 8 | z << 4 | yLocalFrom) >> 1;
+					System.arraycopy(rawData, srcIndex, this.blockLightMap[section].data, destIndex, count / 2);
+				}
+			}
+		}
+
+		// Sky light nibble plane.
+		for(x = x1; x < x2; ++x) {
+			for(z = z1; z < z2; ++z) {
+				int columnBase = dataOffset;
+				dataOffset += ySize / 2;
+				for(int section = y1 >> 4, sectionMax = (y2 - 1) >> 4; section <= sectionMax; ++section) {
+					if(!materialize[section]) continue;
+					this.ensureSubchunk(section);
+					int yOff = section << 4;
+					int yLocalFrom = Math.max(y1 - yOff, 0);
+					int yLocalTo = Math.min(y2 - yOff, 16);
+					int count = yLocalTo - yLocalFrom;
+					int srcIndex = columnBase + (yOff - y1 + yLocalFrom) / 2;
+					int destIndex = (x << 8 | z << 4 | yLocalFrom) >> 1;
+					System.arraycopy(rawData, srcIndex, this.skyLightMap[section].data, destIndex, count / 2);
+				}
 			}
 		}
 
 		this.generateHeightMap();
 		this.generateLandSurfaceHeightMap();
+		this.recomputeEmptyFlags();
 
-		for(x = x1; x < x2; ++x) {
-			for(z = z1; z < z2; ++z) {
-				index = x << 11 | z << 7 | y1;
-				columnSize = y2 - y1;
-				System.arraycopy(rawData, arrayOffset, this.data, index, columnSize);
-				arrayOffset += columnSize;
-			}
-		}
-
-		for(x = x1; x < x2; ++x) {
-			for(z = z1; z < z2; ++z) {
-				index = (x << 11 | z << 7 | y1) >> 1;
-				columnSize = (y2 - y1) / 2;
-				System.arraycopy(rawData, arrayOffset, this.blocklightMap.data, index, columnSize);
-				arrayOffset += columnSize;
-			}
-		}
-
-		for(x = x1; x < x2; ++x) {
-			for(z = z1; z < z2; ++z) {
-				index = (x << 11 | z << 7 | y1) >> 1;
-				columnSize = (y2 - y1) / 2;
-				System.arraycopy(rawData, arrayOffset, this.skylightMap.data, index, columnSize);
-				arrayOffset += columnSize;
-			}
-		}
-
-		return arrayOffset;
+		return dataOffset;
 	}
 
+	/**
+	 * Serializes a chunk-data region into the wire layout (blocks plane, metadata plane, block-light
+	 * plane, sky-light plane, all column-major over the (x, z) range with contiguous Y). Sections
+	 * that are not materialized serialize as zeros for blocks/metadata (implicit air) and as
+	 * full-bright 0xF nibbles for sky light.
+	 *
+	 * @return the offset just past everything written into {@code rawData}
+	 */
 	public int getChunkData(byte[] rawData, int x1, int y1, int z1, int x2, int y2, int z2, int arrayOffset) {
 		int xSize = x2 - x1;
 		int ySize = y2 - y1;
 		int zSize = z2 - z1;
 
-		if(xSize * ySize * zSize == this.blocks.length) {
-			// If this is the WHOLE chunk, do full (faster) copies:
+		int x;
+		int z;
 
-			System.arraycopy(this.blocks, 0, rawData, arrayOffset, this.blocks.length);
-			arrayOffset += this.blocks.length;
-
-			System.arraycopy(this.data, 0, rawData, arrayOffset, this.data.length);
-			arrayOffset += this.data.length;
-
-			System.arraycopy(this.blocklightMap.data, 0, rawData, arrayOffset, this.blocklightMap.data.length);
-			arrayOffset += this.blocklightMap.data.length;
-
-			System.arraycopy(this.skylightMap.data, 0, rawData, arrayOffset, this.skylightMap.data.length);
-			arrayOffset += this.skylightMap.data.length;
-
-			return arrayOffset;
-		} else {
-			// Otherwise, do horz. regions and copy columns
-
-			int x;
-			int z;
-			int index;
-			int colSize;
-			
-			for(x = x1; x < x2; ++x) {
-				for(z = z1; z < z2; ++z) {
-					index = x << 11 | z << 7 | y1;
-					colSize = y2 - y1;
-					System.arraycopy(this.blocks, index, rawData, arrayOffset, colSize);
-					arrayOffset += colSize;
+		// Block plane: one byte per cell, column-major, Y contiguous.
+		for(x = x1; x < x2; ++x) {
+			for(z = z1; z < z2; ++z) {
+				int columnBase = arrayOffset;
+				arrayOffset += ySize;   // advance the plane regardless of materialized sections
+				for(int section = y1 >> 4, sectionMax = (y2 - 1) >> 4; section <= sectionMax; ++section) {
+					byte[] blockData = this.sectionBlocks[section];
+					if(blockData == null) continue;
+					int yOff = section << 4;
+					int yLocalFrom = Math.max(y1 - yOff, 0);
+					int yLocalTo = Math.min(y2 - yOff, 16);
+					int count = yLocalTo - yLocalFrom;
+					System.arraycopy(blockData, x << 8 | z << 4 | yLocalFrom, rawData, columnBase + (yOff - y1) + yLocalFrom, count);
 				}
 			}
-
-			for(x = x1; x < x2; ++x) {
-				for(z = z1; z < z2; ++z) {
-					index = x << 11 | z << 7 | y1;
-					colSize = y2 - y1;
-					System.arraycopy(this.data, index, rawData, arrayOffset, colSize);
-					arrayOffset += colSize;
-				}
-			}
-
-			for(x = x1; x < x2; ++x) {
-				for(z = z1; z < z2; ++z) {
-					index = (x << 11 | z << 7 | y1) >> 1;
-					colSize = (y2 - y1) / 2;
-					System.arraycopy(this.blocklightMap.data, index, rawData, arrayOffset, colSize);
-					arrayOffset += colSize;
-				}
-			}
-
-			for(x = x1; x < x2; ++x) {
-				for(z = z1; z < z2; ++z) {
-					index = (x << 11 | z << 7 | y1) >> 1;
-					colSize = (y2 - y1) / 2;
-					System.arraycopy(this.skylightMap.data, index, rawData, arrayOffset, colSize);
-					arrayOffset += colSize;
-				}
-			}
-
-			return arrayOffset;
 		}
+
+		// Metadata plane.
+		for(x = x1; x < x2; ++x) {
+			for(z = z1; z < z2; ++z) {
+				int columnBase = arrayOffset;
+				arrayOffset += ySize;
+				for(int section = y1 >> 4, sectionMax = (y2 - 1) >> 4; section <= sectionMax; ++section) {
+					byte[] metaData = this.sectionData[section];
+					if(metaData == null) continue;
+					int yOff = section << 4;
+					int yLocalFrom = Math.max(y1 - yOff, 0);
+					int yLocalTo = Math.min(y2 - yOff, 16);
+					int count = yLocalTo - yLocalFrom;
+					System.arraycopy(metaData, x << 8 | z << 4 | yLocalFrom, rawData, columnBase + (yOff - y1) + yLocalFrom, count);
+				}
+			}
+		}
+
+		// Block light nibble plane.
+		for(x = x1; x < x2; ++x) {
+			for(z = z1; z < z2; ++z) {
+				int columnBase = arrayOffset;
+				arrayOffset += ySize / 2;
+				for(int section = y1 >> 4, sectionMax = (y2 - 1) >> 4; section <= sectionMax; ++section) {
+					NibbleArray nibbles = this.blockLightMap[section];
+					if(nibbles == null) {
+						// Implicit zero block light; the fresh wire buffer is already zeroed.
+						continue;
+					}
+					int yOff = section << 4;
+					int yLocalFrom = Math.max(y1 - yOff, 0);
+					int yLocalTo = Math.min(y2 - yOff, 16);
+					int count = yLocalTo - yLocalFrom;
+					int srcIndex = (x << 8 | z << 4 | yLocalFrom) >> 1;
+					int destIndex = columnBase + (yOff - y1 + yLocalFrom) / 2;
+					System.arraycopy(nibbles.data, srcIndex, rawData, destIndex, count / 2);
+				}
+			}
+		}
+
+		// Sky light nibble plane: null sections serialize as full bright (0xF) since that is what
+		// the light engine will read from them.
+		for(x = x1; x < x2; ++x) {
+			for(z = z1; z < z2; ++z) {
+				int columnBase = arrayOffset;
+				arrayOffset += ySize / 2;
+				for(int section = y1 >> 4, sectionMax = (y2 - 1) >> 4; section <= sectionMax; ++section) {
+					NibbleArray nibbles = this.skyLightMap[section];
+					int yOff = section << 4;
+					int yLocalFrom = Math.max(y1 - yOff, 0);
+					int yLocalTo = Math.min(y2 - yOff, 16);
+					int count = yLocalTo - yLocalFrom;
+					int destIndex = columnBase + (yOff - y1 + yLocalFrom) / 2;
+					if(nibbles == null) {
+						Arrays.fill(rawData, destIndex, destIndex + count / 2, (byte)-1);
+						continue;
+					}
+					int srcIndex = (x << 8 | z << 4 | yLocalFrom) >> 1;
+					System.arraycopy(nibbles.data, srcIndex, rawData, destIndex, count / 2);
+				}
+			}
+		}
+
+		return arrayOffset;
 	}
 
 	public Random getRandomWithSeed(long j1) {
@@ -834,8 +1324,16 @@ public class Chunk {
 		return false;
 	}
 
+	/** Translates every unknown/removed block id, both in the flat buffer (if present) and in each materialized subchunk. */
 	public void removeUnknownBlocks() {
-		ChunkBlockMap.translateBlocks(this.blocks);
+		if(this.blocks != null) {
+			ChunkBlockMap.translateBlocks(this.blocks);
+		}
+		for(int section = 0; section < SUBCHUNK_COUNT; ++section) {
+			if(this.sectionBlocks[section] != null) {
+				ChunkBlockMap.translateBlocks(this.sectionBlocks[section]);
+			}
+		}
 	}
 	
 	public void refreshCaches() {
@@ -906,27 +1404,47 @@ public class Chunk {
 		}
 	}
 
+	/**
+	 * Sets a block (id + metadata) without touching the light maps, materializing its subchunk on
+	 * first use. Used by schematic placers that re-light the whole chunk in one pass afterwards.
+	 *
+	 * @return true if the cell changed
+	 */
 	public boolean setBlockIDWithMetadataNoLights(int x, int y, int z, int id, int metadata) {
-		int index = x << 11 | z << 7 | y;
-		int existingId = this.blocks[index] & 255;
-		if(existingId == id && this.data[index] == metadata) {
+		if(y < 0 || y >= SECTION_HEIGHT) {
+			return false;
+		}
+
+		int section = y >> 4;
+		this.ensureSubchunk(section);
+		byte[] sectionBlockData = this.sectionBlocks[section];
+		byte[] sectionMetaData = this.sectionData[section];
+		int index = x << 8 | z << 4 | (y & 15);
+		int existingId = sectionBlockData[index] & 255;
+		if(existingId == id && sectionMetaData[index] == metadata) {
 			return false;
 		} else {
 			int absX = (this.xPosition << 4) | x;
 			int absZ = (this.zPosition << 4) | z;
-			
+
 			Block block = Block.blocksList[existingId];
-			
+
 			// Write new block ID
-			this.blocks[x << 11 | z << 7 | y] = (byte)id;
-			
+			sectionBlockData[index] = (byte)id;
+
 			// Call `onRemoval` from removed block, if applies.
 			if(block != null && !this.worldObj.isRemote) {
 				block.onBlockRemoval(this.worldObj, absX, y, absZ);
 			}
 
 			// Write new metadata
-			this.data[index] = (byte)metadata;
+			sectionMetaData[index] = (byte)metadata;
+
+			if(id == 0) {
+				this.recomputeEmptyFlag(section);
+			} else {
+				this.isEmpty[section] = false;
+			}
 
 			block = Block.blocksList[id];
 			if(block != null) {
@@ -938,8 +1456,16 @@ public class Chunk {
 		}
 	}
 
+	/** Resets both light planes of every materialized subchunk to zero ahead of a full relight pass. */
 	public void clearAllLights() {
-		this.skylightMap = new NibbleArray(this.blocks.length);
+		for(int section = 0; section < SUBCHUNK_COUNT; ++section) {
+			if(this.skyLightMap[section] != null) {
+				this.skyLightMap[section].setAll(0);
+			}
+			if(this.blockLightMap[section] != null) {
+				this.blockLightMap[section].setAll(0);
+			}
+		}
 	}
 
 	public void cacheBiomes(BiomeGenBase[] biomesForGeneration) {
@@ -957,6 +1483,12 @@ public class Chunk {
 	}
 	
 	public void initLightingForRealNotJustHeightmap() {
+		// Always rebuild from a zeroed slate: both Starlight init passes are pure increases, so any
+		// stored light (e.g. the all-bright planes saved by the sky pre-fill bug, or planes carried
+		// over from a legacy slice) would otherwise pin every occluded cell at its stored value
+		// forever. Clearing first makes this a complete, self-contained relight for every caller.
+		this.clearAllLights();
+
 		this.worldObj.blockLight.initBlockLight(this.xPosition, this.zPosition);
 
 		if (!this.worldObj.worldProvider.hasNoSky) {

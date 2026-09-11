@@ -66,5 +66,9 @@ import net.minecraft.client.render.Tessellator;
 	
 		return true;
 	}
-
+	
+	@Override
+	public boolean renderItemIn3d() {
+		return false;
+	}
 }

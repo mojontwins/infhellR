@@ -146,6 +146,8 @@ public class RenderBlocks {
 	public boolean aoGrassXYZCNP;
 
 	private int activeRenderPass = 0;
+	
+	public static final float[] SHADE_PER_FACE = new float [] { 0.5F, 1.0F, 0.8F, 0.8F, 0.6F, 0.6F };
 
 	/**
 	 * Per-signal-level RGB colors for redstone dust, indexed by power (0-15). Built in the

@@ -294,7 +294,7 @@ public class Item {
 		return this.onItemUse(itemStack, entityPlayer, world, x, y, z, face);
 	}
 	
-	public float getStrVsBlock(ItemStack itemStack1, Block block2) {
+	public float getStrVsBlock(ItemStack itemStack1, Block block2, int metadata) {
 		return 1.0F;
 	}
 

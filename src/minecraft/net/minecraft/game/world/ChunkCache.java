@@ -60,7 +60,7 @@ public class ChunkCache implements IBlockAccess {
 
     @Override
     public int getBlockId(int x, int y, int z) {
-        if (y < 0 || y >= 128) {
+        if (y < 0 || y >= Chunk.SECTION_HEIGHT) {
             return 0;
         }
         if ((x & ~15) == this.originBlockX && (z & ~15) == this.originBlockZ) {
@@ -118,7 +118,7 @@ public class ChunkCache implements IBlockAccess {
 
     @Override
     public int getBlockMetadata(int x, int y, int z) {
-        if (y < 0 || y >= 128) {
+        if (y < 0 || y >= Chunk.SECTION_HEIGHT) {
             return 0;
         }
         if ((x & ~15) == this.originBlockX && (z & ~15) == this.originBlockZ) {
@@ -196,7 +196,7 @@ public class ChunkCache implements IBlockAccess {
             if (y < 0) {
                 return 0;
             }
-            if (y >= 128) {
+            if (y >= Chunk.SECTION_HEIGHT) {
                 int light = 15 - this.world.getSkylightSubtracted();
                 return Math.max(light, 0);
             }
