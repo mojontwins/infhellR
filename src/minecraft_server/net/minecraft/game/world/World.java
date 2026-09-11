@@ -353,7 +353,7 @@ public class World implements IBlockAccess {
 			this.findingSpawnPoint = false;
 			
 			// Avoid if too close to city
-			if (this.worldInfo.getCityChance() <= 0.1F) {
+			if (this.worldInfo.getCityChance() >= 0.1F) {
 				int chunkX = x >> 4;
 				int chunkZ = z >> 4;
 				

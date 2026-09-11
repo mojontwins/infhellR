@@ -45,4 +45,14 @@ public class BlockCloth extends Block {
 			par3List.add(new ItemStack(par1, 1, i));
 		}
 	}
+	
+	@Override
+	public int getEncouragementToFire() {
+		return 30;
+	}
+
+	@Override
+	public int getAbilityToCatchFire() {
+		return 60;
+	}
 }

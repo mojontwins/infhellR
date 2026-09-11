@@ -191,7 +191,7 @@ public class BlockDoor extends Block {
 	}
 
 	public boolean canPlaceBlockAt(World world, int x, int y, int z) {
-		return y >= Chunk.SECTION_HEIGHT - 1 ? false : world.isBlockNormalCube(x, y - 1, z) && super.canPlaceBlockAt(world, x, y, z) && super.canPlaceBlockAt(world, x, y + 1, z);
+		return y >= Chunk.SECTION_HEIGHT - 1 ? false : this.isSupportForDoor(world, x, y - 1, z) && super.canPlaceBlockAt(world, x, y, z) && super.canPlaceBlockAt(world, x, y + 1, z);
 	}
 
 	public static boolean isOpen(int i0) {
@@ -209,5 +209,17 @@ public class BlockDoor extends Block {
 	public boolean getBlocksMovement(IBlockAccess par1IBlockAccess, int par2, int par3, int par4) {
 		int var5 = par1IBlockAccess.getBlockMetadata(par2, par3, par4);
 		return (var5 & 4) != 0;
+	}
+	
+	public boolean isSupportForDoor(World world, int x, int y, int z) {
+		Block block = world.getBlock(x, y, z);
+		if (block == null) return false;
+		if (block.renderAsNormalBlock()) return true;
+		
+		int meta = world.getBlockMetadata(x, y, z);
+		if ((block instanceof BlockStep || block instanceof BlockStairs) && (meta  & 8) != 0) return true;
+		
+		return false;
+		
 	}
 }

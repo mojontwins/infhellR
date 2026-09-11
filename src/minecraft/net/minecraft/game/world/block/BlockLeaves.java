@@ -356,4 +356,14 @@ public class BlockLeaves extends BlockLeavesBase {
 		
 		return false;
 	}
+	
+	@Override
+	public int getEncouragementToFire() {
+		return 30;
+	}
+
+	@Override
+	public int getAbilityToCatchFire() {
+		return 60;
+	}
 }

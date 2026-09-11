@@ -31,4 +31,15 @@ public class BlockBone extends BlockLog {
 			}
 		}
 	}
+	
+	// Bone logs don't burn, unlike their wooden BlockLog relatives.
+	@Override
+	public int getEncouragementToFire() {
+		return 0;
+	}
+
+	@Override
+	public int getAbilityToCatchFire() {
+		return 0;
+	}
 }

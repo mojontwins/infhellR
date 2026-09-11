@@ -139,4 +139,14 @@ public class BlockTallGrass extends BlockFlower implements IBlockWithSubtypes {
 	public int getIndexInTextureFromMeta(int meta) {
 		return this.getBlockTextureFromSideAndMetadata(0, meta);
 	}
+	
+	@Override
+	public int getEncouragementToFire() {
+		return 60;
+	}
+
+	@Override
+	public int getAbilityToCatchFire() {
+		return 100;
+	}
 }

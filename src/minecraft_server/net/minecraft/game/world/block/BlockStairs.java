@@ -235,4 +235,16 @@ public class BlockStairs extends Block {
 		
 		par1World.setBlockMetadataWithNotify(par2, par3, par4, meta);
 	}
+	
+	// Stairs inherit the fire rating of the block they are made from, so
+	// wooden stairs (model = planks) burn while stone stairs do not.
+	@Override
+	public int getEncouragementToFire() {
+		return this.modelBlock.getEncouragementToFire();
+	}
+
+	@Override
+	public int getAbilityToCatchFire() {
+		return this.modelBlock.getAbilityToCatchFire();
+	}
 }

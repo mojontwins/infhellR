@@ -51,7 +51,7 @@ public class GuiVideoSettings extends GuiScreen {
 			EnumOptions option = optionsArray[i];
 			if(!option.isFloat()) {
 				this.controlList.add(new GuiSmallButton(option.getOrdinal(), this.width / 2 - 155 + buttonIndex % 2 * 160, 32 + 21 * (buttonIndex >> 1), option, this.guiGameSettings.getKeyBinding(option)));
-
+			} else {
 				this.controlList.add(new GuiSlider(option.getOrdinal(), this.width / 2 - 155 + buttonIndex % 2 * 160, 32 + 21 * (buttonIndex >> 1), option, this.guiGameSettings.getKeyBinding(option), this.guiGameSettings.getOptionFloatValue(option)));
 			}
 

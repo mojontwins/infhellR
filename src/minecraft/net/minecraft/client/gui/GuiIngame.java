@@ -248,7 +248,7 @@ public class GuiIngame extends Gui {
 				
 			GL11.glPopMatrix();
 		} else {
-			font.drawStringWithShadow("Minecraft " + Version.getVersion(), 2, 2, 0xFFFFFF);
+			font.drawStringWithShadow("InfHell " + Version.getVersion(), 2, 2, 0xFFFFFF);
 		}
 
 		if(this.onScreenMessageTimeout > 0) {

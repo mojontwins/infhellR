@@ -8,8 +8,12 @@ public class ItemPickaxe extends ItemTool {
 	// Effective against these block:metadata pairs (damage -1 = any metadata)
 	private static ItemStack[] stacksEffectiveAgainst = new ItemStack[]{
 		new ItemStack(Block.cobblestone, 1, -1), 
-		new ItemStack(Block.stairDouble, 1, -1), 
-		new ItemStack(Block.stairSingle, 1, -1), 
+		new ItemStack(Block.stairDouble, 1, 0), 
+		new ItemStack(Block.stairDouble, 1, 1), 
+		new ItemStack(Block.stairDouble, 1, 3), 
+		new ItemStack(Block.stairSingle, 1, 0), 
+		new ItemStack(Block.stairSingle, 1, 1), 
+		new ItemStack(Block.stairSingle, 1, 3), 
 		new ItemStack(Block.stone, 1, -1), 
 		new ItemStack(Block.sandStone, 1, -1), 
 		new ItemStack(Block.cobblestoneMossy, 1, -1), 

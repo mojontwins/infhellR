@@ -42,4 +42,14 @@ public class BlockHollowLog extends Block {
 	public boolean canGrowMushrooms() {
 		return true;
 	}
+	
+	@Override
+	public int getEncouragementToFire() {
+		return 5;
+	}
+
+	@Override
+	public int getAbilityToCatchFire() {
+		return 5;
+	}
 }
