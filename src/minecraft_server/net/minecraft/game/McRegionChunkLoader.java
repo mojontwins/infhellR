@@ -4,6 +4,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
+
 import net.minecraft.game.world.World;
 import net.minecraft.game.world.WorldInfo;
 import net.minecraft.game.world.chunk.Chunk;
@@ -78,5 +79,18 @@ public class McRegionChunkLoader implements IChunkLoader {
 	}
 
 	public void saveExtraData() {
+	}
+
+	/**
+	 * True when a chunk is present in this save directory's region files. A region slot
+	 * is only filled after the populate stage wrote the chunk, so its blocks (including
+	 * any feature structures) are final.
+	 *
+	 * <p>Note that {@link RegionFileCache#getRegionFile(File,int,int)} creates the region
+	 * file when missing, exactly as {@link #loadChunk(World,int,int)} already does.
+	 */
+	@Override
+	public boolean chunkExists(World world, int chunkX, int chunkZ) {
+		return RegionFileCache.getRegionFile(this.saveDirectory, chunkX, chunkZ).isChunkSaved(chunkX & 31, chunkZ & 31);
 	}
 }

@@ -15,6 +15,10 @@ public class EntityPig extends EntityAnimal {
 	private boolean looksWithInterest;
 	private float headRoll;
 	private float prevHeadRoll;
+	/** True while a player is steering this pig so the 2x speed boost is undone exactly once on dismount. */
+	private boolean speedBoosted;
+	/** Maximum pig yaw rotation per tick while steered (degrees). */
+	private static final float TURN_RATE = 30.0F;
 
 	public EntityPig(World world1) {
 		super(world1);
@@ -108,21 +112,67 @@ public class EntityPig extends EntityAnimal {
 	
 	@Override
 	protected void updateEntityActionState() {
-		super.updateEntityActionState();
-		
-		Entity target = null;
-		
-		EntityPlayer closestPlayer = this.worldObj.getClosestPlayerToEntity(this, 8.0D); 
-		if (closestPlayer != null) {
-			ItemStack heldItem = closestPlayer.inventory.getCurrentItem();
+		if (this.riddenByEntity instanceof EntityPlayer && !this.worldObj.isRemote) {
+			// A player is steering this saddled pig directly: skip the AI and
+			// apply the rider's movement input instead. Multiplayer client pigs
+			// skip this whole method (they are interpolated from server position
+			// packets), so only the logical server / singleplayer steers.
+			EntityPlayer rider = (EntityPlayer)this.riddenByEntity;
+
+			// Clamp the rider's input to [-1,1] so a hacked client cannot send
+			// huge strafe/forward values and exceed the intended 2x speed.
+			this.moveStrafing = clampMoveInput(rider.moveStrafing);
+			this.moveForward = clampMoveInput(rider.moveForward);
+			this.isJumping = rider.isJumping;
+
+			// Controlled speed: 2x a walking player. Pig and player share the same
+			// landMovementFactor, so a 2.0 speedModifier doubles it exactly.
+			if (!this.speedBoosted) {
+				this.speedModifier = 2.0F;
+				this.speedBoosted = true;
+			}
+
+			// While any direction input is held, turn the pig toward where the
+			// rider is looking, capped at TURN_RATE degrees per tick.
+			if (this.moveForward != 0.0F || this.moveStrafing != 0.0F) {
+				float delta = rider.rotationYaw - this.rotationYaw;
+				while (delta < -180.0F) {
+					delta += 360.0F;
+				}
+				while (delta >= 180.0F) {
+					delta -= 360.0F;
+				}
+				if (delta > TURN_RATE) {
+					delta = TURN_RATE;
+				} else if (delta < -TURN_RATE) {
+					delta = -TURN_RATE;
+				}
+
+				this.rotationYaw += delta;
+			}
+		} else {
+			super.updateEntityActionState();
 			
-			// Start following player?
-			if (heldItem != null && heldItem.itemID == Item.wheat.shiftedIndex) {
-				target = closestPlayer;
+			Entity target = null;
+			
+			EntityPlayer closestPlayer = this.worldObj.getClosestPlayerToEntity(this, 8.0D); 
+			if (closestPlayer != null) {
+				ItemStack heldItem = closestPlayer.inventory.getCurrentItem();
+				
+				// Start following player?
+				if (heldItem != null && heldItem.itemID == Item.wheat.shiftedIndex) {
+					target = closestPlayer;
+				}
+			}
+			
+			this.setTarget(target);
+
+			// Dismounted: restore the pig's normal speed exactly once.
+			if (this.speedBoosted) {
+				this.speedModifier = 1.0F;
+				this.speedBoosted = false;
 			}
 		}
-		
-		this.setTarget(target);
 	}
 	
 	@Override
@@ -162,5 +212,16 @@ public class EntityPig extends EntityAnimal {
 	
 	public float getInterestedAngle(float f1) {
 		return (this.prevHeadRoll + (this.headRoll - this.prevHeadRoll) * f1) * 0.15F * (float)Math.PI;
+	}
+
+	/** Clamps the rider's movement input to [-1,1] before applying it to the pig. */
+	private static float clampMoveInput(float f1) {
+		if (f1 > 1.0F) {
+			return 1.0F;
+		} else if (f1 < -1.0F) {
+			return -1.0F;
+		} else {
+			return f1;
+		}
 	}
 }

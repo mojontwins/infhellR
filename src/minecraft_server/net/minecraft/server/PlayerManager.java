@@ -176,6 +176,15 @@ public class PlayerManager {
 			}
 		}
 
+		// Sweep all instances to purge any stale subscriptions left outside the
+		// managed view radius (e.g. chunks subscribed before a large move whose
+		// removal pass never re-visited them). PlayerInstance.removePlayer matches
+		// by Entity.equals (entityId), so this also clears same-id entities that a
+		// respawn about to re-add a new player object would otherwise collide with.
+		for (Object value : this.chunkInstances.getAllValues()) {
+			((PlayerInstance) value).removePlayer(player);
+		}
+
 		this.players.remove(player);
 	}
 
@@ -213,7 +222,7 @@ public class PlayerManager {
 				// Add subscriptions for newly entered chunks.
 				for (int cx = playerChunkX - this.playerViewRadius; cx <= playerChunkX + this.playerViewRadius; ++cx) {
 					for (int cz = playerChunkZ - this.playerViewRadius; cz <= playerChunkZ + this.playerViewRadius; ++cz) {
-						if (!this.isOutsideViewRadius(cx, cz, oldChunkX, oldChunkZ)) {
+						if (this.isOutsideViewRadius(cx, cz, oldChunkX, oldChunkZ)) {
 							this.getPlayerInstance(cx, cz, true).addPlayer(player);
 						}
 					}
@@ -222,7 +231,7 @@ public class PlayerManager {
 				// Remove subscriptions for chunks that the player left.
 				for (int cx = oldChunkX - this.playerViewRadius; cx <= oldChunkX + this.playerViewRadius; ++cx) {
 					for (int cz = oldChunkZ - this.playerViewRadius; cz <= oldChunkZ + this.playerViewRadius; ++cz) {
-						if (!this.isOutsideViewRadius(cx - deltaChunkX, cz - deltaChunkZ, playerChunkX, playerChunkZ)) {
+						if (this.isOutsideViewRadius(cx - deltaChunkX, cz - deltaChunkZ, playerChunkX, playerChunkZ)) {
 							PlayerInstance instance = this.getPlayerInstance(cx - deltaChunkX, cz - deltaChunkZ, false);
 							if (instance != null) {
 								instance.removePlayer(player);

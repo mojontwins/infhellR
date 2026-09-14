@@ -17,6 +17,7 @@ public class ItemBed extends Item {
 		} else {
 			++i5;
 			BlockBed blockBed8 = (BlockBed)Block.blockBed;
+			int iSleepable = itemStack1.getItemDamage() & BlockBed.META_SLEEPABLE;
 			int i9 = MathHelper.floor_double((double)(entityPlayer2.rotationYaw * 4.0F / 360.0F) + 0.5D) & 3;
 			byte b10 = 0;
 			byte b11 = 0;
@@ -37,18 +38,13 @@ public class ItemBed extends Item {
 			}
 
 			if(world3.isAirBlock(i4, i5, i6) && world3.isAirBlock(i4 + b10, i5, i6 + b11) && world3.isBlockNormalCube(i4, i5 - 1, i6) && world3.isBlockNormalCube(i4 + b10, i5 - 1, i6 + b11)) {
-				world3.setBlockAndMetadataWithNotify(i4, i5, i6, blockBed8.blockID, i9);
-				world3.setBlockAndMetadataWithNotify(i4 + b10, i5, i6 + b11, blockBed8.blockID, i9 + 8);
+				world3.setBlockAndMetadataWithNotify(i4, i5, i6, blockBed8.blockID, i9 | iSleepable);
+				world3.setBlockAndMetadataWithNotify(i4 + b10, i5, i6 + b11, blockBed8.blockID, i9 + 8 | iSleepable);
 				if(!entityPlayer2.isCreative) --itemStack1.stackSize;
 				return true;
 			} else {
 				return false;
 			}
 		}
-	}
-	
-	// Softlocked for b1.2
-	public boolean softLocked() {
-		return true;
 	}
 }

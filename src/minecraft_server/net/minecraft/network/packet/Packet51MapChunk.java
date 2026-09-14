@@ -13,8 +13,8 @@ import net.minecraft.network.NetHandler;
 /**
  * Packet 51: Map Chunk.
  * <p>
- * Carries the full compressed block data for a single chunk column (16x16x128
- * blocks) from the server to the client. The packet begins with the
+ * Carries the full compressed block data for a single chunk column (up to 16x16x256
+ * blocks, i.e. {@code Chunk.SECTION_HEIGHT}) from the server to the client. The packet begins with the
  * three-dimensional origin of the chunk and its dimensions, followed by a
  * Zlib-compressed payload. The compression uses a preset deflater (level -1)
  * for maximum compatibility with the vanilla protocol.
@@ -40,7 +40,7 @@ public class Packet51MapChunk extends Packet {
 	/** Size of the chunk along the X axis in blocks (normally 16). */
 	public int xSize;
 
-	/** Size of the chunk along the Y axis in blocks (normally 128). */
+	/** Size of the chunk along the Y axis in blocks (normally {@code Chunk.SECTION_HEIGHT} = 256). */
 	public int ySize;
 
 	/** Size of the chunk along the Z axis in blocks (normally 16). */

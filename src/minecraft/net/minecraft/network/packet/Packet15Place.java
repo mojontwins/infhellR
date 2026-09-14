@@ -22,7 +22,7 @@ import net.minecraft.network.NetHandler;
  * <p><b>Position data:</b></p>
  * <ul>
  *   <li>X, Z as int (full world coordinates)</li>
- *   <li>Y as byte (0-127)</li>
+ *   <li>Y as unsigned byte (0-255)</li>
  *   <li>Direction as byte (face clicked)</li>
  *   <li>X/Y/Z offset within face (for slabs, fences, etc.)</li>
  * </ul>

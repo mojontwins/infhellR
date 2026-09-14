@@ -15,6 +15,7 @@ import net.minecraft.game.world.block.tileentity.TileEntity;
 import net.minecraft.game.world.chunk.IChunkProvider;
 import net.minecraft.game.world.chunk.loader.IChunkLoader;
 import net.minecraft.game.world.chunk.loader.ISaveHandler;
+import net.minecraft.network.packet.Packet4UpdateTime;
 import net.minecraft.network.packet.Packet38EntityStatus;
 import net.minecraft.network.packet.Packet54PlayNoteBlock;
 import net.minecraft.network.packet.Packet60Explosion;
@@ -46,8 +47,17 @@ public class WorldServer extends World {
 	/** Reference to the owning MinecraftServer. */
 	private MinecraftServer mcServer;
 
-	/** Hash table used to track entity IDs for removal/lookup operations. */
-	private MCHash entityRemoval = new MCHash();
+	/**
+	 * Hash table used to track entity IDs for removal/lookup operations.
+	 *
+	 * <p>Not initialised inline: {@link World}'s constructor runs the spawn-location probe
+	 * (which can fully generate and populate a chunk — including city graveyards that drop
+	 * items when a flower loses support), and entity spawning during that probe calls
+	 * {@link #obtainEntitySkin}, which would dereference this field before this class's field
+	 * initialisers have run. It is therefore created lazily on first use (and sealed in the
+	 * constructor body), so entities registered during construction are never lost.
+	 */
+	private MCHash entityRemoval;
 
 	/**
 	 * Constructs a new server world.
@@ -61,6 +71,9 @@ public class WorldServer extends World {
 	public WorldServer(MinecraftServer minecraftServer1, ISaveHandler iSaveHandler2, String string3, int i4, WorldSettings worldSettings5) {
 		super(iSaveHandler2, string3, worldSettings5, WorldProvider.getProviderForDimension(i4));
 		this.mcServer = minecraftServer1;
+		if (this.entityRemoval == null) {
+			this.entityRemoval = new MCHash();
+		}
 	}
 
 	/**
@@ -112,18 +125,23 @@ public class WorldServer extends World {
 	/** Adds an entity to the entity removal hash for ID tracking. */
 	protected void obtainEntitySkin(Entity entity1) {
 		super.obtainEntitySkin(entity1);
+		if (this.entityRemoval == null) {
+			this.entityRemoval = new MCHash();
+		}
 		this.entityRemoval.addKey(entity1.entityId, entity1);
 	}
 
 	/** Removes an entity from the ID tracking hash. */
 	protected void releaseEntitySkin(Entity entity1) {
 		super.releaseEntitySkin(entity1);
-		this.entityRemoval.removeObject(entity1.entityId);
+		if (this.entityRemoval != null) {
+			this.entityRemoval.removeObject(entity1.entityId);
+		}
 	}
 
 	/** Looks up an entity by its numeric ID in this world. */
 	public Entity getEntityByID(int id1) {
-		return (Entity) this.entityRemoval.lookup(id1);
+		return this.entityRemoval == null ? null : (Entity) this.entityRemoval.lookup(id1);
 	}
 
 	/** Adds a weather effect (lightning) and broadcasts it to nearby players. */
@@ -170,6 +188,22 @@ public class WorldServer extends World {
 		super.playNoteAt(x1, y2, z3, instrument4, pitch5);
 		this.mcServer.configManager.sendPacketToPlayersAroundPoint((double) x1, (double) y2, (double) z3, 64.0D,
 				this.worldProvider.worldType, new Packet54PlayNoteBlock(x1, y2, z3, instrument4, pitch5));
+	}
+
+	/**
+	 * Sets the world time and immediately broadcasts the new time to every
+	 * client in this dimension. Without this, a dramatic time jump (such as
+	 * the haunted-cow curse advancing the clock to midnight) would only reach
+	 * clients on the periodic one-second time sync, so the sky would not snap
+	 * to night at the moment it happens.
+	 */
+	@Override
+	public void setWorldTime(long worldTime) {
+		super.setWorldTime(worldTime);
+		if (this.mcServer != null && this.mcServer.configManager != null) {
+			this.mcServer.configManager.sendPacketToAllPlayersInDimension(
+					new Packet4UpdateTime(worldTime), this.worldProvider.worldType);
+		}
 	}
 
 	/** Flushes the save handler's player data. */

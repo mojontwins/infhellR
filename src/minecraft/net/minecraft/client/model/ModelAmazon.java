@@ -2,7 +2,7 @@ package net.minecraft.client.model;
 
 import net.minecraft.game.MathHelper;
 import net.minecraft.game.entity.EntityLiving;
-import net.minecraft.game.world.terrain.generate.amazonvillage.EntityAmazon;
+import net.minecraft.game.world.terrain.generate.feature.amazonvillage.EntityAmazon;
 
 public class ModelAmazon extends ModelBase {
 	public ModelRenderer bipedHead;

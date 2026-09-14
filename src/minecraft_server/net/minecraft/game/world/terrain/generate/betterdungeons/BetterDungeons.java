@@ -5,8 +5,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
-import net.minecraft.game.world.feature.FeatureProvider;
-
 import net.minecraft.game.world.biome.BiomeGenBase;
 import net.minecraft.game.world.block.Block;
 import net.minecraft.game.world.block.BlockLever;
@@ -15,6 +13,7 @@ import net.minecraft.game.item.ItemStack;
 import net.minecraft.game.world.block.tileentity.TileEntityChest;
 import net.minecraft.game.world.block.tileentity.TileEntityMobSpawner;
 import net.minecraft.game.world.block.tileentity.TileEntityMobSpawnerOneshot;
+import net.minecraft.game.world.terrain.generate.feature.FeatureProvider;
 import net.minecraft.game.world.World;
 
 public class BetterDungeons {
@@ -42,8 +41,8 @@ public class BetterDungeons {
 		// Todo :: Hookup original BD dungeons
 	}
 	
-	public void addSpecialBlock(int x, int y, int z, int blockId, int blockMetadata) {
-		this.specialBlocks.add(new StructureBlockData(x, y, z, blockId, blockMetadata));
+	public void addSpecialBlock(int x, int y, int z, int blockId, int blockMetadata, boolean needsSupport) {
+		this.specialBlocks.add(new StructureBlockData(x, y, z, blockId, blockMetadata, needsSupport));
 	}
 	
 	public void copySpecialBlocks(World world) {

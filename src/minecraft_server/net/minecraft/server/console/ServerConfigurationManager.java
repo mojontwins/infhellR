@@ -186,6 +186,19 @@ public class ServerConfigurationManager {
 			} else {
 				newPlayer.playerNetServerHandler.sendPacket(new Packet70Bed(0));
 			}
+		} else {
+			// No crying-obsidian / bed spawn is set: fall back to the world spawn.
+			// Mirrors the positioning done in the EntityPlayerMP constructor.
+			ChunkCoordinates worldSpawn = worldServer.getSpawnPoint();
+			int spawnX = worldSpawn.posX;
+			int spawnZ = worldSpawn.posZ;
+			if (!worldServer.worldProvider.hasNoSky) {
+				java.util.Random rng = new java.util.Random();
+				spawnX += rng.nextInt(20) - 10;
+				spawnZ += rng.nextInt(20) - 10;
+			}
+			newPlayer.setLocationAndAngles((double) spawnX + 0.5D, (double) worldServer.findTopSolidBlock(spawnX, spawnZ), (double) spawnZ + 0.5D, 0.0F, 0.0F);
+			newPlayer.playerNetServerHandler.sendPacket(new Packet70Bed(0));
 		}
 		if(lastDeathCoordinates != null) {
 			newPlayer.setPlayerLastDeathCoordinate(lastDeathCoordinates);

@@ -47,8 +47,7 @@ public abstract class EntityTrader extends EntityZombie implements ITrader, ISen
 		if(this.rand.nextInt(3) == 0) this.inventory.setArmorItemInSlot(3, new ItemStack(Item.helmetLeather));
 		this.fillTradingRecipeList(world, false);
 		
-		// Way weaker than zombies.
-		this.health = 15; 	
+		this.health = 20; 	
 		this.attackStrength = 4;
 	}
 	

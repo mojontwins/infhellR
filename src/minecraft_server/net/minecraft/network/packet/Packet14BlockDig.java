@@ -34,7 +34,7 @@ public class Packet14BlockDig extends Packet {
     /** Block X coordinate (int) */
     public int xPosition;
 
-    /** Block Y coordinate (byte, since 0-127) */
+    /** Block Y coordinate (byte, 0-255 for the 256-block world height) */
     public int yPosition;
 
     /** Block Z coordinate (int) */
@@ -79,7 +79,7 @@ public class Packet14BlockDig extends Packet {
         // Status is byte (single byte, 0-255)
         this.status = dataInputStream.read();
         this.xPosition = dataInputStream.readInt();
-        // Y is byte since world height is 0-127
+        // Y is a single unsigned byte (0-255; world height is 256 blocks).
         this.yPosition = dataInputStream.read();
         this.zPosition = dataInputStream.readInt();
         this.face = dataInputStream.read();

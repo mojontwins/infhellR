@@ -14,6 +14,7 @@ import net.minecraft.game.world.material.Material;
 
 public class BlockBed extends Block {
 	public static final int[][] headBlockToFootBlockMap = new int[][]{{0, 1}, {-1, 0}, {0, -1}, {1, 0}};
+	public static final int META_SLEEPABLE = 16;
 
 	public BlockBed(int i1) {
 		super(i1, 134, Material.cloth);
@@ -34,6 +35,10 @@ public class BlockBed extends Block {
 				}
 
 				i6 = world1.getBlockMetadata(i2, i3, i4);
+			}
+
+			if(!isBedSleepable(i6)) {
+				return false;
 			}
 
 			if(!world1.worldProvider.canRespawnHere()) {
@@ -137,6 +142,10 @@ public class BlockBed extends Block {
 		return isBlockFootOfBed(i1) ? 0 : Item.bed.shiftedIndex;
 	}
 
+	protected int damageDropped(int i1) {
+		return isBlockFootOfBed(i1) ? 0 : i1 & META_SLEEPABLE;
+	}
+
 	private void setBounds() {
 		this.setBlockBounds(0.0F, 0.0F, 0.0F, 1.0F, 0.5625F, 1.0F);
 	}
@@ -151,6 +160,10 @@ public class BlockBed extends Block {
 
 	public static boolean isBedOccupied(int i0) {
 		return (i0 & 4) != 0;
+	}
+
+	public static boolean isBedSleepable(int i0) {
+		return (i0 & META_SLEEPABLE) != 0;
 	}
 
 	public static void setBedOccupied(World world0, int i1, int i2, int i3, boolean z4) {
@@ -199,11 +212,6 @@ public class BlockBed extends Block {
 
 	public int getMobilityFlag() {
 		return 1;
-	}
-	
-	// Softlocked for b1.2
-	public boolean softLocked() {
-		return true;
 	}
 }
 

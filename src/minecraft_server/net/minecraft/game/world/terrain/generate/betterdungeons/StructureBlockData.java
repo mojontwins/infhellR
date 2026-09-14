@@ -6,12 +6,14 @@ public class StructureBlockData {
 	public int z;
 	public int blockID;
 	public int blockMetadata;
+	public boolean needsSupport;
 
-	public StructureBlockData(int x, int y, int z, int blockID, int blockMetada) {
+	public StructureBlockData(int x, int y, int z, int blockID, int blockMetada, boolean needsSupport) {
 		this.x = x;
 		this.y = y;
 		this.z = z;
 		this.blockID = blockID;
 		this.blockMetadata = blockMetada;
+		this.needsSupport = needsSupport;
 	}
 }

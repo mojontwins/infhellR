@@ -1,5 +1,7 @@
 package net.minecraft.server;
 
+import java.util.ArrayList;
+
 /**
  * A custom hash table that maps long keys to Object values.
  * Used internally for entity-to-player and similar lookups.
@@ -180,5 +182,21 @@ public class PlayerHash {
 	/** Package-private helper used by PlayerHashEntry.hashCode(). */
 	static int getHashCode(long key0) {
 		return getHashedKey(key0);
+	}
+
+	/**
+	 * Returns a snapshot of all values currently stored in the table.
+	 * The returned array is independent of the internal bucket chains, so
+	 * it can be iterated safely even if entries are added or removed while
+	 * iterating.
+	 */
+	public Object[] getAllValues() {
+		ArrayList<Object> values = new ArrayList<Object>();
+		for (int i = 0; i < this.hashArray.length; ++i) {
+			for (PlayerHashEntry entry = this.hashArray[i]; entry != null; entry = entry.nextEntry) {
+				values.add(entry.value);
+			}
+		}
+		return values.toArray();
 	}
 }

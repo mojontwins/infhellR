@@ -114,7 +114,7 @@ public class WorldGenBo3Tree extends WorldGenerator {
 				URL resource;
 				resource = WorldGenBo3Tree.class.getResource("/terrain.png");
 				if (resource == null) {
-					resource = WorldGenBo3Tree.class.getClassLoader().getResource(directory);
+					resource = WorldGenBo3Tree.class.getResource(directory);
 					if(resource == null) throw new IllegalArgumentException("Not found: " + directory);
 				}
 			

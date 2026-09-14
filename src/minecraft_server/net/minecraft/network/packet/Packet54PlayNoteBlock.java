@@ -19,7 +19,7 @@ public class Packet54PlayNoteBlock extends Packet {
 	/** X coordinate of the note block. */
 	public int xLocation;
 
-	/** Y coordinate of the note block (0-127). */
+	/** Y coordinate of the note block (0-255). */
 	public int yLocation;
 
 	/** Z coordinate of the note block. */

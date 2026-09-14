@@ -23,6 +23,17 @@ public class BlockGrass extends Block implements IBlockWithSubtypes {
 		return true;
 	}
 
+	/**
+	 * Returns the block ID that grass placed on the given substrate block
+	 * should turn into. Plain grass spreads onto dirt as grass, and onto
+	 * regolith as the pebble-covered grass variant (this project's
+	 * grassWithPebbles). Subclasses override this to control what they
+	 * spread themselves into.
+	 */
+	protected int getSpreadGrassBlock(int substrateID) {
+		return substrateID == Block.regolith.blockID ? Block.grassWithPebbles.blockID : Block.grass.blockID;
+	}
+
 	public int getBlockTexture(IBlockAccess blockAccess, int x, int y, int z, int side) {
 		int meta = blockAccess.getBlockMetadata(x, y, z);
 		
@@ -83,8 +94,8 @@ public class BlockGrass extends Block implements IBlockWithSubtypes {
 			
 			if(meta == 1) {
 				int blockBelow = world.getBlockId(x, y - 1, z);
-				if(blockBelow == Block.dirt.blockID) {
-					world.setBlock(x, y - 1, z, Block.grass.blockID);
+				if(blockBelow == Block.dirt.blockID || blockBelow == Block.regolith.blockID) {
+					world.setBlock(x, y - 1, z, this.getSpreadGrassBlock(blockBelow));
 				} else if (blockBelow == 0) {
 					world.setBlockMetadata(x, y, z, 0);
 				}
@@ -106,8 +117,9 @@ public class BlockGrass extends Block implements IBlockWithSubtypes {
 				int yy = y + rand.nextInt(5) - 3;
 				int zz = z + rand.nextInt(3) - 1;
 				int blockID = world.getBlockId(xx, yy + 1, zz);
-				if(world.getBlockId(xx, yy, zz) == Block.dirt.blockID && world.getBlockLightValue(xx, yy + 1, zz) >= 4 && Block.lightOpacity[blockID] <= 2) {
-					world.setBlockAndMetadataWithNotify(xx, yy, zz, Block.grass.blockID, meta);
+				int substrateID = world.getBlockId(xx, yy, zz);
+				if((substrateID == Block.dirt.blockID || substrateID == Block.regolith.blockID) && world.getBlockLightValue(xx, yy + 1, zz) >= 4 && Block.lightOpacity[blockID] <= 2) {
+					world.setBlockAndMetadataWithNotify(xx, yy, zz, this.getSpreadGrassBlock(substrateID), meta);
 				}
 			}
 

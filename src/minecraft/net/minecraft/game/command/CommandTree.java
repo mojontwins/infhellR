@@ -1,14 +1,13 @@
 package net.minecraft.game.command;
 
-import net.minecraft.game.world.terrain.generate.WorldGenAcacia;
-import net.minecraft.game.world.terrain.generate.WorldGenCypress;
-import net.minecraft.game.world.terrain.generate.WorldGenFir;
-import net.minecraft.game.world.terrain.generate.WorldGenMangrove;
 import net.minecraft.game.world.terrain.generate.WorldGenNylium;
+import net.minecraft.game.world.terrain.generate.tree.WorldGenAcacia;
+import net.minecraft.game.world.terrain.generate.tree.WorldGenCypress;
+import net.minecraft.game.world.terrain.generate.tree.WorldGenFir;
+import net.minecraft.game.world.terrain.generate.tree.WorldGenMangrove;
 import net.minecraft.game.world.terrain.generate.tree.WorldGenPalmTree;
 import net.minecraft.game.world.terrain.generate.tree.WorldGenPineTree;
-import net.minecraft.game.world.terrain.generate.WorldGenWillow;
-
+import net.minecraft.game.world.terrain.generate.tree.WorldGenWillow;
 import net.minecraft.game.world.block.BlockPos;
 import net.minecraft.game.world.chunk.ChunkCoordinates;
 import net.minecraft.game.entity.player.EntityPlayer;

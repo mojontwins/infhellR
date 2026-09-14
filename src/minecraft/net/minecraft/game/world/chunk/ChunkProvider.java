@@ -223,6 +223,7 @@ public class ChunkProvider implements IChunkProvider {
 				this.saveExtraChunkData(chunk3);
 				this.droppedChunksSet.remove(chunkHash);
 				this.chunkMap.remove(chunkHash);
+				this.worldObj.evictHeightQuery(chunk3.xPosition, chunk3.zPosition);
 				this.chunkList.remove(chunk3);
 			}
 		}

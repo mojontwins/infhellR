@@ -6,7 +6,6 @@ import net.minecraft.game.world.terrain.generate.betterdungeons.BetterDungeons;
 import net.minecraft.game.world.terrain.generate.structure.mineshaft.MapGenMineshaft;
 import net.minecraft.game.world.terrain.generate.structure.mineshaftmesa.MapGenMineshaftMesa;
 import net.minecraft.game.world.terrain.generate.structure.stronghold.MapGenStronghold;
-import net.minecraft.game.world.feature.FeatureProvider;
 import net.minecraft.game.IProgressUpdate;
 import net.minecraft.game.MathHelper;
 import net.minecraft.game.world.Weather;
@@ -24,6 +23,7 @@ import net.minecraft.game.world.terrain.noise.NoiseGeneratorOctaves;
 import net.minecraft.game.world.block.BlockSand;
 import net.minecraft.game.world.block.BlockTerracotta;
 import net.minecraft.game.world.terrain.generate.city.BuildingHighway;
+import net.minecraft.game.world.terrain.generate.feature.FeatureProvider;
 import net.minecraft.game.world.terrain.generate.MapGenCaves;
 import net.minecraft.game.world.terrain.generate.MapGenCity;
 import net.minecraft.game.world.terrain.generate.MapGenOceanRavine;
@@ -451,7 +451,21 @@ public class ChunkProviderGenerate implements IChunkProvider {
 	}
 
 	/**
-	 * Generates terrain height only (no block placement) for preview or map generation.
+	 * Generates the land-surface height map for a chunk without allocating or filling block
+	 * storage — Solution 2-A of the height-query caching plan (docs/height_query_caching.md).
+	 *
+	 * <p>The density field is computed exactly as in {@link #generateTerrain} (same noise lattice,
+	 * same interpolation order, so bit-identical values), but instead of writing 32 768 block
+	 * bytes and re-scanning them, the "surface" is read straight off the density sign: a column's
+	 * height is its topmost y in 0-127 whose interpolated density is positive, and the chunk is an
+	 * ocean chunk unless some column has positive density at y 63. This reproduces, bit for bit,
+	 * the observable output of today's {@code generateTerrain} + {@code Chunk.generateLandSurfaceHeightMap}
+	 * (the flat height-only chunk's {@code getBlockID} resolves everything above y 127 to air, so
+	 * the height map scan is exactly "first positive density from the top").
+	 *
+	 * <p>Returned chunk has no block storage; only {@code landSurfaceHeightMap} and
+	 * {@code isOcean} are populated (plus {@code isUrbanChunk}), matching what the height-only
+	 * callers consume. The {@code rand} seed is still re-seeded for parity with the pre-2-A path.
 	 *
 	 * @param chunkX  Chunk X coordinate
 	 * @param chunkZ  Chunk Z coordinate
@@ -459,18 +473,77 @@ public class ChunkProviderGenerate implements IChunkProvider {
 	 */
 	public Chunk justGenerateForHeight(int chunkX, int chunkZ) {
 		this.rand.setSeed((long)chunkX * 341873128712L + (long)chunkZ * 132897987541L);
-		
-		// Empty block array & new Chunk
-		byte[] blockArray = new byte[32768];
-		byte[] metadata = new byte[32768];
-		Chunk chunk = new Chunk(this.worldObj, blockArray, metadata, chunkX, chunkZ);
-		
-		boolean isUrbanChunk = this.worldObj.getWorldChunkManager().isUrbanChunk(chunkX, chunkZ);
-		chunk.isUrbanChunk = isUrbanChunk;
-		this.generateTerrain(chunkX, chunkZ, blockArray);
-		chunk.generateLandSurfaceHeightMap();
+
+		Chunk chunk = new Chunk(this.worldObj, chunkX, chunkZ);
+		chunk.isUrbanChunk = this.worldObj.getWorldChunkManager().isUrbanChunk(chunkX, chunkZ);
+
+		final double noiseScale = 0.125D;
+		final double scalingFactor = 0.25D;
+		final double densityVariationSpeed = 0.25D;
+
+		final byte quadrantSize = 4;
+		final byte seaLevel = 64;
+		final int xSize = quadrantSize + 1;
+		final byte ySize = 17;
+		final int zSize = quadrantSize + 1;
+
+		this.terrainNoise = this.initializeNoiseField(this.terrainNoise, chunkX * quadrantSize, 0, chunkZ * quadrantSize, xSize, ySize, zSize, chunkX, chunkZ);
+
+		byte[] topY = new byte[256];
+		this.isOcean = true;
+
+		for(int xSection = 0; xSection < quadrantSize; ++xSection) {
+			for(int zSection = 0; zSection < quadrantSize; ++zSection) {
+				for(int ySection = 0; ySection < 16; ++ySection) {
+					double densityMinXMinYMinZ = this.terrainNoise[((xSection + 0) * zSize + zSection + 0) * ySize + ySection + 0];
+					double densityMinXMinYMaxZ = this.terrainNoise[((xSection + 0) * zSize + zSection + 1) * ySize + ySection + 0];
+					double densityMaxXMinYMinZ = this.terrainNoise[((xSection + 1) * zSize + zSection + 0) * ySize + ySection + 0];
+					double densityMaxXMinYMaxZ = this.terrainNoise[((xSection + 1) * zSize + zSection + 1) * ySize + ySection + 0];
+					double yLerpAmountMinXMinZ = (this.terrainNoise[((xSection + 0) * zSize + zSection + 0) * ySize + ySection + 1] - densityMinXMinYMinZ) * noiseScale;
+					double yLerpAmountMinXMaxZ = (this.terrainNoise[((xSection + 0) * zSize + zSection + 1) * ySize + ySection + 1] - densityMinXMinYMaxZ) * noiseScale;
+					double yLerpAmountMaxXMinZ = (this.terrainNoise[((xSection + 1) * zSize + zSection + 0) * ySize + ySection + 1] - densityMaxXMinYMinZ) * noiseScale;
+					double yLerpAmountMaxXMaxZ = (this.terrainNoise[((xSection + 1) * zSize + zSection + 1) * ySize + ySection + 1] - densityMaxXMinYMaxZ) * noiseScale;
+
+					for(int y = 0; y < 8; ++y) {
+						double curDensityMinXMinYMinZ = densityMinXMinYMinZ;
+						double curDensityMinXMinYMaxZ = densityMinXMinYMaxZ;
+						double xLerpAmountMinZ = (densityMaxXMinYMinZ - densityMinXMinYMinZ) * scalingFactor;
+						double xLerpAmountMaxZ = (densityMaxXMinYMaxZ - densityMinXMinYMaxZ) * scalingFactor;
+
+						int yy = ySection * 8 + y;
+
+						for(int x = 0; x < 4; ++x) {
+							double density = curDensityMinXMinYMinZ;
+							double densityIncrement = (curDensityMinXMinYMaxZ - curDensityMinXMinYMinZ) * densityVariationSpeed;
+
+							for(int z = 0; z < 4; ++z) {
+								// Byte-for-byte the generateTerrain block decision (density > 0 → stone),
+								// replacing the 32 KB block write with a column top + ocean fold.
+								if(density > 0.0D) {
+									topY[(((zSection << 2) | z) << 4) | ((xSection << 2) | x)] = (byte)yy;
+								}
+
+								// Ocean detector: same cell (yy == seaLevel - 1) and same stone test.
+								if(yy == seaLevel - 1) this.isOcean &= (density <= 0.0D);
+
+								density += densityIncrement;
+							}
+
+							curDensityMinXMinYMinZ += xLerpAmountMinZ;
+							curDensityMinXMinYMaxZ += xLerpAmountMaxZ;
+						}
+
+						densityMinXMinYMinZ += yLerpAmountMinXMinZ;
+						densityMinXMinYMaxZ += yLerpAmountMinXMaxZ;
+						densityMaxXMinYMinZ += yLerpAmountMaxXMinZ;
+						densityMaxXMinYMaxZ += yLerpAmountMaxXMaxZ;
+					}
+				}
+			}
+		}
+
+		System.arraycopy(topY, 0, chunk.landSurfaceHeightMap, 0, topY.length);
 		chunk.isOcean = this.isOcean;
-		
 		return chunk;
 	}
 	
@@ -541,6 +614,28 @@ public class ChunkProviderGenerate implements IChunkProvider {
 		int x0 = chunkX << 4;
 		int z0 = chunkZ << 4;
 		
+		// Solution 2-C: the original code re-derived the biome grid 625 times per chunk (25 lattice
+		// nodes × 25 neighbourhood samples, every sample a full 1×1 loadBlockGeneratorData → four
+		// octave evaluations) plus 625 isUrbanChunk calls. The sampling window spans exactly
+		// [x0, x0+20] in both axes (node centres at (dx*4+2, dz*4+2) with a ±2 radius), so a single
+		// 21×21 grid decoded once is bit-identical input for every lookup; the noise octaves and the
+		// city-noise field are each evaluated once instead of per sample.
+		WorldChunkManager worldChunkManager = this.worldObj.getWorldChunkManager();
+		final int gridSize = 21;
+		BiomeGenBase[] biomeGrid = worldChunkManager.loadBlockGeneratorData(null, x0, z0, gridSize, gridSize);
+
+		// Each 1×1 biome call the old path made left invalidateCity true iff exactly that sample's
+		// cell had been special-overridden, and the following isUrbanChunk read that transient flag —
+		// so a sample on an overridden cell was non-urban while every other sample kept its plain
+		// city-noise value. Recompute the four plain chunk-coordinate values with the flag pinned off.
+		worldChunkManager.invalidateCity = false;
+		boolean[] urbanBase = new boolean[4];
+		for(int cityDx = 0; cityDx <= 1; ++cityDx) {
+			for(int cityDz = 0; cityDz <= 1; ++cityDz) {
+				urbanBase[cityDx | (cityDz << 1)] = worldChunkManager.isUrbanChunk(chunkX + cityDx, chunkZ + cityDz);
+			}
+		}
+
 		// xSize, zSize = 5
 		for(int dx = 0; dx < xSize; ++dx) {
 			for(int dz = 0; dz < zSize; ++dz) {
@@ -550,24 +645,25 @@ public class ChunkProviderGenerate implements IChunkProvider {
 				float minHeightScaled = 0.0F;
 				float totalDistance = 0.0F;
 				
-				// TODO : map this properly to the actual biome map!
-				//BiomeGenBase thisBiome = this.biomesForGeneration[dx + 2 + (dz + 2) * (xSize + 5)];
-				BiomeGenBase thisBiome = this.worldObj.getWorldChunkManager().getBiomeGenAt(x0 + (dx << 2) + 2, z0 + (dz << 2) + 2);
-				
 				// Limit max h for urban chunks
 				
-				int baseX = x0 + (dx << 2) + 2;
-				int baseZ = z0 + (dz << 2) + 2;
+				BiomeGenBase thisBiome = biomeGrid[((dx << 2) + 2) * gridSize + ((dz << 2) + 2)];
 				
 				for(int avgDx = -2; avgDx <= 2; ++avgDx) {
 					for(int avgDz = -2; avgDz <= 2; ++avgDz) {
-						//BiomeGenBase otherBiome = this.biomesForGeneration[dx + avgDx + 2 + (dz + avgDz + 2) * (xSize + 5)];
+						int gx = (dx << 2) + 2 + avgDx;
+						int gz = (dz << 2) + 2 + avgDz;
+						int gridIndex = gx * gridSize + gz;
 						
-						int bx = baseX + avgDx;
-						int bz = baseZ + avgDz;
-						
-						BiomeGenBase otherBiome = this.worldObj.getWorldChunkManager().getBiomeGenAt(bx, bz);
-						boolean isOtherUrban = this.worldObj.getWorldChunkManager().isUrbanChunk(bx >> 4, bz >> 4);
+						BiomeGenBase otherBiome = biomeGrid[gridIndex];
+						// Special-overridden cells (mangrove / mycelium / dark-forest / flower-fields)
+						// flipped invalidateCity in the 1×1 calls, masking only that sample's own
+						// isUrbanChunk. Detect them exactly: such a cell's grid biome differs from what
+						// the raw temperature/humidity lookup yields (same decode the 1×1 calls used).
+						int blockX = x0 + gx;
+						int blockZ = z0 + gz;
+						boolean wasSpecialOverride = otherBiome != BiomeGenBase.getBiomeFromLookup(worldChunkManager.temperature[gridIndex], worldChunkManager.humidity[gridIndex], 0.0);
+						boolean isOtherUrban = !wasSpecialOverride && urbanBase[(blockX >> 4 == chunkX ? 0 : 1) | (blockZ >> 4 == chunkZ ? 0 : 2)];
 						
 						float distance = this.distanceArray[avgDx + 2 + (avgDz + 2) * 5] / (otherBiome.minHeight + 2.0F);
 						if(otherBiome.minHeight > thisBiome.minHeight) {
@@ -575,7 +671,7 @@ public class ChunkProviderGenerate implements IChunkProvider {
 						}
 						
 						double otherMaxHeight = isOtherUrban && otherBiome.maxHeight > 0.15 ? 0.15 : otherBiome.maxHeight;
-
+						
 						maxHeightScaled += otherMaxHeight * distance;
 						minHeightScaled += otherBiome.minHeight * distance;
 						totalDistance += distance;
@@ -700,6 +796,11 @@ public class ChunkProviderGenerate implements IChunkProvider {
 				}
 			}
 		}
+
+		// The old per-sample path left invalidateCity = whether the very last 1×1 sample cell — the
+		// (20,20) corner of the window — had been special-overridden. Replicate that tail state so
+		// any later isUrbanChunk reads see the same value they did before.
+		worldChunkManager.invalidateCity = biomeGrid[gridSize * gridSize - 1] != BiomeGenBase.getBiomeFromLookup(worldChunkManager.temperature[gridSize * gridSize - 1], worldChunkManager.humidity[gridSize * gridSize - 1], 0.0);
 
 		return densityMapArray;
 		
@@ -1144,7 +1245,30 @@ public class ChunkProviderGenerate implements IChunkProvider {
 				}
 			}
 		}		
+		
+		// Surface moss: only attempt on humid, temperate land (after snow cover).
+		float mossTemperature = this.worldObj.getTemperatureAt(x0 + 8, z0 + 8);
+		float mossHumidity = this.worldObj.getHumidityAt(x0 + 8, z0 + 8);
+		if(mossHumidity > 0.5F && mossTemperature > 0.4F && mossTemperature < 0.6F) {
+			int mossAttempts = 1 + (int)((mossHumidity - 0.5F) * 8.0F);
+			for(int moss = 0; moss < mossAttempts; ++moss) {
+				int mossX = x0 + this.rand.nextInt(16) + 8;
+				int mossZ = z0 + this.rand.nextInt(16) + 8;
+				int mossY = this.worldObj.getLandSurfaceHeightValue(mossX, mossZ);
+				this.surfaceMossGen.generate(this.worldObj, this.rand, mossX, mossY, mossZ);
+			}
+		}
 
+		// Scatter pebbled grass: 4 random spots per chunk, terrain level like trees.
+		for(i = 0; i < 4; ++i) {
+			x = x0 + this.rand.nextInt(16);
+			z = z0 + this.rand.nextInt(16);
+			y = this.worldObj.getHeightValue(x, z);
+			if(this.worldObj.getBlockId(x, y - 1, z) == Block.grass.blockID) {
+				this.worldObj.setBlockAndMetadata(x, y - 1, z, Block.grassWithPebbles.blockID, this.worldObj.getBlockMetadata(x, y - 1, z));
+			}
+		}
+		
 		// Biome based population
 		biomeGen.populate(this.worldObj, this.rand, x0, z0);
 		
@@ -1175,19 +1299,6 @@ public class ChunkProviderGenerate implements IChunkProvider {
 						this.worldObj.setBlockAndMetadata(x, y - 1, z, Block.layeredSand.blockID, this.worldObj.getBlockMetadata(x, y - 1, z));
 					}
 				}
-			}
-		}
-		
-		// Surface moss: only attempt on humid, temperate land (after snow cover).
-		float mossTemperature = this.worldObj.getTemperatureAt(x0 + 8, z0 + 8);
-		float mossHumidity = this.worldObj.getHumidityAt(x0 + 8, z0 + 8);
-		if(mossHumidity > 0.5F && mossTemperature > 0.4F && mossTemperature < 0.6F) {
-			int mossAttempts = 1 + (int)((mossHumidity - 0.5F) * 8.0F);
-			for(int moss = 0; moss < mossAttempts; ++moss) {
-				int mossX = x0 + this.rand.nextInt(16) + 8;
-				int mossZ = z0 + this.rand.nextInt(16) + 8;
-				int mossY = this.worldObj.getLandSurfaceHeightValue(mossX, mossZ);
-				this.surfaceMossGen.generate(this.worldObj, this.rand, mossX, mossY, mossZ);
 			}
 		}
 

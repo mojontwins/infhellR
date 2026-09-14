@@ -143,4 +143,58 @@ public class Packet27Position extends Packet {
     public boolean isInJump() {
         return this.isInJump;
     }
+
+    /**
+     * Sets the strafe movement input.
+     * 
+     * @param strafeMovement Strafe input (-1.0 to 1.0)
+     */
+    public void setStrafeMovement(float strafeMovement) {
+        this.strafeMovement = strafeMovement;
+    }
+
+    /**
+     * Sets the forward movement input.
+     * 
+     * @param forwardMovement Forward input (-1.0 to 1.0)
+     */
+    public void setForwardMovement(float forwardMovement) {
+        this.forwardMovement = forwardMovement;
+    }
+
+    /**
+     * Sets the sneaking flag.
+     * 
+     * @param isSneaking True if player is sneaking
+     */
+    public void setSneaking(boolean isSneaking) {
+        this.isSneaking = isSneaking;
+    }
+
+    /**
+     * Sets the jumping flag.
+     * 
+     * @param isInJump True if player is jumping
+     */
+    public void setInJump(boolean isInJump) {
+        this.isInJump = isInJump;
+    }
+
+    /**
+     * Sets the pitch rotation.
+     * 
+     * @param pitchRotation Pitch in degrees
+     */
+    public void setPitchRotation(float pitchRotation) {
+        this.pitchRotation = pitchRotation;
+    }
+
+    /**
+     * Sets the yaw rotation.
+     * 
+     * @param yawRotation Yaw in degrees
+     */
+    public void setYawRotation(float yawRotation) {
+        this.yawRotation = yawRotation;
+    }
 }

@@ -1,9 +1,14 @@
 # Height-Only Chunk Queries: Caching and Avoiding Full Terrain Generation
 
-Status: study / design proposal (no code changes yet).
-Applies equally to client and server trees (all involved classes are shared
-`net.minecraft.game.*`, so the final implementation must stay byte-identical on
-both sides, per project convention).
+Status: implemented (Phases 1, 2-A, and Option C — see "## 6. Implementation
+log"). Verified by the height probe: density-only `justGenerateForHeight`
+returns byte-identical `landSurfaceHeightMap` / `isOcean` / `isUrbanChunk` to
+the pre-change block-based generation for all sampled chunk coords; cache hit /
+miss counters and the live-chunk precedence rule all pass. Both trees compile
+zero errors and are byte-identical (parity 830 identical / 37 substantive —
+unchanged diff set). Applies equally to client and server trees (all involved
+classes are shared `net.minecraft.game.*`, so the implementation stays
+byte-identical on both sides, per project convention).
 
 ---
 
@@ -298,11 +303,27 @@ recommendation is Option A.
 ### 3.3 Option C — orthogonal: make `initializeNoiseField` cheaper for everyone
 
 The 625 uncached `getBiomeGenAt` 1×1 samples per chunk (and per height query)
-can be collapsed into one decoded 21×21 biome grid (`loadBlockGeneratorData`
-on `(chunkX*16 − 2, chunkZ*16 − 2, 24, 24)`-ish) plus lookups, with the
+can be collapsed into one decoded 21×21 biome grid plus lookups, with the
 distance window reading pixels out of that grid. This benefits *both* full
-generation and height-only queries. Out of scope for this study beyond the
-flavour text; note it so the decision isn't accidentally baked out.
+generation and height-only queries.
+
+**Implementation status: DONE.** `ChunkProviderGenerate.initializeNoiseField`
+now resolves the whole sampling window `[chunkX*16, chunkX*16+20]²` with a
+single 21×21 `loadBlockGeneratorData` (one pass over the temperature / humidity
+/ variation / big-amplitude octaves instead of 625 separate 1×1 evaluations,
+and one 2×2 `isUrbanChunk` pass over the four distinct window chunk coords
+instead of 625 calls). Bit-exactness with the old per-sample path is preserved
+by the `invalidateCity` semantics of the 1×1 calls: each reset the manager flag
+to `false` and flipped it only for *its own* cell, so a sample on a special
+overridden cell (mangrove / mycelium / dark-forest / flower-fields) saw
+`isUrbanChunk == false` while every other sample kept its plain city-noise
+value. The batched grid therefore pins `invalidateCity` off to record the four
+plain values, re-masks `isOtherUrban` to `false` for exactly the cells whose
+grid biome differs from `getBiomeFromLookup(temperature, humidity)` (i.e. was
+special-overridden — no duplication of the override predicates), and re-instates
+the tail flag state (whether the last original sample cell, the `(20,20)`
+corner, was overridden) so later `isUrbanChunk` readers see the same value.
+This is exact, not approximate: verified byte-equal output.
 
 ---
 
@@ -315,9 +336,9 @@ flavour text; note it so the decision isn't accidentally baked out.
 2. **Solution 2-A (exact density-only height evaluation).** Secondary
    optimisation that shrinks each *miss*. Requires a verification probe to
    prove byte-equality with today's values before switching.
-3. Optionally revisit Option C later as a purely-generator-wide speedup.
-4. Keep Solution 2-B out of scope unless a caller explicitly signs up to a
-   coarse height.
+3. **Option C (`initializeNoiseField` biome-window batch).** Now implemented —
+   see §3.3. (Solution 2-B stays out of scope unless a caller explicitly signs
+   up to a coarse height.)
 
 Both 1 and 2-A are implemented in shared `game.*` classes and must be applied
 identically to `src/minecraft` and `src/minecraft_server`.
@@ -348,3 +369,60 @@ identically to `src/minecraft` and `src/minecraft_server`.
 - `src/minecraft/net/minecraft/game/world/chunk/ChunkProviderSky.java` /
   `ChunkProviderHell.java` (same pattern, if their height queries matter)
 - mirrors under `src/minecraft_server/`
+
+---
+
+## 6. Implementation log
+
+### Phase 1 — `TerrainHeightQueryCache` (cache at the World facade)
+
+- New `net.minecraft.game.world.TerrainHeightQueryCache` in both trees:
+  access-order `LinkedHashMap` LRU capped at `DEFAULT_CAPACITY = 256`;
+  `TerrainHeightEntry` holds defensive copies of `landSurfaceHeightMap` (byte
+  [256], index `z<<4|x`), `isOcean`, `isUrbanChunk`.
+- `World` (both trees): private `final heightQueryCache` field; the four
+  facades (`getLandSurfaceHeightValue` / `isOceanChunk` / `isUrbanChunk` /
+  `justGenerateForHeight`) short-circuit `chunkExists` → live chunk, else
+  cache; cache hit synthesises `new Chunk(world, cx, cz)` (no-array ctor
+  already zero-fills the height map and defaults the flags) and copies the
+  entry payload.
+- New `World.evictHeightQuery(int cx, int cz)`; tidy-drop hooks call it when a
+  chunk is evicted from a provider cache: `ChunkProvider.unload100OldestChunks`
+  (both trees), `ChunkProviderServer.unload100OldestChunks` (server),
+  `ChunkProviderClient.unloadChunk` (client).
+
+### Phase 2-A — exact density-only `justGenerateForHeight`
+
+- `ChunkProviderGenerate.justGenerateForHeight`: lattice 5×17×5, single byte
+  `[256]` height map (`(((zSection<<2)|z)<<4)|((xSection<<2)|x)`); records
+  highest `density > 0` cell per column; `isOcean` folds at `yy == seaLevel-1`
+  (`and` of `density <= 0` in the sea-level plane); copies the map into the
+  returned `Chunk.landSurfaceHeightMap` and sets `chunk.isOcean`. No block
+  arrays are materialised. Semantics match `generateTerrain`'s height field
+  exactly (verified: `generateLandSurfaceHeightMap` / `Chunk.getBlockID` flat
+  fallback only reads below y=128).
+- `ChunkProviderSky.justGenerateForHeight`: same pattern, lattice 3×33×3,
+  keeps the `loadBlockGeneratorData(16×16)` + `isUrbanChunk` pre-harvest,
+  `isOcean` always false.
+- `ChunkProviderHell.justGenerateForHeight`: `new Chunk(world, cx, cz)`
+  (blank defaults; Nether has no surface height).
+
+### Phase 2-C — `initializeNoiseField` biome-window batch (see §3.3)
+
+21×21 grid via one `loadBlockGeneratorData`; four plain `isUrbanChunk` values
+with `invalidateCity` pinned off; per-sample `isOtherUrban` = plain value AND
+NOT `wasSpecialOverride`, where `wasSpecialOverride` is detected exactly as
+`gridBiome != getBiomeFromLookup(temperature, humidity)` for that cell; tail
+`invalidateCity` re-instated from the `(20,20)` corner cell. Byte-equal output
+confirmed by the probe across all 180 overworld/sky/hell samples, plus the
+non-special-band rationale above (§3.3).
+
+### Verification
+
+- Client + server: `javac` zero errors; `build.bat` exports both jars OK.
+- Probe (`HeightProbe verify`): `VERIFY PASS`, `live-chunk precedence OK`,
+  `CACHE TESTS PASS (hits=+2, misses=+2)`; density-only `mapF` byte-identical
+  to the golden (pre-change) height maps for all 180 samples; golden baseline
+  still matches the block-based generator.
+- Parity: 830 identical / 37 substantive / 0 errors (unchanged diff set before
+  and after Phase 1).

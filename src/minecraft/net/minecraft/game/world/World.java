@@ -96,6 +96,7 @@ public class World implements IBlockAccess {
 	private boolean allPlayersSleeping;
 	public MapStorage mapStorage;
 	private final EntityQueryService entityQueryService;
+	private final TerrainHeightQueryCache heightQueryCache = new TerrainHeightQueryCache();
 	private boolean scanningTileEntities;
 	private boolean spawnHostileMobs;
 	private boolean spawnPeacefulMobs;
@@ -306,6 +307,18 @@ public class World implements IBlockAccess {
 	protected IChunkProvider getChunkProvider() {
 		IChunkLoader chunkLoader = this.saveHandler.getChunkLoader(this.worldProvider);
 		return new ChunkProvider(this, chunkLoader, this.worldProvider.getChunkProvider());
+	}
+
+	/**
+	 * Returns the chunk loader this world's provider persists chunks through, or null when
+	 * no save handler is attached (transient/test worlds). Useful for probing disk state
+	 * without forcing generation.
+	 */
+	public IChunkLoader getChunkLoader() {
+		if(this.saveHandler != null) {
+			return this.saveHandler.getChunkLoader(this.worldProvider);
+		}
+		return null;
 	}
 
 	/** Finds a valid spawn position near the world origin, avoiding city-generated chunks. */
@@ -837,44 +850,41 @@ public class World implements IBlockAccess {
 	
 	/** Returns the land-surface height at the given block coordinates, generating the chunk if needed. */
 	public int getLandSurfaceHeightValue(int blockX, int blockZ) {
-		Chunk chunk = null;
-		if(this.chunkExists(blockX >> 4, blockZ >> 4)) { 
-			chunk = this.getChunkFromChunkCoords(blockX >> 4, blockZ >> 4);
-		} else { 
-			chunk = this.chunkProvider.justGenerateForHeight(blockX >> 4, blockZ >> 4);
+		int x = blockX >> 4;
+		int z = blockZ >> 4;
+		if(this.chunkExists(x, z)) { 
+			return this.getChunkFromChunkCoords(x, z).getLandSurfaceHeightValue(blockX & 15, blockZ & 15);
 		}
-		return chunk.getLandSurfaceHeightValue(blockX & 15, blockZ & 15);
+		return this.heightQueryCache.getOrCompute(x, z, this).landSurfaceHeightMap[((blockZ & 15) << 4) | (blockX & 15)] & 255;
 	}
 	
 	/** Returns true if the chunk at the given chunk coordinates is an ocean chunk. */
 	public boolean isOceanChunk(int chunkX, int chunkZ) {
-		Chunk chunk = null;
 		if(this.chunkExists(chunkX, chunkZ)) {
-			chunk = this.getChunkFromChunkCoords(chunkX, chunkZ);
-		} else {
-			chunk = this.chunkProvider.justGenerateForHeight(chunkX, chunkZ);
+			return this.getChunkFromChunkCoords(chunkX, chunkZ).isOcean;
 		}
-		return chunk.isOcean;
+		return this.heightQueryCache.getOrCompute(chunkX, chunkZ, this).isOcean;
 	}
 	
 	/** Returns true if the chunk at the given chunk coordinates is urban. */
 	public boolean isUrbanChunk(int chunkX, int chunkZ) {
-		Chunk chunk = null;
 		if(this.chunkExists(chunkX, chunkZ)) {
-			chunk = this.getChunkFromChunkCoords(chunkX, chunkZ);
-		} else {
-			chunk = this.chunkProvider.justGenerateForHeight(chunkX, chunkZ);
+			return this.getChunkFromChunkCoords(chunkX, chunkZ).isUrbanChunk;
 		}
-		return chunk.isUrbanChunk;
+		return this.heightQueryCache.getOrCompute(chunkX, chunkZ, this).isUrbanChunk;
 	}
 	
 	/** Returns the chunk at the given chunk coordinates, generating it for height queries if needed. */
 	public Chunk justGenerateForHeight(int chunkX, int chunkZ) {
 		if(this.chunkExists(chunkX, chunkZ)) {
 			return this.getChunkFromChunkCoords(chunkX, chunkZ);
-		} else {
-			return this.chunkProvider.justGenerateForHeight(chunkX, chunkZ);
 		}
+		return this.heightQueryCache.getOrComputeChunk(chunkX, chunkZ, this);
+	}
+	
+	/** Drops the cached height query result for the given chunk (chunk-unload tidy hook). */
+	public void evictHeightQuery(int chunkX, int chunkZ) {
+		this.heightQueryCache.remove(chunkX, chunkZ);
 	}
 		
 	/** Returns the first Y below the surface that is not still water, scanning down from the height value. */

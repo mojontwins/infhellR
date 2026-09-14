@@ -3,17 +3,10 @@ package net.minecraft.game.world.terrain.generate.tree;
 import java.util.Random;
 
 import net.minecraft.game.world.terrain.generate.bo3.WorldGenBo3Tree;
-import net.minecraft.game.world.terrain.generate.WorldGenBaobab;
-import net.minecraft.game.world.terrain.generate.WorldGenCypress;
-import net.minecraft.game.world.terrain.generate.WorldGenFir;
-import net.minecraft.game.world.terrain.generate.WorldGenMangrove;
-import net.minecraft.game.world.terrain.generate.WorldGenWillow;
 import net.minecraft.game.world.block.Block;
 import net.minecraft.game.world.terrain.generate.WorldGenerator;
 import net.minecraft.game.world.block.BlockLeaves;
 import net.minecraft.game.world.block.BlockState;
-import net.minecraft.game.world.terrain.generate.WorldGenTaiga1;
-import net.minecraft.game.world.terrain.generate.WorldGenTaiga2;
 
 
 public enum EnumTreeType {

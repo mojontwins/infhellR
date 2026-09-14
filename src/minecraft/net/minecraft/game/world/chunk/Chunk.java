@@ -1110,9 +1110,9 @@ public class Chunk {
 	 * @return the offset just past everything consumed from {@code rawData}
 	 */
 	public int setChunkData(byte[] rawData, int x1, int y1, int z1, int x2, int y2, int z2, int dataOffset) {
-		int xSize = x2 - x1;
+		//int xSize = x2 - x1;
 		int ySize = y2 - y1;
-		int zSize = z2 - z1;
+		//int zSize = z2 - z1;
 
 		boolean[] materialize = new boolean[SUBCHUNK_COUNT];
 
@@ -1227,9 +1227,9 @@ public class Chunk {
 	 * @return the offset just past everything written into {@code rawData}
 	 */
 	public int getChunkData(byte[] rawData, int x1, int y1, int z1, int x2, int y2, int z2, int arrayOffset) {
-		int xSize = x2 - x1;
+		//int xSize = x2 - x1;
 		int ySize = y2 - y1;
-		int zSize = z2 - z1;
+		//int zSize = z2 - z1;
 
 		int x;
 		int z;

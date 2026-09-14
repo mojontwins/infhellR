@@ -19,7 +19,7 @@ public class Packet53BlockChange extends Packet {
 	/** Block X coordinate in world-space. */
 	public int xPosition;
 
-	/** Block Y coordinate in world-space (0-127). */
+	/** Block Y coordinate in world-space (0-255). */
 	public int yPosition;
 
 	/** Block Z coordinate in world-space. */

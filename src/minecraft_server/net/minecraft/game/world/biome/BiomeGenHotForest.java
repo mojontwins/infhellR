@@ -6,14 +6,14 @@ import net.minecraft.game.world.Weather;
 import net.minecraft.game.world.World;
 import net.minecraft.game.world.block.Block;
 import net.minecraft.game.world.terrain.generate.tree.WorldGenBigTree;
+import net.minecraft.game.world.terrain.generate.tree.WorldGenEucalyptus1;
+import net.minecraft.game.world.terrain.generate.tree.WorldGenEucalyptusBig;
 import net.minecraft.game.world.terrain.generate.WorldGenFlowers;
 import net.minecraft.game.world.terrain.generate.WorldGenLilypad;
 import net.minecraft.game.world.terrain.generate.tree.WorldGenPalmTree;
 import net.minecraft.game.world.terrain.generate.tree.WorldGenTrees;
-import net.minecraft.game.world.terrain.generate.WorldGenWillow;
+import net.minecraft.game.world.terrain.generate.tree.WorldGenWillow;
 import net.minecraft.game.world.terrain.generate.WorldGenerator;
-import net.minecraft.game.world.terrain.generate.WorldGenEucalyptus1;
-import net.minecraft.game.world.terrain.generate.WorldGenEucalyptusBig;
 import net.minecraft.game.world.terrain.generate.tree.WorldGenShrub;
 
 

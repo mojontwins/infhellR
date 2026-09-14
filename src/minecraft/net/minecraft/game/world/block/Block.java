@@ -65,13 +65,14 @@ public class Block {
 	
 	public static final Block stone = (new BlockStone(1, 1)).setHardness(1.5F).setResistance(10.0F).setStepSound(soundStoneFootstep).setBlockName("stone").setIsUrban(true).setCreativeTab(CreativeTabs.tabBlock);
 	public static final BlockGrass grass = (BlockGrass)(new BlockGrass(2)).setHardness(0.6F).setStepSound(soundGrassFootstep).setBlockName("grass");
+	public static final BlockGrassWithPebbles grassWithPebbles = (BlockGrassWithPebbles)(new BlockGrassWithPebbles(172)).setHardness(0.6F).setStepSound(soundGrassFootstep).setBlockName("grassWithPebbles");
 	public static final Block dirt = (new BlockDirt(3, 2)).setHardness(0.5F).setStepSound(soundGravelFootstep).setBlockName("dirt");
 	public static final Block cobblestone = (new BlockCobblestone(4, 16)).setHardness(2.0F).setResistance(10.0F).setStepSound(soundStoneFootstep).setBlockName("stonebrick").setIsUrban(true).setCreativeTab(CreativeTabs.tabBlock);
 	public static final Block planks = (new BlockPlanks(5, 4, Material.wood)).setHardness(2.0F).setResistance(5.0F).setStepSound(soundWoodFootstep).setBlockName("wood").setRequiresSelfNotify().setIsUrban(true).setCreativeTab(CreativeTabs.tabBlock);
 	public static final Block sapling = (new BlockSapling(6, 15)).setHardness(0.0F).setStepSound(soundGrassFootstep).setBlockName("sapling").setRequiresSelfNotify();
 	public static final Block bedrock = (new Block(7, 17, Material.rock)).setBlockUnbreakable().setResistance(6000000.0F).setStepSound(soundStoneFootstep).setBlockName("bedrock").disableStats().setCreativeTab(CreativeTabs.tabBlock);
-	public static final Block waterMoving = (new BlockFlowing(8, Material.water)).setHardness(100.0F).setLightOpacity(3).setBlockName("water").disableStats().setRequiresSelfNotify();
-	public static final Block waterStill = (new BlockStationary(9, Material.water)).setHardness(100.0F).setLightOpacity(3).setBlockName("water").disableStats().setRequiresSelfNotify();
+	public static final Block waterMoving = (new BlockFlowing(8, Material.water)).setHardness(100.0F).setLightOpacity(2).setBlockName("water").disableStats().setRequiresSelfNotify();
+	public static final Block waterStill = (new BlockStationary(9, Material.water)).setHardness(100.0F).setLightOpacity(2).setBlockName("water").disableStats().setRequiresSelfNotify();
 	public static final Block lavaMoving = (new BlockFlowing(10, Material.lava)).setHardness(0.0F).setLightValue(1.0F).setLightOpacity(255).setBlockName("lava").disableStats().setRequiresSelfNotify();
 	public static final Block lavaStill = (new BlockStationary(11, Material.lava)).setHardness(100.0F).setLightValue(1.0F).setLightOpacity(255).setBlockName("lava").disableStats().setRequiresSelfNotify();
 	public static final Block sand = (new BlockSand(12, 18)).setHardness(0.5F).setStepSound(soundSandFootstep).setBlockName("sand");
@@ -196,7 +197,7 @@ public class Block {
 	public static final Block layeredSand = (new BlockLayeredSand(134, 18)).setHardness(0.2F).setStepSound(soundSandFootstep).setBlockName("layeredSand");
 	public static final Block hollowLog = (new BlockHollowLog(135, 20)).setHardness(1.0F).setResistance(1.0F).setStepSound(soundWoodFootstep).setBlockName("hollowLog");
 	public static final Block dirtPath = (new BlockDirtPath(136, 13*16 + 6)).setHardness(0.6F).setStepSound(soundGrassFootstep).setBlockName("dirtPath");
-	public static final Block blockCoal = (new Block(137, 14*16 + 4, Material.rock)).setHardness(1.5F).setResistance(10.0F).setStepSound(soundStoneFootstep).setBlockName("blockCoal");
+	public static final Block blockCoal = (new Block(137, 14*16 + 4, Material.rock)).setHardness(1.5F).setResistance(10.0F).setStepSound(soundStoneFootstep).setBlockName("blockCoal").setCreativeTab(CreativeTabs.tabBlock);
 	public static final Block regolith = (new BlockRegolith(138, 13*16 + 5)).setHardness(0.7F).setStepSound(soundGravelFootstep).setBlockName("regolith");
 	public static final Block glowshroom = (new BlockMushroom(139, 13*16 + 4)).setHardness(0.0F).setStepSound(soundGrassFootstep).setLightValue(0.5F).setBlockName("glowshroom");
 	public static final Block oreRuby = (new BlockOre(140, 14*16 + 3)).setHardness(2.5F).setResistance(10.0F).setStepSound(soundStoneFootstep).setBlockName("oreRuby");

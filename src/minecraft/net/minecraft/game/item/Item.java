@@ -136,7 +136,7 @@ public class Item {
 	public static Item emerald = (new Item(132)).setIconIndex(11*16 + 10).setItemName("emerald").setCreativeTab(CreativeTabs.tabMaterials);
 	
 	public static Item ironWire = (new Item(1000)).setIconIndex(14*16 + 14).setItemName("ironWire").setCreativeTab(CreativeTabs.tabMaterials);
-	public static Item pebble = (new Item(1001)).setIconIndex(14*16 + 15).setItemName("pebble").setCreativeTab(CreativeTabs.tabMaterials);
+	public static Item pebble = (new ItemPebble(1001)).setIconIndex(14*16 + 15).setItemName("pebble").setCreativeTab(CreativeTabs.tabMaterials);
 	public static Item slingshot = (new ItemSlingshot(1002)).setIconIndex(14*16 + 13).setItemName("slingshot");
 	public static Item ruby = (new Item(1003)).setIconIndex(10*16 + 10).setItemName("ruby").setCreativeTab(CreativeTabs.tabMaterials);
 	public static Item kelp = (new Item(1004)).setIconIndex(14*16 + 12).setItemName("kelp").setCreativeTab(CreativeTabs.tabFood);

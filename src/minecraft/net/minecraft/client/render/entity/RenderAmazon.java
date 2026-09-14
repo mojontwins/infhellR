@@ -11,7 +11,7 @@ import net.minecraft.game.item.Item;
 import net.minecraft.game.item.ItemArmor;
 import net.minecraft.game.item.ItemStack;
 import net.minecraft.game.world.block.Block;
-import net.minecraft.game.world.terrain.generate.amazonvillage.EntityAmazon;
+import net.minecraft.game.world.terrain.generate.feature.amazonvillage.EntityAmazon;
 
 public class RenderAmazon extends RenderLiving {
 	private ModelAmazon modelBipedMain = (ModelAmazon)this.mainModel;

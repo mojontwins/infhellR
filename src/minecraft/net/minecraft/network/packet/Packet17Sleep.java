@@ -36,7 +36,7 @@ public class Packet17Sleep extends Packet {
     /** Bed X coordinate (int) */
     public int bedX;
 
-    /** Bed Y coordinate (byte, block height 0-127) */
+    /** Bed Y coordinate (byte, 0-255 for the 256-block world height) */
     public int bedY;
 
     /** Bed Z coordinate (int) */
@@ -78,7 +78,8 @@ public class Packet17Sleep extends Packet {
         this.entityID = dataInputStream.readInt();
         this.field_22046_e = dataInputStream.readByte();
         this.bedX = dataInputStream.readInt();
-        this.bedY = dataInputStream.readByte();
+        // Unsigned read: bed Y can be anywhere in 0-255 for the 256-block world height.
+        this.bedY = dataInputStream.read();
         this.bedZ = dataInputStream.readInt();
     }
 

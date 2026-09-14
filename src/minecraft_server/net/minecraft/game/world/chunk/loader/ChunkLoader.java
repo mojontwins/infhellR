@@ -72,6 +72,20 @@ public class ChunkLoader implements IChunkLoader {
 		return !file6.exists() && !this.createIfNecessary ? null : file6;
 	}
 
+	/**
+	 * True when this chunk's file exists on disk. Unlike {@link #chunkFileForXZ(int,int)}
+	 * this performs no directory creation, so probing a never-generated chunk leaves no
+	 * side effects behind.
+	 */
+	@Override
+	public boolean chunkExists(World world, int chunkX, int chunkZ) {
+		String fileName = "c." + Integer.toString(chunkX, 36) + "." + Integer.toString(chunkZ) + ".dat";
+		String dirX = Integer.toString(chunkX & 63, 36);
+		String dirZ = Integer.toString(chunkZ & 63, 36);
+		File file = new File(new File(new File(this.saveDir, dirX), dirZ), fileName);
+		return file.exists();
+	}
+
 	public Chunk loadChunk(World world, int x, int z) throws IOException {
 		File file4 = this.chunkFileForXZ(x, z);
 		if(file4 != null && file4.exists()) {

@@ -3,7 +3,6 @@ package net.minecraft.game.world.block;
 import java.util.Random;
 
 import net.minecraft.game.MathHelper;
-import net.minecraft.game.container.creativetab.CreativeTabs;
 import net.minecraft.game.entity.EntityLiving;
 import net.minecraft.game.entity.player.EntityPlayer;
 import net.minecraft.game.item.Item;

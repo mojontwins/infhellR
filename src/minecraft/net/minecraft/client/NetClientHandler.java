@@ -756,7 +756,7 @@ public class NetClientHandler extends NetHandler {
 	}
 
 	/**
-	 * Handles Packet51MapChunk - raw compressed chunk data for a 16x16x128 block
+	 * Handles Packet51MapChunk - raw compressed chunk data for a 16x16x256 block
 	 * column (or a sub-volume within it). The data is a zlib-compressed NBT-like
 	 * blob containing block IDs, sky-light, block-light, and biome data.
 	 *

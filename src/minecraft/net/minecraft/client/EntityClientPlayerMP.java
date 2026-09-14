@@ -4,6 +4,7 @@ import net.minecraft.client.player.EntityPlayerSP;
 import net.minecraft.game.MathHelper;
 import net.minecraft.game.achievements.StatBase;
 import net.minecraft.game.entity.Entity;
+import net.minecraft.game.entity.animal.EntityPig;
 import net.minecraft.game.item.ItemStack;
 import net.minecraft.game.world.World;
 import net.minecraft.game.world.chunk.ChunkCoordinates;
@@ -15,6 +16,7 @@ import net.minecraft.network.packet.Packet13PlayerLookMove;
 import net.minecraft.network.packet.Packet14BlockDig;
 import net.minecraft.network.packet.Packet18Animation;
 import net.minecraft.network.packet.Packet19EntityAction;
+import net.minecraft.network.packet.Packet27Position;
 import net.minecraft.network.packet.Packet3Chat;
 import net.minecraft.network.packet.Packet9Respawn;
 import net.minecraft.game.entity.misc.EntityItem;
@@ -57,6 +59,10 @@ public class EntityClientPlayerMP extends EntityPlayerSP {
 		if (this.inventoryUpdateTickCounter++ == 20) {
 			this.sendInventoryChanged();
 			this.inventoryUpdateTickCounter = 0;
+		}
+
+		if (this.ridingEntity instanceof EntityPig) {
+			this.sendPigSteeringInput();
 		}
 
 		boolean isSprinting = this.isSprinting();
@@ -124,6 +130,23 @@ public class EntityClientPlayerMP extends EntityPlayerSP {
 			this.oldRotationYaw = this.rotationYaw;
 			this.oldRotationPitch = this.rotationPitch;
 		}
+	}
+
+	/**
+	 * Forwards the local movement input to the server so the saddled pig being
+	 * ridden can be steered directly. Sent every tick: the server pig (and the
+	 * riding EntityPlayerMP) decay their movement fields each tick, so the input
+	 * must keep arriving to sustain motion.
+	 */
+	private void sendPigSteeringInput() {
+		Packet27Position packet27 = new Packet27Position();
+		packet27.setStrafeMovement(this.movementInput.moveStrafe);
+		packet27.setForwardMovement(this.movementInput.moveForward);
+		packet27.setSneaking(this.movementInput.sneak);
+		packet27.setInJump(this.movementInput.jump);
+		packet27.setPitchRotation(this.rotationPitch);
+		packet27.setYawRotation(this.rotationYaw);
+		this.sendQueue.addToSendQueue(packet27);
 	}
 
 	public EntityItem dropCurrentItem() {

@@ -96,8 +96,7 @@ public class CraftingManager {
 		this.addRecipe(new ItemStack(Block.pistonStickyBase, 1), new Object[]{"S", "P", 'S', Item.slimeBall, 'P', Block.pistonBase});
 		*/
 		
-		// Softlocked for b1.2
-		this.addRecipe(new ItemStack(Item.bed, 1), new Object[]{"###", "XXX", '#', Block.cloth, 'X', Block.planks}).setEnabled(false);;
+		this.addRecipe(new ItemStack(Item.bed, 1), new Object[]{"###", "XXX", '#', Block.cloth, 'X', Block.planks});
 		
 		// Custom
 		(new RecipesMine()).addRecipes(this);

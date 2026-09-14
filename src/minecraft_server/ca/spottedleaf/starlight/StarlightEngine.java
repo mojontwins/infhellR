@@ -598,8 +598,12 @@ public class StarlightEngine {
 	public final void initBlockLight(final int chunkX, final int chunkZ) {
 		this.setupCaches(this.world, (chunkX << 4) | 7, 64, (chunkZ << 4) | 7, true);
 		try {
-			if (this.world.worldProvider.isNether) {
-				final Chunk chunk = this.getChunkInCache(chunkX, chunkZ);
+			// The full relight path (initLightingForRealNotJustHeightmap) clears BOTH light planes
+			// (clearAllLights) before invoking this, and Starlight's propagation passes are
+			// increase-only. Light-emitting blocks already baked into the chunk at generation time
+			// (cave/ravine lava pools, glowstone, city lanterns) would therefore never regain any
+			// block light. The emitter sweep must run in every dimension, not just the nether.
+			final Chunk chunk = this.getChunkInCache(chunkX, chunkZ);
 				if(chunk != null) {
 					final int encodeOffset = this.coordinateOffset;
 	
@@ -630,7 +634,6 @@ public class StarlightEngine {
 						}
 					}
 				}
-			}
 
 			this.propagateNeighbourLevels(chunkX, chunkZ);
 

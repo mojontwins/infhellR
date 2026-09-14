@@ -217,15 +217,12 @@ public class ChunkProviderHell implements IChunkProvider {
 	
 	public Chunk justGenerateForHeight(int chunkX, int chunkZ) {
 		this.rand.setSeed((long)chunkX * 341873128712L + (long)chunkZ * 132897987541L);
-		
-		// Empty block array & new Chunk
-		byte[] blockArray = new byte[32768];
-		byte[] metadata = new byte[32768];
-		Chunk chunk = new Chunk(this.worldObj, blockArray, metadata, chunkX, chunkZ);
-		this.generateTerrain(chunkX, chunkZ, blockArray);
-		this.caveGenerator.generate(this, this.worldObj, chunkX, chunkZ, blockArray);
-		
-		return chunk;
+
+		// Solution 2-A of docs/height_query_caching.md: the old path ran generateTerrain and the
+		// cave generator into a flat buffer that is discarded, so the returned chunk was entirely
+		// default — landSurfaceHeightMap all zeros, isOcean false, isUrbanChunk false. A blank
+		// chunk is bit-for-bit the same observable result, with zero terrain computation.
+		return new Chunk(this.worldObj, chunkX, chunkZ);
 	}
 
 	private double[] initializeNoiseField(double[] densityMapArray, int x, int y, int z, int xSize, int ySize, int zSize) {

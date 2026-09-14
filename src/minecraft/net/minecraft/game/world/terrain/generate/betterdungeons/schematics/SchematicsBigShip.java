@@ -97,7 +97,7 @@ public abstract class SchematicsBigShip extends Schematics implements ISchematic
 										blockID == 50 || blockID == 64 || blockID == 65 || blockID == 69 || 
 										blockID == 71 || blockID == 75 || blockID == 76 || blockID == 77
 								) {
-									specialBlocks.add(new StructureBlockData(absX, absY, absZ, blockID, metadata));
+									specialBlocks.add(new StructureBlockData(absX, absY, absZ, blockID, metadata, false));
 								} else if(blockID == 52) {
 									this.betterDungeons.addSpawner(rand, world, absX, absY, absZ);
 								} else if(blockID == 54) {

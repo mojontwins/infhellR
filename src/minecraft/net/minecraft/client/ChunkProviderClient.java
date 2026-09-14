@@ -30,6 +30,7 @@ public class ChunkProviderClient implements IChunkProvider {
 			chunk.onChunkUnload();
 		}
 		this.chunkMapping.remove(ChunkCoordIntPair.chunkXZ2Long(x, z));
+		this.worldObj.evictHeightQuery(x, z);
 	}
 
 	public Chunk prepareChunk(int x, int z) {

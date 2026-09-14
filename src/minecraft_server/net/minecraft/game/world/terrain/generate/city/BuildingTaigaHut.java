@@ -23,9 +23,17 @@ public class BuildingTaigaHut extends BuildingDynamic {
 		// Floor
 		for(int x = -1; x <= w; x ++) {
 			for(int z = -1; z <= l; z ++) {
-				int idx = this.coords2Idx(x0 + x, y0 - 1, z0 + z);
+				int xPos = x0 + x;
+				int zPos = z0 + z;
+				int idx = this.coords2Idx(xPos, y0 - 1, zPos);
+				// Lowest address of this column (y = 0): the dig must never drop below the
+				// flat generation buffer, or an all-air column (hut pedestal over a cave or
+				// ravine) walks the index negative and throws ArrayIndexOutOfBoundsException.
+				int lowestIdx = this.coords2Idx(xPos, 0, zPos);
 				do {
-					this.blocks[idx --] = (byte)Block.gravel.blockID;
+					this.blocks[idx] = (byte)Block.gravel.blockID;
+					if(idx == lowestIdx) break;
+					-- idx;
 				} while(this.blocks[idx] == 0);
 			}
 		}
