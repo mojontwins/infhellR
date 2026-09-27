@@ -628,7 +628,7 @@ public abstract class Minecraft implements Runnable {
 			// Non-fatal: the thread will retry or use cached resources.
 		}
 
-		// Install any extra bundled resources (custom textures, shaders, etc.).
+		// Install any extra bundled resources (custom textures, etc.).
 		MoreResourcesInstaller moreResourcesInstaller = new MoreResourcesInstaller(this);
 		moreResourcesInstaller.installResources();
 

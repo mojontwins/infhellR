@@ -67,7 +67,7 @@ public class BiomeGenRocky extends BiomeGenBase {
 			x = chunkX + rand.nextInt(16) + 8;
 			z = chunkZ + rand.nextInt(16) + 8;
 			WorldGenRockBoulder worldGenRockBoulder = new WorldGenRockBoulder();
-			worldGenRockBoulder.generate(world, rand, x, world.getHeightValue(x, z) + 1, z);
+			worldGenRockBoulder.generate(world, rand, x, world.getLandSurfaceHeightValue(x, z) + 1, z);
 		}
 		
 		for(i = 0; i < 10; ++i) {

@@ -1,7 +1,5 @@
 package net.minecraft.client;
 
-import java.util.Arrays;
-
 import net.minecraft.game.IProgressUpdate;
 import net.minecraft.game.LongHashMap;
 import net.minecraft.game.world.World;
