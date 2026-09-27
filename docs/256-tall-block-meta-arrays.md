@@ -211,3 +211,60 @@ Explicitly **unchanged**, to preserve generation output:
 - `javac` client and server, then `build.bat`, then `check_parity.py`.
 - In-game: new world, confirm terrain matches the pre-change world at y 0-127, and confirm caves
   and overhangs are not lit through.
+
+## Implementation log (complete — commit `88e6553`)
+
+51 files, client + server, byte-identical across the two trees.
+
+### The sweep in step 5 was not sufficient
+
+The mechanical rewrite was driven by the *shift* idioms listed above, and the step-5 greps were
+written in the same terms. That is a blind spot: a stride expressed as a multiplication or a
+column-walk increment survives every one of those patterns while still being 128 tall. Seven
+sites were missed on the first pass and only surfaced because the golden probe disagreed:
+
+| File | Missed form | Symptom |
+| --- | --- | --- |
+| `MapGenCavesHell:105,125` | `(i40 * 16 + i41) * 128 + i42` | nether caves written to the wrong column |
+| `MapGenRavine:141` | `(k1 * 16 + k2) * 128 + l` | ravines in the overworld |
+| `MapGenOceanRavine:126` | `(xx * 16 + zz) * 128 + y2` | ocean ravines |
+| `MapGenCity:544` | `(x << 11) \| (z << 7)` in the floor "Hollow" pass | phantom `subchunkCount` 12-15 on building chunks |
+| `BuildingSchematic:28,36` | `\| (z << 7)` and `chunkidx += 2048` | schematics drawn into the wrong chunk |
+| `FeatureDynamicSchematic:188` | `(x << 11) \| (z << 7) \| y` | dynamic schematics |
+| `FeatureTest` / `FeatureSinkHole` / `FeatureHollowHill` | `index += 128` column walks | features |
+
+Lesson for any further flat-buffer work: the verification has to be *semantic* (hash the authored
+output, assert `subchunkCount <= 8`), not a pattern sweep. A pattern sweep only proves the
+conversion is internally consistent.
+
+### Sky light above the terrain (accepted behaviour change)
+
+Eagerly materialising sections 0-7 meant a generated chunk's all-air sections *above* the terrain
+existed, and the lighting pass left them holding an **explicit zero sky plane** — open sky read as
+skylight 0. With the contiguous prefix those sections are `null` and read as skylight 15, the
+vanilla `ExtendedBlockStorage` contract (`getBlockState` returns sky 15 / block 0 for a null
+nibble plane). Nether is unaffected, since it already fills the full 8 sections.
+
+This is a fix, not a regression, but it is visible: the empty air above terrain in freshly
+generated surface/sky chunks is lit rather than dark. The memory saving was kept.
+
+### Probe harness caveat
+
+Lighting must be compared through the provider's *registered* path. `ChunkProvider:66-70` relights
+a chunk only after putting it in its private `chunkMap`, so calling
+`initLightingForRealNotJustHeightmap()` on a bare `provideChunk` result zeroes the light planes
+and then writes nothing. An earlier revision of the probe did exactly that and reported a
+sky-light mismatch that did not exist. The probe now compares light via `-DlightMode=1`
+(`ChunkProvider.prepareChunk`), and the 72-chunk sweep digests authored data only.
+
+### Verification result
+
+- Authored blocks + metadata identical to the pre-change baseline: **40/40** surface, **24/24**
+  sky, **8/8** nether; content flags unchanged.
+- `subchunkCount` distribution: surface `4:19, 5:12, 6:6, 7:3`; sky `0:17, 3:1, 4:4, 5:2`;
+  nether `8:8`. Max is 7, so no generator writes above y=127.
+- `sectionBlocks[s] != null <=> s <= topmost` holds; the contiguous-prefix invariant is intact.
+- `javac` client and server: 0 errors. `check_parity.py`: 831 identical / 37 substantive
+  (unchanged from before this work).
+
+`build.bat` was not run for this commit (source verified with `javac` only).
