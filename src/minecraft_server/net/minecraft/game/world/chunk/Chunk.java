@@ -187,11 +187,19 @@ public class Chunk {
 	 * the lighting pipeline (the vanilla top-down gradient in {@link #generateSkylightMap()}
 	 * followed by the increase-only Starlight init in {@link #initLightingForRealNotJustHeightmap()}).
 	 *
-	 * <p>The "fully lit open sky" state is represented by a <b>null</b> subchunk — {@link
-	 * #getSavedLightValue} reports sky 15 for it — never by pre-filling a materialized plane.
-	 * Pre-filling would break the increase-only engine: it can only ever raise a stored nibble,
-	 * so a pre-filled 15 under any opaque block (roof, terrain, water) could never be lowered
-	 * and every interior cavity would stay scanner-bright forever.</p>
+	 * <p>A freshly materialized section starts at the <i>implicit</i> value that a {@code null}
+	 * subchunk reports: sky 15, block 0. The sky plane is therefore pre-filled with 15 rather than
+	 * left at zero. This matters on the incremental path, which never runs a full relight: when a
+	 * block placed after generation (a tree, a player build) opens a section that was previously
+	 * {@code null}, Starlight's {@code tryPropagateSkylight} gates on the cell above already reading
+	 * 15. A zero-initialised plane reads 0, the gate short-circuits, and the new block stays dark as
+	 * if something above it were casting a shadow.</p>
+	 *
+	 * <p>Pre-filling does not compromise the full relight. The increase-only init passes
+	 * ({@link #generateSkylightMap()}, {@link #initLightingForRealNotJustHeightmap()}) always start
+	 * from {@link #clearAllLights()}, which zeroes every materialized plane first, so a pre-filled 15
+	 * can never pin an occluded cell. {@link #loadFlatBlocks} and the loader likewise either supply
+	 * stored planes wholesale or relight from a cleared slate.</p>
 	 *
 	 * @param section subchunk index (0-15); section s covers world Y {@code s*16 .. (s*16)+15}
 	 */
@@ -201,6 +209,7 @@ public class Chunk {
 			this.sectionBlocks[section] = new byte[cellCount];
 			this.sectionData[section] = new byte[cellCount];
 			this.skyLightMap[section] = new NibbleArray(cellCount);
+			this.skyLightMap[section].setAll(15);
 			this.blockLightMap[section] = new NibbleArray(cellCount);
 			this.isEmpty[section] = true;
 			if(section + 1 > this.subchunkCount) {
