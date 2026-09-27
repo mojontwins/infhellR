@@ -24,6 +24,14 @@ public class MapGenUnderwater extends MapGenBase {
 	}
 	
 	public void generate(IChunkProvider chunkProviderGenerate, World world, int xChunk, int zChunk, byte[] data) { 
+		// This method overrides MapGenBase.generate instead of delegating to it, so the seeded
+		// per-chunk RNG setup the base class normally does has to be repeated here. Without it
+		// this.rand stayed the unseeded `new Random()` from MapGenBase (java seeds that from
+		// System.nanoTime), so the 1-in-16 underwater-ruin roll below, and with it the ruin's
+		// feature type, position and chestY, changed on every run: the same world seed produced
+		// different ocean chunks each time.
+		this.rand.setSeed((long)xChunk * 341873128712L + (long)zChunk * 132897987541L ^ world.getRandomSeed());
+
 		this.thisChunk.chestY = -1;
 		this.thisChunk.specialY = -1;
 		

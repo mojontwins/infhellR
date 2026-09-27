@@ -138,8 +138,18 @@ public class BetterDungeons {
 	}
 	
 	public void addCustomBlock(int x, int y, int z, int block, int metadata, World world, int mob) {
-		Random rand = new Random();
-		
+		// Seeded from the world seed plus this block's own position, so a given world seed
+		// always produces the same dungeon: room dressing, spawner levels and chest contents.
+		//
+		// This used to be an unseeded `new Random()`, which java seeds from System.nanoTime().
+		// That made dungeon generation differ between two worlds created from the same seed,
+		// and made chunk generation order-dependent. A private Random is used on purpose:
+		// taking values from the shared world/rand would perturb every other generator.
+		Random rand = new Random(world.getRandomSeed()
+				+ (long)x * 341873128712L
+				+ (long)y * 132897987541L
+				+ (long)z * 15738366019L);
+
 		if(block == 255) {
 			if(mob == 0) {
 				switch(metadata) {
@@ -277,16 +287,16 @@ public class BetterDungeons {
 		} else if(block == 254) {
 			switch(metadata) {
 				case 0:
-					this.addTreasure(new Random(), world, x, y, z);
+					this.addTreasure(rand, world, x, y, z);
 					break;
 				case 1:
-					this.addFoodChest(new Random(), world, x, y, z);
+					this.addFoodChest(rand, world, x, y, z);
 					break;
 				case 2:
-					this.addMineralChest(new Random(), world, x, y, z);
+					this.addMineralChest(rand, world, x, y, z);
 					break;
 				case 3:
-					this.addWeaponChest(new Random(), world, x, y, z);
+					this.addWeaponChest(rand, world, x, y, z);
 					break;
 			}
 		}
