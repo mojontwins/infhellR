@@ -175,7 +175,7 @@ public class ChunkProviderGenerate implements IChunkProvider {
 		final int xSize = quadrantSize + 1;
 		final byte ySize = 17;
 		final int zSize = quadrantSize + 1;
-		final short chunkHeight = 128;
+		final short chunkHeight = 256;
 
 		this.terrainNoise = this.initializeNoiseField(this.terrainNoise, chunkX * quadrantSize, 0, chunkZ * quadrantSize, xSize, ySize, zSize, chunkX, chunkZ);
 		this.isOcean = true;
@@ -206,7 +206,7 @@ public class ChunkProviderGenerate implements IChunkProvider {
 						int yy = ySection * 8 + y;
 
 						for(int x = 0; x < 4; ++x) {
-							int indexInBlockArray = (x + (xSection << 2)) << 11 | (0 + (zSection << 2)) << 7 | (ySection << 3) + y;
+							int indexInBlockArray = (x + (xSection << 2)) << 12 | (0 + (zSection << 2)) << 8 | (ySection << 3) + y;
 					
 							double density = curDensityMinXMinYMinZ;
 							double densityIncrement = (curDensityMinXMinYMaxZ - curDensityMinXMinYMinZ) * densityVariationSpeed;
@@ -334,7 +334,7 @@ public class ChunkProviderGenerate implements IChunkProvider {
 				
 				// Carve & fill with water.
 				if(height != newHeight) for(int y = newHeight; y <= height; y ++) {							
-					blockArray[x << 11 | z << 7 | y] = (y < 64 && !dry) ? (byte)Block.waterStill.blockID : 0;							
+					blockArray[x << 12 | z << 8 | y] = (y < 64 && !dry) ? (byte)Block.waterStill.blockID : 0;							
 				}
 			
 				chunk.landSurfaceHeightMap[hmIndex] = (byte) newHeight;
@@ -355,8 +355,8 @@ public class ChunkProviderGenerate implements IChunkProvider {
 		this.rand.setSeed((long)chunkX * 341873128712L + (long)chunkZ * 132897987541L);
 		
 		// Empty block array & new Chunk
-		byte[] blockArray = new byte[32768];
-		byte[] metadata = new byte[32768];
+		byte[] blockArray = new byte[Chunk.FLAT_BUFFER_SIZE];
+		byte[] metadata = new byte[Chunk.FLAT_BUFFER_SIZE];
 		Chunk chunk = new Chunk(this.worldObj, blockArray, metadata, chunkX, chunkZ);
 
 		// Calculate biomes & temperatures for this chunk

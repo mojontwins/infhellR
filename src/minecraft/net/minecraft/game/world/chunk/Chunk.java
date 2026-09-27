@@ -37,12 +37,19 @@ import net.minecraft.game.world.block.BlockEntity;
  * read as 0, block light reads as 0 and sky light reads as 15 (full brightness). The Starlight
  * engine relies on these implicit defaults and never allocates a section purely for lighting.</p>
  *
- * <p><b>Flat generation buffers.</b> The {@code blocks}/{@code data} arrays remain the flat
- * 128-high (16x16x128, index {@code x << 11 | z << 7 | y}) buffers that the terrain generators
- * write to through direct array access. Once generation finishes, {@link #loadFlatBlocks} slices
- * those buffers into sections 0-7 and nulls them; from then on the section arrays are the only
- * storage. ({@code getBlockID}/{@code getBlockMetadata} keep a read-only fallback to the flat
- * buffers for the transient "just generate for height" chunks that are never sliced.)</p>
+ * <p><b>Flat generation buffers.</b> The {@code blocks}/{@code data} arrays are flat 256-high
+ * (16x16x256) buffers that the terrain generators write to through direct array access, using
+ * {@code x << 12 | z << 8 | y}. Once generation finishes, {@link #loadFlatBlocks} slices those
+ * buffers into subchunks and nulls them; from then on the section arrays are the only storage.
+ * ({@code getBlockID}/{@code getBlockMetadata} keep a read-only fallback to the flat buffers for
+ * the transient "just generate for height" chunks that are never sliced.)</p>
+ *
+ * <p><b>Contiguous-prefix materialization.</b> Slicing materializes only
+ * {@code 0..topmostNonEmptySection}. A freshly generated chunk is solid stone up to roughly y 64,
+ * so sections 0-3 are all that are ever allocated, instead of the 8 that a 128-high world needed.
+ * Metadata alone never materializes a section, and a section that carries no block id stays
+ * {@code null} (implicit air), so the materialized set is always the prefix
+ * {@code 0..subchunkCount-1} and {@link #subchunkCount} is a meaningful upper bound for iteration.</p>
  */
 public class Chunk {
 	/** Edge size of one subchunk in blocks (16). */
@@ -51,17 +58,25 @@ public class Chunk {
 	public static final int SECTION_HEIGHT = 256;
 	/** Number of stacked subchunks (SECTION_HEIGHT / SECTION_SIZE = 16). */
 	public static final int SUBCHUNK_COUNT = SECTION_HEIGHT >>> 4;
-	/** Number of flat 128-high generation buffer slices fed into subchunks (128 / 16). */
-	private static final int FLAT_SECTION_COUNT = 128 >>> 4;
+	/**
+	 * Number of 16-tall segments a flat generation buffer is sliced into. The flat buffer now
+	 * spans the full world height, so this equals {@link #SUBCHUNK_COUNT}.
+	 */
+	private static final int FLAT_SECTION_COUNT = SUBCHUNK_COUNT;
+	/** Height of one flat generation-buffer column in blocks (= the y stride of the flat index). */
+	private static final int FLAT_COLUMN_STRIDE = SECTION_HEIGHT;
+	/** Total size of one flat generation buffer (16 * 16 * 256). */
+	public static final int FLAT_BUFFER_SIZE = 16 * 16 * SECTION_HEIGHT;
 
 	public static boolean isLit;
 	
 	/**
-	 * Flat 128-high block-id buffer used ONLY during terrain generation (Option A: generators
-	 * write into this array directly). Null after {@link #loadFlatBlocks} slices it.
+	 * Flat 256-high block-id buffer used ONLY during terrain generation (Option A: generators
+	 * write into this array directly, at {@code x << 12 | z << 8 | y}).
+	 * Null after {@link #loadFlatBlocks} slices it.
 	 */
 	public byte[] blocks;
-	/** Flat 128-high metadata buffer used ONLY during terrain generation. Null after slicing. */
+	/** Flat 256-high metadata buffer used ONLY during terrain generation. Null after slicing. */
 	public byte[] data;
 
 	/** Per-subchunk block-id arrays; a null entry means the whole section is air. */
@@ -195,21 +210,63 @@ public class Chunk {
 	}
 
 	/**
-	 * Slices the (still flat) 128-high generation buffers into the runtime subchunks. Each flat
-	 * column (address {@code x << 11 | z << 7 | y}) is split into its eight 16-tall segments and
+	 * Finds the highest 16-tall segment of a flat generation buffer that holds at least one
+	 * non-air block id, or -1 when the whole buffer is air.
+	 *
+	 * <p>Scanning from the top lets the common case (solid stone up to ~y 64, air above) stop after
+	 * a handful of segments, and the answer is exactly the prefix length {@link #loadFlatBlocks}
+	 * should materialize. Metadata is deliberately ignored: a segment holding only metadata
+	 * describes no visible block, so there is nothing to store and it must not force an
+	 * allocation.</p>
+	 */
+	private static int topmostNonEmptySection(byte[] blockArray) {
+		for(int section = FLAT_SECTION_COUNT - 1; section >= 0; --section) {
+			int sectionBase = section << 4;
+			boolean empty = true;
+			for(int x = 0; x < 16 && empty; ++x) {
+				for(int z = 0; z < 16 && empty; ++z) {
+					int flatColumnBase = (x << 4 | z) << 8;
+					for(int k = 0; k < SECTION_SIZE; ++k) {
+						if(blockArray[flatColumnBase + sectionBase + k] != 0) {
+							empty = false;
+							break;
+						}
+					}
+				}
+			}
+			if(!empty) {
+				return section;
+			}
+		}
+		return -1;
+	}
+
+	/**
+	 * Slices the (still flat) 256-high generation buffers into the runtime subchunks. Each flat
+	 * column (address {@code x << 12 | z << 8 | y}) is split into its sixteen 16-tall segments and
 	 * copied into subchunk-local layout ({@code x << 8 | z << 4 | yLocal}). The flat buffers are
 	 * then dropped ({@code null}) because the sections are the only storage from this point on.
 	 *
-	 * @param blockArray flat 128-high block ids
-	 * @param metadata   flat 128-high metadata
+	 * <p>Only the contiguous prefix {@code 0..topmostNonEmptySection} is materialized. Segments
+	 * above that are air by construction, so leaving them {@code null} (implicit air, full sky
+	 * light, zero block light) is indistinguishable from materializing them, and it keeps a
+	 * freshly generated chunk at 4 sections instead of 8.</p>
+	 *
+	 * <p>Sections that a generator already materialized through the single-cell setters sit above
+	 * the prefix and are left untouched: those setters write only subchunk storage, so their cells
+	 * exist nowhere in the flat buffer and re-copying would not have preserved them anyway.</p>
+	 *
+	 * @param blockArray flat 256-high block ids
+	 * @param metadata   flat 256-high metadata
 	 */
 	public void loadFlatBlocks(byte[] blockArray, byte[] metadata) {
 		if(blockArray == null) {
 			return;
 		}
 
-		// Materialize all eight lower sections that still exist in the flat buffers.
-		for(int section = 0; section < FLAT_SECTION_COUNT; ++section) {
+		// Materialize only the prefix up to the highest segment that carries a block.
+		int segmentCount = topmostNonEmptySection(blockArray) + 1;
+		for(int section = 0; section < segmentCount; ++section) {
 			this.ensureSubchunk(section);
 		}
 
@@ -218,9 +275,9 @@ public class Chunk {
 		// buffer, which mirrors their content, so no information is lost.
 		for(int x = 0; x < 16; ++x) {
 			for(int z = 0; z < 16; ++z) {
-				int flatColumnBase = (x << 4 | z) << 7;      // (x*16 + z) * 128
-				int sectionColumnBase = (x << 4 | z) << 4;   // (x*16 + z) * 16
-				for(int section = 0; section < FLAT_SECTION_COUNT; ++section) {
+				int flatColumnBase = (x << 4 | z) << 8;        // (x*16 + z) * 256
+				int sectionColumnBase = (x << 4 | z) << 4;     // (x*16 + z) * 16
+				for(int section = 0; section < segmentCount; ++section) {
 					System.arraycopy(blockArray, flatColumnBase + (section << 4), this.sectionBlocks[section], sectionColumnBase, SECTION_SIZE);
 					System.arraycopy(metadata, flatColumnBase + (section << 4), this.sectionData[section], sectionColumnBase, SECTION_SIZE);
 				}
@@ -236,19 +293,19 @@ public class Chunk {
 	}
 
 	/**
-	 * Exports the block ids of the lower 128-high region into a flat generation-style buffer
-	 * ({@code x << 11 | z << 7 | y}). City generation still edits terrain through such a buffer,
+	 * Exports every section into a flat generation-style 256-high buffer
+	 * ({@code x << 12 | z << 8 | y}). City generation still edits terrain through such a buffer,
 	 * but in-world chunks have already been sliced into subchunks and dropped their flat storage,
-	 * so the edit is staged locally and written back with {@link #importFlatBlocks128}.
+	 * so the edit is staged locally and written back with {@link #importFlatBlocks}.
 	 *
-	 * @return a 32768-element flat buffer; unmaterialized sections read as air
+	 * @return a 65536-element flat buffer; unmaterialized sections read as air
 	 */
-	public byte[] exportFlatBlocks128() {
-		byte[] flat = new byte[(SECTION_HEIGHT >> 1) * 256];
+	public byte[] exportFlatBlocks() {
+		byte[] flat = new byte[FLAT_BUFFER_SIZE];
 		for(int x = 0; x < 16; ++x) {
 			for(int z = 0; z < 16; ++z) {
-				int flatColumnBase = (x << 4 | z) << 7;      // (x*16 + z) * 128
-				int subchunkColumnBase = (x << 4 | z) << 4;  // (x*16 + z) * 16
+				int flatColumnBase = (x << 4 | z) << 8;         // (x*16 + z) * 256
+				int subchunkColumnBase = (x << 4 | z) << 4;     // (x*16 + z) * 16
 				for(int section = 0; section < FLAT_SECTION_COUNT; ++section) {
 					byte[] sectionBlockData = this.sectionBlocks[section];
 					if(sectionBlockData != null) {
@@ -260,13 +317,13 @@ public class Chunk {
 		return flat;
 	}
 
-	/** Exports the metadata of the lower 128-high region; see {@link #exportFlatBlocks128}. */
-	public byte[] exportFlatData128() {
-		byte[] flat = new byte[(SECTION_HEIGHT >> 1) * 256];
+	/** Exports the metadata; see {@link #exportFlatBlocks}. */
+	public byte[] exportFlatData() {
+		byte[] flat = new byte[FLAT_BUFFER_SIZE];
 		for(int x = 0; x < 16; ++x) {
 			for(int z = 0; z < 16; ++z) {
-				int flatColumnBase = (x << 4 | z) << 7;      // (x*16 + z) * 128
-				int subchunkColumnBase = (x << 4 | z) << 4;  // (x*16 + z) * 16
+				int flatColumnBase = (x << 4 | z) << 8;         // (x*16 + z) * 256
+				int subchunkColumnBase = (x << 4 | z) << 4;     // (x*16 + z) * 16
 				for(int section = 0; section < FLAT_SECTION_COUNT; ++section) {
 					byte[] sectionMetaData = this.sectionData[section];
 					if(sectionMetaData != null) {
@@ -279,33 +336,26 @@ public class Chunk {
 	}
 
 	/**
-	 * Applies a flat 128-high block/metadata pair back into subchunk storage, the reverse of
-	 * {@link #exportFlatBlocks128}/{@link #exportFlatData128}. Sections that would become pure
-	 * air are not materialized; a section gains storage the first time it carries a block.
+	 * Applies a flat 256-high block/metadata pair back into subchunk storage, the reverse of
+	 * {@link #exportFlatBlocks}/{@link #exportFlatData}. Like {@link #loadFlatBlocks} only the
+	 * contiguous prefix up to the highest segment carrying a block is materialized, so the
+	 * materialized set stays a prefix and {@link #subchunkCount} keeps its meaning.
 	 * Mirrors {@link #loadFlatBlocks} (empty flags and the materialized count are refreshed),
 	 * but lighting is deliberately left untouched, matching the historical direct-array writes.
 	 *
 	 * @param blocks the flat block ids to apply (generation layout)
 	 * @param data   the flat metadata to apply (generation layout)
 	 */
-	public void importFlatBlocks128(byte[] blocks, byte[] data) {
+	public void importFlatBlocks(byte[] blocks, byte[] data) {
 		if(blocks == null || data == null) {
 			return;
 		}
+		int segmentCount = topmostNonEmptySection(blocks) + 1;
 		for(int x = 0; x < 16; ++x) {
 			for(int z = 0; z < 16; ++z) {
-				int flatColumnBase = (x << 4 | z) << 7;      // (x*16 + z) * 128
-				int subchunkColumnBase = (x << 4 | z) << 4;  // (x*16 + z) * 16
-				for(int section = 0; section < FLAT_SECTION_COUNT; ++section) {
-					boolean hasContent = false;
-					for(int k = 0; k < SECTION_SIZE && !hasContent; ++k) {
-						if((blocks[flatColumnBase + (section << 4) + k] & 255) != 0) {
-							hasContent = true;
-						}
-					}
-					if(!hasContent) {
-						continue;
-					}
+				int flatColumnBase = (x << 4 | z) << 8;         // (x*16 + z) * 256
+				int subchunkColumnBase = (x << 4 | z) << 4;     // (x*16 + z) * 16
+				for(int section = 0; section < segmentCount; ++section) {
 					this.ensureSubchunk(section);
 					System.arraycopy(blocks, flatColumnBase + (section << 4), this.sectionBlocks[section], subchunkColumnBase, SECTION_SIZE);
 					System.arraycopy(data, flatColumnBase + (section << 4), this.sectionData[section], subchunkColumnBase, SECTION_SIZE);
@@ -499,7 +549,7 @@ public class Chunk {
 	}
 
 	/**
-	 * Reads a block id, consulting the subchunk array first and falling back to the flat 128-high
+	 * Reads a block id, consulting the subchunk array first and falling back to the flat 256-high
 	 * generation buffer for sections that have not been materialized/finalized yet.
 	 *
 	 * @return the block id at (x, y, z); 0 if the cell lies outside the world or is implicit air
@@ -513,8 +563,8 @@ public class Chunk {
 			}
 			// Flat fallback: transient "just generate for height" chunks never get sliced, so their
 			// height-only callers keep reading the raw generation buffer.
-			if(this.blocks != null && y < (SECTION_HEIGHT >> 1)) {
-				return this.blocks[x << 11 | z << 7 | y] & 255;
+			if(this.blocks != null) {
+				return this.blocks[x << 12 | z << 8 | y] & 255;
 			}
 		}
 		return 0;
@@ -623,7 +673,7 @@ public class Chunk {
 
 		// Running flat buffer offset (same addressing the generators use); also the source of the
 		// subchunk-local offset so flat and section writes always stay in sync.
-		int colBase = x << 11 | z << 7;
+		int colBase = x << 12 | z << 8;
 		int index = colBase | y;
 
 		boolean lightChanged = false;
@@ -648,7 +698,7 @@ public class Chunk {
 				this.sectionData[section][(x << 8 | z << 4) | (colOff & 15)] = (byte)((b >> 8) & 0xff);
 
 				// Mirror into the flat generation buffer while it is still present.
-				if(this.blocks != null && colOff < (SECTION_HEIGHT >> 1)) {
+				if(this.blocks != null && colOff < FLAT_COLUMN_STRIDE) {
 					this.blocks[index] = (byte)newId;
 					this.data[index] = (byte)((b >> 8) & 0xff);
 				}
@@ -692,10 +742,10 @@ public class Chunk {
 						this.sectionBlocks[section][(x << 8 | z << 4) | (colOff & 15)] = b0;
 						this.sectionData[section][(x << 8 | z << 4) | (colOff & 15)] = m;
 
-						if(this.blocks != null && colOff < (SECTION_HEIGHT >> 1)) {
-							this.blocks[index] = b0;
-							this.data[index] = m;
-						}
+					if(this.blocks != null && colOff < FLAT_COLUMN_STRIDE) {
+						this.blocks[index] = b0;
+						this.data[index] = m;
+					}
 
 						// Call `onRemoval` from removed block, if applies.
 						Block block = Block.blocksList[existingId];
@@ -748,8 +798,8 @@ public class Chunk {
 			if(sectionMetaData != null) {
 				return sectionMetaData[x << 8 | z << 4 | (y & 15)] & 255;
 			}
-			if(this.data != null && y < (SECTION_HEIGHT >> 1)) {
-				return this.data[x << 11 | z << 7 | y] & 255;
+			if(this.data != null) {
+				return this.data[x << 12 | z << 8 | y] & 255;
 			}
 		}
 		return 0;

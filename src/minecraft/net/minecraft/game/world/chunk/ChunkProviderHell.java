@@ -58,7 +58,7 @@ public class ChunkProviderHell implements IChunkProvider {
 		int cellSize = quadrantSize + 1;
 		byte columnSize = 17;
 		int cellSize2 = quadrantSize + 1;
-		short chunkHeight = 128;
+		short chunkHeight = 256;
 
 		this.terrainNoise = this.initializeNoiseField(this.terrainNoise, chunkX * quadrantSize, 0, chunkZ * quadrantSize, cellSize, columnSize, cellSize2);
 
@@ -84,7 +84,7 @@ public class ChunkProviderHell implements IChunkProvider {
 						int yy = ySection * 8 + y;
 
 						for(int x = 0; x < 4; ++x) {
-							int indexInBlockArray = (x + (xSection << 2)) << 11 | (0 + (zSection << 2)) << 7 | (ySection << 3) + y;
+							int indexInBlockArray = (x + (xSection << 2)) << 12 | (0 + (zSection << 2)) << 8 | (ySection << 3) + y;
 							
 							double density = curNoiseA;
 							double densityIncrement = (curNoiseB - curNoiseA) * densityVariationSpeed;
@@ -136,7 +136,7 @@ public class ChunkProviderHell implements IChunkProvider {
 				byte fillerBlock = (byte)Block.bloodStone.blockID;
 
 				for(int y = 127; y >= 0; --y) {
-					int index = x << 11 | z << 7 | y; // (x * 16 + z) * 128 + y
+					int index = x << 12 | z << 8 | y; // (x * 16 + z) * 256 + y
 					if(y >= 127 - this.rand.nextInt(5)) {
 						blocks[index] = (byte)Block.bedrock.blockID;
 					} else if(y <= 0 + this.rand.nextInt(5)) {
@@ -194,8 +194,8 @@ public class ChunkProviderHell implements IChunkProvider {
 		this.rand.setSeed((long)chunkX * 341873128712L + (long)chunkZ * 132897987541L);
 		
 		// Empty block array & new Chunk
-		byte[] blockArray = new byte[32768];
-		byte[] metadata = new byte[32768];
+		byte[] blockArray = new byte[Chunk.FLAT_BUFFER_SIZE];
+		byte[] metadata = new byte[Chunk.FLAT_BUFFER_SIZE];
 		Chunk chunk = new Chunk(this.worldObj, blockArray, metadata, chunkX, chunkZ);
 
 		// Generate terrain for this chunk

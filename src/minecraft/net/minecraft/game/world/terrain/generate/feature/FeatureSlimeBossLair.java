@@ -101,7 +101,7 @@ public class FeatureSlimeBossLair extends Feature {
 			for(int i = 0; i < 2; i ++) {
 				for(int x = 4 + i; x < 12 - i; x ++) {
 					for(int z = 4 + i; z < 12 - i; z ++) {
-						chunk.blocks[x << 11 | z << 7 | y] = (byte)(this.randGeneral.nextInt(4) == 0 ? Block.cobblestoneMossy.blockID : Block.cobblestone.blockID);
+						chunk.blocks[x << 12 | z << 8 | y] = (byte)(this.randGeneral.nextInt(4) == 0 ? Block.cobblestoneMossy.blockID : Block.cobblestone.blockID);
 					}
 				}
 				++ y;
@@ -110,15 +110,15 @@ public class FeatureSlimeBossLair extends Feature {
 			for(int i = 0; i < 4; i ++) {
 				for(int x = 6; x < 10; x ++) {
 					for(int z = 6; z < 10; z ++) {
-						chunk.blocks[x << 11 | z << 7 | y] = (byte)Block.stoneBricks.blockID;
+						chunk.blocks[x << 12 | z << 8 | y] = (byte)Block.stoneBricks.blockID;
 					}
 				}
 				++ y;
 			}
 			
 			y -= 2; 
-			chunk.blocks[6 << 11 | 9 << 7 | y] = (byte)Block.blockCoal.blockID;
-			chunk.blocks[9 << 11 | 9 << 7 | y] = (byte)Block.blockCoal.blockID;
+			chunk.blocks[6 << 12 | 9 << 8 | y] = (byte)Block.blockCoal.blockID;
+			chunk.blocks[9 << 12 | 9 << 8 | y] = (byte)Block.blockCoal.blockID;
 		}
 	}
 
@@ -180,7 +180,7 @@ public class FeatureSlimeBossLair extends Feature {
 		for(int x = 0; x < 16; x ++) {
 			for(int z = 0; z < 16; z ++) {
 				if(this.randGeneral.nextInt(16) == 0) {		
-					index = x << 11 | z << 7 | 54;
+					index = x << 12 | z << 8 | 54;
 					
 					for(int y = 0; y < 20; y ++) {
 						if(data[index] == 0 && data[index + 1] != 0) {
@@ -192,7 +192,7 @@ public class FeatureSlimeBossLair extends Feature {
 				}
 				
 				
-				index = x << 11 | z << 7 | 10;
+				index = x << 12 | z << 8 | 10;
 				
 				for(int y = 0; y < 20; y ++) {
 					if(data[index] == 0 && data[index - 1] != 0) {

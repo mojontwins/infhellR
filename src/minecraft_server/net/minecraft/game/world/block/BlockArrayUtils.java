@@ -18,11 +18,11 @@ public class BlockArrayUtils {
 	}
 	
 	public void setBlockWithClipping(int x, int y, int z, byte b) {
-		if(x >= 0 && x < 16 && y >= 0 && y < 128 && z >= 0 && z < 16) this.data[x << 11 | z << 7 | y] = b;
+		if(x >= 0 && x < 16 && y >= 0 && y < 256 && z >= 0 && z < 16) this.data[x << 12 | z << 8 | y] = b;
 	}
 	
 	public void setBlockWithClippingAbsolute(int x, int y, int z, byte b) {
-		if(x >= this.cX1 && x <= this.cX2 && y >= 0 && y < 128 && z >= this.cZ1 && z <= this.cZ2)  this.data[(x - this.cX1) << 11 | (z - this.cZ1) << 7 | y] = b;
+		if(x >= this.cX1 && x <= this.cX2 && y >= 0 && y < 256 && z >= this.cZ1 && z <= this.cZ2)  this.data[(x - this.cX1) << 12 | (z - this.cZ1) << 8 | y] = b;
 	}
 	
 	public boolean withinSphere(int x, int y, int z, int radius) {

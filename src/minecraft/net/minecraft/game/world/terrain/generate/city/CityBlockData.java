@@ -34,7 +34,7 @@ public final class CityBlockData {
 	}
 
 	public static int idx(int x, int y, int z) {
-		return x << 11 | z << 7 | y;
+		return x << 12 | z << 8 | y;
 	}
 
 	public static void setBlock(byte[] data, int x, int y, int z, byte blockID) {

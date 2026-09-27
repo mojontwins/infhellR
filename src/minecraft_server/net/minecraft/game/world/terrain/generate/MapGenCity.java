@@ -361,19 +361,11 @@ public class MapGenCity extends MapGenBase {
 		byte w = (byte)Block.stone.blockID;
 		
 		for (int y = y0 - 9; y < y0; y ++) {
-			// This was hollow, but I've decided against
-			/*
-			for (int i = 0; i < 16; i ++) {
-				data [i << 11 | y] = b;
-				data [i << 7 | y] = b;
-				data [15 << 11 | i << 7 | y] = b;
-				data [i << 11 | 15 << 7 | y ] = b;
-			}
-			*/
+			// The old hollow-outline version of this was replaced by the solid fill below.
 			int idx = y;
 			for(int i = 0; i < 256; i ++) {
 				if(data[idx] != w) data[idx] = w;
-				idx += 128;
+				idx += 256;
 			}
 		}
 		
@@ -383,7 +375,7 @@ public class MapGenCity extends MapGenBase {
 		for (int y = y0 + 1; y < y0 + 10; y ++) {
 			int idx = y;
 			for(int i = 0; i < 256; i ++) {
-				data[idx] = 0; idx += 128;
+				data[idx] = 0; idx += 256;
 			}
 		}
 	}
@@ -438,10 +430,10 @@ public class MapGenCity extends MapGenBase {
 		// Base floor
 		this.drawBaseFloor(offsetX - 1, y, offsetZ - 1, data, meta, rand);
 		int x = offsetX + 2; int z = offsetZ + 2;
-		data[(x + 1) << 11 | z << 7 | (y + 1)] = (byte)Block.stairSingle.blockID;
-		data[(x + 1) << 11 | (z + 1) << 7 | (y + 1)] = this.wallID;
-		meta[(x + 1) << 11 | (z + 1) << 7 | (y + 1)] = this.wallMeta;
-		data[(x + 2) << 11 | z << 7 | (y + 1)] = (byte)Block.stairDouble.blockID;
+		data[(x + 1) << 12 | z << 8 | (y + 1)] = (byte)Block.stairSingle.blockID;
+		data[(x + 1) << 12 | (z + 1) << 8 | (y + 1)] = this.wallID;
+		meta[(x + 1) << 12 | (z + 1) << 8 | (y + 1)] = this.wallMeta;
+		data[(x + 2) << 12 | z << 8 | (y + 1)] = (byte)Block.stairDouble.blockID;
 		y += 5;	
 				
 		int yFloors = y;
@@ -477,7 +469,7 @@ public class MapGenCity extends MapGenBase {
 				} else {
 					b = (byte)Block.cobblestone.blockID;
 				}
-				index = (x0 + x) << 11 | (z0 + z) << 7 | y0;
+				index = (x0 + x) << 12 | (z0 + z) << 8 | y0;
 				data[index] = b;
 				meta[index] = m;
 			}
@@ -490,42 +482,42 @@ public class MapGenCity extends MapGenBase {
 			for (int j = 0; j < 4; j ++) {
 				if (i == 0 || j == 0 || i == 3 || j == 3) {
 					for (int y = y0 + 1; y <= y0 + 5; y ++) {
-						data[x << 11 | z << 7 | y] = this.columnsID; 
-						meta[x << 11 | z << 7 | y] = this.columnsMeta; 
+						data[x << 12 | z << 8 | y] = this.columnsID; 
+						meta[x << 12 | z << 8 | y] = this.columnsMeta; 
 						
 						if (i == 0) {
-							data[(x - 1) << 11 | z << 7 | y] = this.columnsID;
-							meta[(x - 1) << 11 | z << 7 | y] = this.columnsMeta;
+							data[(x - 1) << 12 | z << 8 | y] = this.columnsID;
+							meta[(x - 1) << 12 | z << 8 | y] = this.columnsMeta;
 						}
 						if (i == 3) {
-							data[(x + 1) << 11 | z << 7 | y] = this.columnsID;
-							meta[(x + 1) << 11 | z << 7 | y] = this.columnsMeta;
+							data[(x + 1) << 12 | z << 8 | y] = this.columnsID;
+							meta[(x + 1) << 12 | z << 8 | y] = this.columnsMeta;
 							
 						}
 						if (j == 0) {
-							data[x << 11 | (z - 1) << 7 | y] = this.columnsID;
-							meta[x << 11 | (z - 1) << 7 | y] = this.columnsMeta;
+							data[x << 12 | (z - 1) << 8 | y] = this.columnsID;
+							meta[x << 12 | (z - 1) << 8 | y] = this.columnsMeta;
 						}
 						if (j == 3) {
-							data[x << 11 | (z + 1) << 7 | y] = this.columnsID;
-							meta[x << 11 | (z + 1) << 7 | y] = this.columnsMeta;
+							data[x << 12 | (z + 1) << 8 | y] = this.columnsID;
+							meta[x << 12 | (z + 1) << 8 | y] = this.columnsMeta;
 						}
 
 						if (i == 0 && j == 0) {
-							data[(x - 1) << 11 | (z - 1) << 7 | y] = this.columnsID;
-							meta[(x - 1) << 11 | (z - 1) << 7 | y] = this.columnsMeta;
+							data[(x - 1) << 12 | (z - 1) << 8 | y] = this.columnsID;
+							meta[(x - 1) << 12 | (z - 1) << 8 | y] = this.columnsMeta;
 						}
 						if (i == 3 && j == 0) {
-							data[(x + 1) << 11 | (z - 1) << 7 | y] = this.columnsID;
-							meta[(x + 1) << 11 | (z - 1) << 7 | y] = this.columnsMeta;
+							data[(x + 1) << 12 | (z - 1) << 8 | y] = this.columnsID;
+							meta[(x + 1) << 12 | (z - 1) << 8 | y] = this.columnsMeta;
 						}
 						if (i == 0 && j == 3) {
-							data[(x - 1) << 11 | (z + 1) << 7 | y] = this.columnsID;
-							meta[(x - 1) << 11 | (z + 1) << 7 | y] = this.columnsMeta;
+							data[(x - 1) << 12 | (z + 1) << 8 | y] = this.columnsID;
+							meta[(x - 1) << 12 | (z + 1) << 8 | y] = this.columnsMeta;
 						}
 						if (i == 3 && j == 3) {
-							data[(x + 1) << 11 | (z + 1) << 7 | y] = this.columnsID;
-							meta[(x + 1) << 11 | (z + 1) << 7 | y] = this.columnsMeta;
+							data[(x + 1) << 12 | (z + 1) << 8 | y] = this.columnsID;
+							meta[(x + 1) << 12 | (z + 1) << 8 | y] = this.columnsMeta;
 						}
 					}
 					
@@ -549,7 +541,7 @@ public class MapGenCity extends MapGenBase {
 		// Hollow
 		for(x = 2; x < 13; x ++) {
 			for(z = 2; z < 13; z ++) {
-				int idx = (x << 11) | (z << 7) | (y0 + 1);
+				int idx = (x << 12) | (z << 8) | (y0 + 1);
 				for(int y = 1; y <= 5; y ++) {
 					data[idx ++] = 0;
 				}
@@ -565,30 +557,30 @@ public class MapGenCity extends MapGenBase {
 	private void drawRoofStairs(int x0, int y0, int z0, byte[] data, boolean stairsOrientation) {
 		if (stairsOrientation) {
 			for (int z = 3; z < 10; z++) {
-				data[(x0 + stairOffset) << 11 | (z0 + z) << 7 | y0] = 0;
+				data[(x0 + stairOffset) << 12 | (z0 + z) << 8 | y0] = 0;
 			}
 			int x = x0 + stairOffset, y = y0, z = z0 + 3;
 			for (int i = 0; i < 4; i++) {
-				data[x << 11 | z << 7 | y] = (byte) Block.stairSingle.blockID;
-				data[x << 11 | z << 7 | (y - 1)] = (byte) Block.cobblestone.blockID;
-				data[x << 11 | (z + 1) << 7 | (y - 1)] = (byte) Block.cobblestone.blockID;
+				data[x << 12 | z << 8 | y] = (byte) Block.stairSingle.blockID;
+				data[x << 12 | z << 8 | (y - 1)] = (byte) Block.cobblestone.blockID;
+				data[x << 12 | (z + 1) << 8 | (y - 1)] = (byte) Block.cobblestone.blockID;
 				z += 2;
 				y--;
 			}
-			data[x << 11 | z << 7 | y] = (byte) Block.stairSingle.blockID;
+			data[x << 12 | z << 8 | y] = (byte) Block.stairSingle.blockID;
 		} else {
 			for (int x = 3; x < 10; x++) {
-				data[(x0 + x) << 11 | (z0 + stairOffset) << 7 | y0] = 0;
+				data[(x0 + x) << 12 | (z0 + stairOffset) << 8 | y0] = 0;
 			}
 			int x = x0 + 3, y = y0, z = z0 + stairOffset;
 			for (int i = 0; i < 4; i++) {
-				data[x << 11 | z << 7 | y] = (byte) Block.stairSingle.blockID;
-				data[x << 11 | z << 7 | (y - 1)] = (byte) Block.cobblestone.blockID;
-				data[(x + 1) << 11 | z << 7 | (y - 1)] = (byte) Block.cobblestone.blockID;
+				data[x << 12 | z << 8 | y] = (byte) Block.stairSingle.blockID;
+				data[x << 12 | z << 8 | (y - 1)] = (byte) Block.cobblestone.blockID;
+				data[(x + 1) << 12 | z << 8 | (y - 1)] = (byte) Block.cobblestone.blockID;
 				x += 2;
 				y--;
 			}
-			data[x << 11 | z << 7 | y] = (byte) Block.stairSingle.blockID;
+			data[x << 12 | z << 8 | y] = (byte) Block.stairSingle.blockID;
 		}
 	}
 
@@ -596,8 +588,8 @@ public class MapGenCity extends MapGenBase {
 		// Floor
 		for (int x = 1; x < 14; x ++)
 			for (int z = 1; z < 14; z ++) {
-				data[(x0 + x) << 11 | (z0 + z) << 7 | y0] = this.floorID;
-				meta[(x0 + x) << 11 | (z0 + z) << 7 | y0] = this.floorMeta;
+				data[(x0 + x) << 12 | (z0 + z) << 8 | y0] = this.floorID;
+				meta[(x0 + x) << 12 | (z0 + z) << 8 | y0] = this.floorMeta;
 			}
 
 		drawRoofStairs(x0, y0, z0, data, stairsOrientation);
@@ -609,43 +601,43 @@ public class MapGenCity extends MapGenBase {
 			for (int j = 0; j < 4; j ++) {
 				if (i == 0 || j == 0 || i == 3 || j == 3) {
 					for (int y = y0; y <= y0 + 5; y ++) {
-						data[x << 11 | z << 7 | y] = this.columnsID;
-						meta[x << 11 | z << 7 | y] = this.columnsMeta;
+						data[x << 12 | z << 8 | y] = this.columnsID;
+						meta[x << 12 | z << 8 | y] = this.columnsMeta;
 						
 						if (this.columnsType > 0) {
 							if (i == 0) {
-								data[(x - 1) << 11 | z << 7 | y] = this.columnsID;
-								meta[(x - 1) << 11 | z << 7 | y] = this.columnsMeta;
+								data[(x - 1) << 12 | z << 8 | y] = this.columnsID;
+								meta[(x - 1) << 12 | z << 8 | y] = this.columnsMeta;
 							}
 							if (i == 3) {
-								data[(x + 1) << 11 | z << 7 | y] = this.columnsID;
-								meta[(x + 1) << 11 | z << 7 | y] = this.columnsMeta;
+								data[(x + 1) << 12 | z << 8 | y] = this.columnsID;
+								meta[(x + 1) << 12 | z << 8 | y] = this.columnsMeta;
 							}
 							if (j == 0) {
-								data[x << 11 | (z - 1) << 7 | y] = this.columnsID;
-								meta[x << 11 | (z - 1) << 7 | y] = this.columnsMeta;
+								data[x << 12 | (z - 1) << 8 | y] = this.columnsID;
+								meta[x << 12 | (z - 1) << 8 | y] = this.columnsMeta;
 							}
 							if (j == 3) {
-								data[x << 11 | (z + 1) << 7 | y] = this.columnsID;
-								meta[x << 11 | (z + 1) << 7 | y] = this.columnsMeta;
+								data[x << 12 | (z + 1) << 8 | y] = this.columnsID;
+								meta[x << 12 | (z + 1) << 8 | y] = this.columnsMeta;
 							}
 						}
 						if (this.columnsType == 2) {
 							if (i == 0 && j == 0) {
-								data[(x - 1) << 11 | (z - 1) << 7 | y] = this.columnsID;
-								meta[(x - 1) << 11 | (z - 1) << 7 | y] = this.columnsMeta;
+								data[(x - 1) << 12 | (z - 1) << 8 | y] = this.columnsID;
+								meta[(x - 1) << 12 | (z - 1) << 8 | y] = this.columnsMeta;
 							}
 							if (i == 3 && j == 0) {
-								data[(x + 1) << 11 | (z - 1) << 7 | y] = this.columnsID;
-								meta[(x + 1) << 11 | (z - 1) << 7 | y] = this.columnsMeta;
+								data[(x + 1) << 12 | (z - 1) << 8 | y] = this.columnsID;
+								meta[(x + 1) << 12 | (z - 1) << 8 | y] = this.columnsMeta;
 							}
 							if (i == 0 && j == 3) {
-								data[(x - 1) << 11 | (z + 1) << 7 | y] = this.columnsID;
-								meta[(x - 1) << 11 | (z + 1) << 7 | y] = this.columnsMeta;
+								data[(x - 1) << 12 | (z + 1) << 8 | y] = this.columnsID;
+								meta[(x - 1) << 12 | (z + 1) << 8 | y] = this.columnsMeta;
 							}
 							if (i == 3 && j == 3) {
-								data[(x + 1) << 11 | (z + 1) << 7 | y] = this.columnsID;
-								meta[(x + 1) << 11 | (z + 1) << 7 | y] = this.columnsMeta;
+								data[(x + 1) << 12 | (z + 1) << 8 | y] = this.columnsID;
+								meta[(x + 1) << 12 | (z + 1) << 8 | y] = this.columnsMeta;
 							}
 						}
 					}
@@ -671,78 +663,78 @@ public class MapGenCity extends MapGenBase {
 		for (int y = y0; y < y0 + 5; y ++) {
 			
 			// Corners
-			data[x0 << 11 | z0 << 7 | y] = this.columnsID;
-			data[(x0 + 1) << 11 | z0 << 7 | y] = this.columnsID;
-			data[x0 << 11 | (z0 + 1) << 7 | y] = this.columnsID;
-			data[(x0 + 1) << 11 | (z0 + 1) << 7 | y] = this.columnsID;
+			data[x0 << 12 | z0 << 8 | y] = this.columnsID;
+			data[(x0 + 1) << 12 | z0 << 8 | y] = this.columnsID;
+			data[x0 << 12 | (z0 + 1) << 8 | y] = this.columnsID;
+			data[(x0 + 1) << 12 | (z0 + 1) << 8 | y] = this.columnsID;
 			
-			data[(x0 + 11) << 11 | z0 << 7 | y] = this.columnsID;
-			data[(x0 + 12) << 11 | z0 << 7 | y] = this.columnsID;
-			data[(x0 + 11) << 11 | (z0 + 1) << 7 | y] = this.columnsID;
-			data[(x0 + 12) << 11 | (z0 + 1) << 7 | y] = this.columnsID;
+			data[(x0 + 11) << 12 | z0 << 8 | y] = this.columnsID;
+			data[(x0 + 12) << 12 | z0 << 8 | y] = this.columnsID;
+			data[(x0 + 11) << 12 | (z0 + 1) << 8 | y] = this.columnsID;
+			data[(x0 + 12) << 12 | (z0 + 1) << 8 | y] = this.columnsID;
 			
-			data[x0 << 11 | (z0 + 11) << 7 | y] = this.columnsID;
-			data[(x0 + 1) << 11 | (z0 + 11) << 7 | y] = this.columnsID;
-			data[x0 << 11 | (z0 + 12) << 7 | y] = this.columnsID;
-			data[(x0 + 1) << 11 | (z0 + 12) << 7 | y] = this.columnsID;
+			data[x0 << 12 | (z0 + 11) << 8 | y] = this.columnsID;
+			data[(x0 + 1) << 12 | (z0 + 11) << 8 | y] = this.columnsID;
+			data[x0 << 12 | (z0 + 12) << 8 | y] = this.columnsID;
+			data[(x0 + 1) << 12 | (z0 + 12) << 8 | y] = this.columnsID;
 			
-			data[(x0 + 11) << 11 | (z0 + 11) << 7 | y] = this.columnsID;
-			data[(x0 + 12) << 11 | (z0 + 11) << 7 | y] = this.columnsID;
-			data[(x0 + 11) << 11 | (z0 + 12) << 7 | y] = this.columnsID;
-			data[(x0 + 12) << 11 | (z0 + 12) << 7 | y] = this.columnsID;
+			data[(x0 + 11) << 12 | (z0 + 11) << 8 | y] = this.columnsID;
+			data[(x0 + 12) << 12 | (z0 + 11) << 8 | y] = this.columnsID;
+			data[(x0 + 11) << 12 | (z0 + 12) << 8 | y] = this.columnsID;
+			data[(x0 + 12) << 12 | (z0 + 12) << 8 | y] = this.columnsID;
 			
-			meta[x0 << 11 | z0 << 7 | y] = this.columnsMeta;
-			meta[(x0 + 1) << 11 | z0 << 7 | y] = this.columnsMeta;
-			meta[x0 << 11 | (z0 + 1) << 7 | y] = this.columnsMeta;
-			meta[(x0 + 1) << 11 | (z0 + 1) << 7 | y] = this.columnsMeta;
+			meta[x0 << 12 | z0 << 8 | y] = this.columnsMeta;
+			meta[(x0 + 1) << 12 | z0 << 8 | y] = this.columnsMeta;
+			meta[x0 << 12 | (z0 + 1) << 8 | y] = this.columnsMeta;
+			meta[(x0 + 1) << 12 | (z0 + 1) << 8 | y] = this.columnsMeta;
 			
-			meta[(x0 + 11) << 11 | z0 << 7 | y] = this.columnsMeta;
-			meta[(x0 + 12) << 11 | z0 << 7 | y] = this.columnsMeta;
-			meta[(x0 + 11) << 11 | (z0 + 1) << 7 | y] = this.columnsMeta;
-			meta[(x0 + 12) << 11 | (z0 + 1) << 7 | y] = this.columnsMeta;
+			meta[(x0 + 11) << 12 | z0 << 8 | y] = this.columnsMeta;
+			meta[(x0 + 12) << 12 | z0 << 8 | y] = this.columnsMeta;
+			meta[(x0 + 11) << 12 | (z0 + 1) << 8 | y] = this.columnsMeta;
+			meta[(x0 + 12) << 12 | (z0 + 1) << 8 | y] = this.columnsMeta;
 			
-			meta[x0 << 11 | (z0 + 11) << 7 | y] = this.columnsMeta;
-			meta[(x0 + 1) << 11 | (z0 + 11) << 7 | y] = this.columnsMeta;
-			meta[x0 << 11 | (z0 + 12) << 7 | y] = this.columnsMeta;
-			meta[(x0 + 1) << 11 | (z0 + 12) << 7 | y] = this.columnsMeta;
+			meta[x0 << 12 | (z0 + 11) << 8 | y] = this.columnsMeta;
+			meta[(x0 + 1) << 12 | (z0 + 11) << 8 | y] = this.columnsMeta;
+			meta[x0 << 12 | (z0 + 12) << 8 | y] = this.columnsMeta;
+			meta[(x0 + 1) << 12 | (z0 + 12) << 8 | y] = this.columnsMeta;
 			
-			meta[(x0 + 11) << 11 | (z0 + 11) << 7 | y] = this.columnsMeta;
-			meta[(x0 + 12) << 11 | (z0 + 11) << 7 | y] = this.columnsMeta;
-			meta[(x0 + 11) << 11 | (z0 + 12) << 7 | y] = this.columnsMeta;
-			meta[(x0 + 12) << 11 | (z0 + 12) << 7 | y] = this.columnsMeta;
+			meta[(x0 + 11) << 12 | (z0 + 11) << 8 | y] = this.columnsMeta;
+			meta[(x0 + 12) << 12 | (z0 + 11) << 8 | y] = this.columnsMeta;
+			meta[(x0 + 11) << 12 | (z0 + 12) << 8 | y] = this.columnsMeta;
+			meta[(x0 + 12) << 12 | (z0 + 12) << 8 | y] = this.columnsMeta;
 			
 			// Pillars
 			for (int i = 0; i < 7; i += 2) {
-				data[(x0 + 3 + i) << 11 | z0 << 7 | y] = this.columnsID;
-				data[(x0 + 3 + i) << 11 | (z0 + 1) << 7 | y] = this.columnsID;
+				data[(x0 + 3 + i) << 12 | z0 << 8 | y] = this.columnsID;
+				data[(x0 + 3 + i) << 12 | (z0 + 1) << 8 | y] = this.columnsID;
 				
-				data[(x0 + 3 + i) << 11 | (z0 + 11) << 7 | y] = this.columnsID;
-				data[(x0 + 3 + i) << 11 | (z0 + 12) << 7 | y] = this.columnsID;
+				data[(x0 + 3 + i) << 12 | (z0 + 11) << 8 | y] = this.columnsID;
+				data[(x0 + 3 + i) << 12 | (z0 + 12) << 8 | y] = this.columnsID;
 				
-				data[x0 << 11 | (z0 + 3 + i) << 7 | y] = this.columnsID;
-				data[(x0 + 1) << 11 | (z0 + 3 + i) << 7 | y] = this.columnsID;
-				data[(x0 + 11) << 11 | (z0 + 3 + i) << 7 | y] = this.columnsID;
-				data[(x0 + 12) << 11 | (z0 + 3 + i) << 7 | y] = this.columnsID;
+				data[x0 << 12 | (z0 + 3 + i) << 8 | y] = this.columnsID;
+				data[(x0 + 1) << 12 | (z0 + 3 + i) << 8 | y] = this.columnsID;
+				data[(x0 + 11) << 12 | (z0 + 3 + i) << 8 | y] = this.columnsID;
+				data[(x0 + 12) << 12 | (z0 + 3 + i) << 8 | y] = this.columnsID;
 				
-				meta[(x0 + 3 + i) << 11 | z0 << 7 | y] = this.columnsMeta;
-				meta[(x0 + 3 + i) << 11 | (z0 + 1) << 7 | y] = this.columnsMeta;
+				meta[(x0 + 3 + i) << 12 | z0 << 8 | y] = this.columnsMeta;
+				meta[(x0 + 3 + i) << 12 | (z0 + 1) << 8 | y] = this.columnsMeta;
 				
-				meta[(x0 + 3 + i) << 11 | (z0 + 11) << 7 | y] = this.columnsMeta;
-				meta[(x0 + 3 + i) << 11 | (z0 + 12) << 7 | y] = this.columnsMeta;
+				meta[(x0 + 3 + i) << 12 | (z0 + 11) << 8 | y] = this.columnsMeta;
+				meta[(x0 + 3 + i) << 12 | (z0 + 12) << 8 | y] = this.columnsMeta;
 				
-				meta[x0 << 11 | (z0 + 3 + i) << 7 | y] = this.columnsMeta;
-				meta[(x0 + 1) << 11 | (z0 + 3 + i) << 7 | y] = this.columnsMeta;
-				meta[(x0 + 11) << 11 | (z0 + 3 + i) << 7 | y] = this.columnsMeta;
-				meta[(x0 + 12) << 11 | (z0 + 3 + i) << 7 | y] = this.columnsMeta;
+				meta[x0 << 12 | (z0 + 3 + i) << 8 | y] = this.columnsMeta;
+				meta[(x0 + 1) << 12 | (z0 + 3 + i) << 8 | y] = this.columnsMeta;
+				meta[(x0 + 11) << 12 | (z0 + 3 + i) << 8 | y] = this.columnsMeta;
+				meta[(x0 + 12) << 12 | (z0 + 3 + i) << 8 | y] = this.columnsMeta;
 			}
 			
 			// Windows
 			for (int i = 0; i < 9; i += 2) {
-				data[(x0 + 2 + i) << 11 | (z0 + 1) << 7 | y] = this.glassID;
-				data[(x0 + 2 + i) << 11 | (z0 + 11) << 7 | y] = this.glassID;
+				data[(x0 + 2 + i) << 12 | (z0 + 1) << 8 | y] = this.glassID;
+				data[(x0 + 2 + i) << 12 | (z0 + 11) << 8 | y] = this.glassID;
 				
-				data[(x0 + 1) << 11 | (z0 + 2 + i) << 7 | y] = this.glassID;
-				data[(x0 + 11) << 11 | (z0 + 2 + i) << 7 | y] = this.glassID;
+				data[(x0 + 1) << 12 | (z0 + 2 + i) << 8 | y] = this.glassID;
+				data[(x0 + 11) << 12 | (z0 + 2 + i) << 8 | y] = this.glassID;
 			}
 		}
 				
@@ -750,7 +742,7 @@ public class MapGenCity extends MapGenBase {
 		int extend = this.b2floorType << 1;
 		for (int x = x0 + 2 - extend; x < x0 + 11 + extend; x ++) {
 			for (int z = z0 + 2 - extend; z < z0 + 11 + extend; z ++) {
-				data[x << 11 | z << 7 | y0] = this.floorID;
+				data[x << 12 | z << 8 | y0] = this.floorID;
 			}
 		}
 		
@@ -771,7 +763,7 @@ public class MapGenCity extends MapGenBase {
 		// check if clear
 		for(int x = 0; x < dimX; x ++) {
 			for(int z = 0; z < dimZ; z ++) {
-				int idx = (x0 + x) << 11 | (z0 + z) << 7 | y0;
+				int idx = (x0 + x) << 12 | (z0 + z) << 8 | y0;
 				if(data[idx] != 0 || data [idx + 1] != 0) return;
 			}
 		}
@@ -784,45 +776,45 @@ public class MapGenCity extends MapGenBase {
 		// Stairs down (in a corner)
 		// Layer 1 with hole
 		int x = x0 + 2, y = y0, z = z0 + 2;
-		data[x << 11 | z << 7 | y] = 0;
-		data[(x + 1) << 11 | z << 7 | y] = (byte)Block.stairSingle.blockID;
-		data[(x + 2) << 11 | z << 7 | y] = (byte)Block.stairDouble.blockID;
-		data[x << 11 | (z + 1) << 7 | y] = 0;
-		data[(x + 1) << 11 | (z + 1) << 7 | y] = this.wallID;
-		meta[(x + 1) << 11 | (z + 1) << 7 | y] = this.wallMeta;
-		data[(x + 2) << 11 | (z + 1) << 7 | y] = 0;
-		data[x << 11 | (z + 2) << 7 | y] = 0;
-		data[(x + 1) << 11 | (z + 2) << 7 | y] = 0;
-		data[(x + 2) << 11 | (z + 2) << 7 | y] = 0;
+		data[x << 12 | z << 8 | y] = 0;
+		data[(x + 1) << 12 | z << 8 | y] = (byte)Block.stairSingle.blockID;
+		data[(x + 2) << 12 | z << 8 | y] = (byte)Block.stairDouble.blockID;
+		data[x << 12 | (z + 1) << 8 | y] = 0;
+		data[(x + 1) << 12 | (z + 1) << 8 | y] = this.wallID;
+		meta[(x + 1) << 12 | (z + 1) << 8 | y] = this.wallMeta;
+		data[(x + 2) << 12 | (z + 1) << 8 | y] = 0;
+		data[x << 12 | (z + 2) << 8 | y] = 0;
+		data[(x + 1) << 12 | (z + 2) << 8 | y] = 0;
+		data[(x + 2) << 12 | (z + 2) << 8 | y] = 0;
 		
 		// Layer 2
 		y --;
-		data[x << 11 | z << 7 | y] = (byte)Block.stairDouble.blockID;
-		data[x << 11 | (z + 1) << 7 | y] = (byte)Block.stairSingle.blockID;
-		data[(x + 1) << 11 | (z + 1) << 7 | y] = this.wallID;
-		meta[(x + 1) << 11 | (z + 1) << 7 | y] = this.wallMeta;
+		data[x << 12 | z << 8 | y] = (byte)Block.stairDouble.blockID;
+		data[x << 12 | (z + 1) << 8 | y] = (byte)Block.stairSingle.blockID;
+		data[(x + 1) << 12 | (z + 1) << 8 | y] = this.wallID;
+		meta[(x + 1) << 12 | (z + 1) << 8 | y] = this.wallMeta;
 		
 		// Layer 3
 		y --;
-		data[x << 11 | (z + 2) << 7 | y] = (byte)Block.stairDouble.blockID;
-		data[(x + 1) << 11 | (z + 2) << 7 | y] = (byte)Block.stairSingle.blockID;
-		data[(x + 1) << 11 | (z + 1) << 7 | y] = this.wallID;
-		meta[(x + 1) << 11 | (z + 1) << 7 | y] = this.wallMeta;
+		data[x << 12 | (z + 2) << 8 | y] = (byte)Block.stairDouble.blockID;
+		data[(x + 1) << 12 | (z + 2) << 8 | y] = (byte)Block.stairSingle.blockID;
+		data[(x + 1) << 12 | (z + 1) << 8 | y] = this.wallID;
+		meta[(x + 1) << 12 | (z + 1) << 8 | y] = this.wallMeta;
 		
 		// Layer 4
 		y --;
-		data[(x + 2) << 11 | (z + 1) << 7 | y] = (byte)Block.stairSingle.blockID;
-		data[(x + 2) << 11 | (z + 2) << 7 | y] = (byte)Block.stairDouble.blockID;
-		data[(x + 1) << 11 | (z + 1) << 7 | y] = this.wallID;
-		meta[(x + 1) << 11 | (z + 1) << 7 | y] = this.wallMeta;
+		data[(x + 2) << 12 | (z + 1) << 8 | y] = (byte)Block.stairSingle.blockID;
+		data[(x + 2) << 12 | (z + 2) << 8 | y] = (byte)Block.stairDouble.blockID;
+		data[(x + 1) << 12 | (z + 1) << 8 | y] = this.wallID;
+		meta[(x + 1) << 12 | (z + 1) << 8 | y] = this.wallMeta;
 	}
 	
 	public void drawRoofType1(int x0, int y0, int z0, byte[] data, byte[] meta, Random rand, boolean stairsOrientation) {
 		// Floor
 		for (int x = 1; x < 14; x ++)
 			for (int z = 1; z < 14; z ++) {
-				data[(x0 + x) << 11 | (z0 + z) << 7 | y0] = this.floorID;
-				meta[(x0 + x) << 11 | (z0 + z) << 7 | y0] = this.floorMeta;
+				data[(x0 + x) << 12 | (z0 + z) << 8 | y0] = this.floorID;
+				meta[(x0 + x) << 12 | (z0 + z) << 8 | y0] = this.floorMeta;
 			}
 		
 		// Possible chest
@@ -837,8 +829,8 @@ public class MapGenCity extends MapGenBase {
 			this.thisChunk.specialY = y0 - 2;
 			this.thisChunk.specialX = 4 + rand.nextInt(8);
 			this.thisChunk.specialZ = 4 + rand.nextInt(8);
-			data[(thisChunk.specialX) << 11 | (thisChunk.specialZ) << 7 | (y0 - 3)] = (byte)Block.cobblestoneMossy.blockID;
-			data[(thisChunk.specialX) << 11 | (thisChunk.specialZ) << 7 | (y0 - 4)] = (byte)Block.cobblestoneMossy.blockID;
+			data[(thisChunk.specialX) << 12 | (thisChunk.specialZ) << 8 | (y0 - 3)] = (byte)Block.cobblestoneMossy.blockID;
+			data[(thisChunk.specialX) << 12 | (thisChunk.specialZ) << 8 | (y0 - 4)] = (byte)Block.cobblestoneMossy.blockID;
 
 		}
 		
@@ -847,22 +839,22 @@ public class MapGenCity extends MapGenBase {
 		// Railing
 		int y = y0 + 1;
 		for (int i = 1; i < 14; i ++) {
-			data[(x0 + i) << 11 | (z0 + 1) << 7 | y] = (byte) this.columnsID;
-			data[(x0 + i) << 11 | (z0 + 13) << 7 | y] = (byte) this.columnsID;
-			data[(x0 + 1) << 11 | (z0 + i) << 7 | y] = (byte) this.columnsID;
-			data[(x0 + 13) << 11 | (z0 + i) << 7 | y] = (byte) this.columnsID;
+			data[(x0 + i) << 12 | (z0 + 1) << 8 | y] = (byte) this.columnsID;
+			data[(x0 + i) << 12 | (z0 + 13) << 8 | y] = (byte) this.columnsID;
+			data[(x0 + 1) << 12 | (z0 + i) << 8 | y] = (byte) this.columnsID;
+			data[(x0 + 13) << 12 | (z0 + i) << 8 | y] = (byte) this.columnsID;
 			
-			meta[(x0 + i) << 11 | (z0 + 1) << 7 | y] = (byte) this.columnsMeta;
-			meta[(x0 + i) << 11 | (z0 + 13) << 7 | y] = (byte) this.columnsMeta;
-			meta[(x0 + 1) << 11 | (z0 + i) << 7 | y] = (byte) this.columnsMeta;
-			meta[(x0 + 13) << 11 | (z0 + i) << 7 | y] = (byte) this.columnsMeta;
+			meta[(x0 + i) << 12 | (z0 + 1) << 8 | y] = (byte) this.columnsMeta;
+			meta[(x0 + i) << 12 | (z0 + 13) << 8 | y] = (byte) this.columnsMeta;
+			meta[(x0 + 1) << 12 | (z0 + i) << 8 | y] = (byte) this.columnsMeta;
+			meta[(x0 + 13) << 12 | (z0 + i) << 8 | y] = (byte) this.columnsMeta;
 		}
 		
 		// Dirt?
 		if (rand.nextInt(6) == 0) {
 			for (int x = 2; x < 13; x ++)
 				for (int z = 2; z < 13; z ++) {
-					data[(x0 + x) << 11 | (z0 + z) << 7 | y] = (byte)Block.grass.blockID;
+					data[(x0 + x) << 12 | (z0 + z) << 8 | y] = (byte)Block.grass.blockID;
 				}		
 		}
 	}
@@ -871,13 +863,13 @@ public class MapGenCity extends MapGenBase {
 		for (int x = x0; x < x0 + 13; x ++) {
 			for (int z = z0; z < z0 + 13; z ++) {
 				if (x != x0 && z != z0 && x != x0 + 12 && z != z0 + 12) {
-					data[x << 11 | z << 7 | y0] = this.floorID;
-					meta[x << 11 | z << 7 | y0] = this.floorMeta;
+					data[x << 12 | z << 8 | y0] = this.floorID;
+					meta[x << 12 | z << 8 | y0] = this.floorMeta;
 				} else {
-					data[x << 11 | z << 7 | y0] = this.wallID;
-					meta[x << 11 | z << 7 | y0] = this.wallMeta;
-					data[x << 11 | z << 7 | (y0 + 1)] = this.wallID;
-					meta[x << 11 | z << 7 | (y0 + 1)] = this.wallMeta;
+					data[x << 12 | z << 8 | y0] = this.wallID;
+					meta[x << 12 | z << 8 | y0] = this.wallMeta;
+					data[x << 12 | z << 8 | (y0 + 1)] = this.wallID;
+					meta[x << 12 | z << 8 | (y0 + 1)] = this.wallMeta;
 				}
 			}
 		}
@@ -996,7 +988,7 @@ public class MapGenCity extends MapGenBase {
 	public void fillWholeLayer(int y0, byte[] data, byte[] meta, byte blockID) {
 		for (int x = 0; x < 16; x ++)
 			for (int z = 0; z < 16; z ++) 
-				data[x << 11 | z << 7 | y0] = blockID;
+				data[x << 12 | z << 8 | y0] = blockID;
 	}
 	
 	public void drawBitmap(int y0, byte[] data, byte[] meta, byte[] bitmap) {
@@ -1006,9 +998,9 @@ public class MapGenCity extends MapGenBase {
 				byte bb = bitmap[idx];
 				if (bb >= 0) {
 					b = (byte)CityBitmaps.blockIDMappings[bb][0]; 
-					data[x << 11 | z << 7 | y0] = b;
+					data[x << 12 | z << 8 | y0] = b;
 					b = (byte)CityBitmaps.blockIDMappings[bb][1];
-					meta[x << 11 | z << 7 | y0] = b;
+					meta[x << 12 | z << 8 | y0] = b;
 				}
 				idx ++;
 			}
@@ -1016,7 +1008,7 @@ public class MapGenCity extends MapGenBase {
 		// Fix slabs
 		for (int x = 0; x < 16; x ++)
 			for (int z = 0; z < 16; z ++) {
-				idx = x << 11 | z << 7 | y0;
+				idx = x << 12 | z << 8 | y0;
 				if(data[idx] == Block.stairSingle.blockID && data[idx + 1] != 0) {
 					data[idx] = (byte)Block.dirt.blockID;
 				}
@@ -1029,10 +1021,10 @@ public class MapGenCity extends MapGenBase {
 			for (int z = 0; z < 16; z ++) {
 				byte b = bitmap[idx ++];
 				if(b != 2 && b != 3 && b != 0) {
-					data[x << 11 | z << 7 | y0] = (byte)CityBitmaps.blockIDMappings[b][0];
-					meta[x << 11 | z << 7 | y0] = (byte)CityBitmaps.blockIDMappings[b][1];
+					data[x << 12 | z << 8 | y0] = (byte)CityBitmaps.blockIDMappings[b][0];
+					meta[x << 12 | z << 8 | y0] = (byte)CityBitmaps.blockIDMappings[b][1];
 				}
-				else if(!this.desertChunk) data[x << 11 | z << 7 | y0] = 0;
+				else if(!this.desertChunk) data[x << 12 | z << 8 | y0] = 0;
 			}	
 	}
 	
@@ -1046,20 +1038,20 @@ public class MapGenCity extends MapGenBase {
 			this.drawBitmap(y0 + i, data, meta, CityBitmaps.fountainBigBlockBitmap[i]);
 		
 		int y = y0 + 3;
-		data[7 << 11 | 7 << 7 | y] = (byte)Block.cobblestone.blockID;
-		data[8 << 11 | 7 << 7 | y] = (byte)Block.cobblestone.blockID;
-		data[7 << 11 | 8 << 7 | y] = (byte)Block.cobblestoneMossy.blockID;
-		data[8 << 11 | 8 << 7 | y] = (byte)Block.cobblestone.blockID;
+		data[7 << 12 | 7 << 8 | y] = (byte)Block.cobblestone.blockID;
+		data[8 << 12 | 7 << 8 | y] = (byte)Block.cobblestone.blockID;
+		data[7 << 12 | 8 << 8 | y] = (byte)Block.cobblestoneMossy.blockID;
+		data[8 << 12 | 8 << 8 | y] = (byte)Block.cobblestone.blockID;
 		y++;
-		data[7 << 11 | 7 << 7 | y] = (byte)Block.fence.blockID;
-		data[8 << 11 | 7 << 7 | y] = (byte)Block.fence.blockID;
-		data[7 << 11 | 8 << 7 | y] = (byte)Block.fence.blockID;
-		data[8 << 11 | 8 << 7 | y] = (byte)Block.fence.blockID;
+		data[7 << 12 | 7 << 8 | y] = (byte)Block.fence.blockID;
+		data[8 << 12 | 7 << 8 | y] = (byte)Block.fence.blockID;
+		data[7 << 12 | 8 << 8 | y] = (byte)Block.fence.blockID;
+		data[8 << 12 | 8 << 8 | y] = (byte)Block.fence.blockID;
 		y++;
-		data[7 << 11 | 7 << 7 | y] = (byte)Block.stairSingle.blockID;
-		data[8 << 11 | 7 << 7 | y] = (byte)Block.stairSingle.blockID;
-		data[7 << 11 | 8 << 7 | y] = (byte)Block.stairSingle.blockID;
-		data[8 << 11 | 8 << 7 | y] = (byte)Block.stairSingle.blockID;
+		data[7 << 12 | 7 << 8 | y] = (byte)Block.stairSingle.blockID;
+		data[8 << 12 | 7 << 8 | y] = (byte)Block.stairSingle.blockID;
+		data[7 << 12 | 8 << 8 | y] = (byte)Block.stairSingle.blockID;
+		data[8 << 12 | 8 << 8 | y] = (byte)Block.stairSingle.blockID;
 	}
 	
 	public void generateUrbanGarden(int x0, int y0, int z0, byte[] data, byte[] meta, Random rand) {
@@ -1074,17 +1066,17 @@ public class MapGenCity extends MapGenBase {
 			if(chunk.hasRoad && chunk.roadVariation == 0) {
 				// This chunk is already in the world, so it was sliced into subchunks when it
 				// was generated and its flat generation buffers have been dropped. Stage the
-				// terrain edit into a local flat 128-high pair and apply it back through the
+				// terrain edit into a local flat 256-high pair and apply it back through the
 				// subchunk storage (raiseTerrain / flattenTerrain / generateStreetFloorSimple are
 				// flat-buffer based, and the historical behaviour wrote straight into the chunk).
-				byte[] data = chunk.exportFlatBlocks128();
-				byte[] meta = chunk.exportFlatData128();
+				byte[] data = chunk.exportFlatBlocks();
+				byte[] meta = chunk.exportFlatData();
 				this.raiseTerrain(chunk.baseHeight, data, meta);
 				if(!this.desertChunk) {
 					this.flattenTerrain(chunk.baseHeight, data, meta);
 				}
 				this.generateStreetFloorSimple(0, chunk.baseHeight, 0, data, meta, rand, cityPiece);
-				chunk.importFlatBlocks128(data, meta);
+				chunk.importFlatBlocks(data, meta);
 				chunk.roadVariation = cityPiece;
 				chunk.isTerrainPopulated = false;
 			}

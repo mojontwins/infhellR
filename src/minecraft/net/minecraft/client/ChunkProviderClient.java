@@ -34,17 +34,14 @@ public class ChunkProviderClient implements IChunkProvider {
 	}
 
 	public Chunk prepareChunk(int x, int z) {
-		byte[] blockData = new byte[32768];
-		byte[] metaData = new byte[32768];
-		Chunk chunk = new Chunk(this.worldObj, blockData, metaData, x, z);
-		// Slice the flat 128-tall buffers into the eager subchunks 0-7 (the upper subchunks
-		// stay null, i.e. implicitly air and fully lit) and drop the flat storage.
-		chunk.loadFlatBlocks(blockData, metaData);
-		// Mark every materialized subchunk's skylight as "uninitialised" (0xFF): a value the
-		// light engine cannot produce, so the incoming full-chunk light planes are trusted.
-		for(int section = 0; section < chunk.subchunkCount; ++section) {
-			Arrays.fill(chunk.skyLightMap[section].data, (byte) -1);
-		}
+		// Start with no materialized subchunks at all. The chunk is pure implicit air until
+		// setChunkData copies the server's block plane, and only the sections that plane proves
+		// to hold a non-air block are materialized (and their light planes written in the same
+		// call). This replaces the old "allocate a 128-tall all-air flat buffer, slice it into
+		// the eager subchunks 0-7, then pre-fill their sky planes with 0xFF" sequence: the flat
+		// buffer only ever held air, and nothing in the light engine ever reads 0xFF back as a
+		// sentinel, so both steps were dead weight.
+		Chunk chunk = new Chunk(this.worldObj, x, z);
 		this.chunkMapping.add(ChunkCoordIntPair.chunkXZ2Long(x, z), chunk);
 		chunk.isChunkLoaded = true;
 		return chunk;

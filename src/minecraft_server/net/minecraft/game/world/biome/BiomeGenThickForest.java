@@ -146,7 +146,7 @@ public class BiomeGenThickForest extends BiomeGenForest {
 		byte topMeta = (byte) (rand.nextBoolean() ? 1 : 0);
 		byte fillerBlock = this.fillerBlock;
 
-		int index = x << 11 | z << 7 | 127;
+		int index = x << 12 | z << 8 | 127;
 		boolean firstFiller = false;
 		
 		for(int y = 127; y >= 0; --y) {

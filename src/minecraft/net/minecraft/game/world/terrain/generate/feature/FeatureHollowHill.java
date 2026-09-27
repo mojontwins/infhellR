@@ -99,7 +99,7 @@ public class FeatureHollowHill extends Feature {
 					chunk.landSurfaceHeightMap[heightMapIndex] = (byte)newHeight;
 				}
 				rz ++;
-				index += 128;
+				index += 256;
 
 			}
 			rx ++;

@@ -27,7 +27,7 @@ public class ChunkProviderSky extends ChunkProviderGenerate implements IChunkPro
 		int cellSize = quadrantSize + 1;
 		byte columnSize = 33;
 		int cellSize2 = quadrantSize + 1;
-		short chunkHeight = 128;
+		short chunkHeight = 256;
 		
 		this.terrainNoise = this.initializeNoiseField(this.terrainNoise, chunkX * quadrantSize, 0, chunkZ * quadrantSize, cellSize, columnSize, cellSize2);
 
@@ -52,7 +52,7 @@ public class ChunkProviderSky extends ChunkProviderGenerate implements IChunkPro
 						double curNoiseBinc = (noiseD - noiseB) * yscalingFactor;
 
 						for(int x = 0; x < 8; ++x) {
-							int indexInBlockArray = (x + (xSection << 3)) << 11 | (0 + (zSection << 3)) << 7 | (ySection << 2) + y;
+							int indexInBlockArray = (x + (xSection << 3)) << 12 | (0 + (zSection << 3)) << 8 | (ySection << 2) + y;
 														
 							double density = curNoiseA;
 							double densityIncrement = (curNoiseB - curNoiseA) * densityVariationSpeed;

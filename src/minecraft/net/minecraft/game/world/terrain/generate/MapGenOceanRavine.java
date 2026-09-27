@@ -123,7 +123,7 @@ public class MapGenOceanRavine extends MapGenBase {
 
 				for (int zz = (int) z1; zz < z2; zz++) {
 					dz = (((double) (zz + chunkZ * 16) + 0.5D) - z) / d2;
-					int index = (xx * 16 + zz) * 128 + y2;
+					int index = (xx * 16 + zz) * 256 + y2;
 				
 					if (dx * dx + dz * dz >= 1.0D) {
 						continue;
