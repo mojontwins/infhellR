@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.logging.Logger;
 
 import net.minecraft.game.ChatAllowedCharacters;
@@ -93,11 +94,36 @@ public class NetServerHandler extends NetHandler implements ICommandListener {
     /** The player entity associated with this network connection. */
     private EntityPlayerMP playerEntity;
 
-    /** Counter incremented on each handlePackets() call. Used to throttle keepalive packets. */
-    private int keepAliveTicksSent;
+    /**
+     * Monotonic tick counter, incremented once per {@link #handlePackets()} call.
+     *
+     * <p>This is the field whose absence broke connection liveness: the old
+     * {@code keepAliveTicksSent}/{@code keepAliveTicksReceived} pair was never
+     * written anywhere, so the "has it been 20 ticks since the last keep-alive?"
+     * test was permanently {@code 0 > 20} and no keep-alive was ever sent. With no
+     * keep-alive, the only periodic server-to-client traffic was Packet4UpdateTime
+     * (once per second from MinecraftServer.doTick), so any 30-second gap in the tick
+     * loop tripped the 30s socket read timeout in NetworkManager and killed the client
+     * with the server reporting nothing. Vanilla 1.2.5 drove this off a per-tick
+     * counter (see clean_vanilla_125 NetServerHandler lines 38-47); this restores that.</p>
+     */
+    private long serverTicks = 0L;
 
-    /** Tick counter recorded when last packet was sent to the client. */
-    private int keepAliveTicksReceived;
+    /** Value of {@link #serverTicks} at the moment the last keep-alive was sent. */
+    private long lastKeepAliveTick = 0L;
+
+    /**
+     * Random nonce of the keep-alive currently outstanding. Sent to the client in
+     * {@link Packet0KeepAlive#randomId}; the client echoes it back and we only accept
+     * a reply matching this value, so a stale or duplicated echo is ignored.
+     */
+    private int keepAliveNonce = 0;
+
+    /** {@link System#nanoTime()} at the moment the outstanding keep-alive was sent, in milliseconds. */
+    private long keepAliveSentAtMillis = 0L;
+
+    /** Shared RNG used to generate keep-alive nonces. */
+    private static Random random = new Random();
 
     /** Number of consecutive ticks the player has been in air. Used to detect flying cheats. */
     private int playerInAirTime;
@@ -149,18 +175,29 @@ public class NetServerHandler extends NetHandler implements ICommandListener {
     }
 
     /**
-     * Per-tick packet processing entry point. Reads queued incoming packets and
-     * sends keepalive packets if the client has not responded in a while.
-     * Also decrements the inventory and creative-mode cooldowns.
+     * Per-tick packet processing entry point. Reads queued incoming packets, sends
+     * keep-alives when the connection has otherwise been quiet, and ticks down the
+     * inventory and creative-mode cooldowns.
      */
     public void handlePackets() {
+        // Monotonic tick counter. The keep-alive scheduler below is driven entirely
+        // off the delta of this counter, exactly as in vanilla 1.2.5.
+        ++this.serverTicks;
+
         // Drain any queued inbound packets first.
         this.netManager.processReadPackets();
 
-        // If more than 20 ticks have passed since we sent the last packet, send a keepalive
-        // to confirm the client is still responsive.
-        if (this.keepAliveTicksSent - this.keepAliveTicksReceived > 20) {
-            this.sendPacket(new Packet0KeepAlive());
+        // If more than 20 ticks (1 second) have passed since the last keep-alive,
+        // challenge the client. This is what guarantees the wire is never silent for
+        // 30 seconds, which is the precondition for the socket read timeout in
+        // NetworkManager never firing. Note this is deliberately independent of
+        // ordinary outbound traffic: if a server is busy enough that it sends nothing
+        // else, the keep-alive is still the thing that goes out.
+        if(this.serverTicks - this.lastKeepAliveTick > 20L) {
+            this.lastKeepAliveTick = this.serverTicks;
+            this.keepAliveSentAtMillis = System.nanoTime() / 1000000L;
+            this.keepAliveNonce = random.nextInt();
+            this.sendPacket(new Packet0KeepAlive(this.keepAliveNonce));
         }
 
         // Tick down the cooldowns so inventory/creative changes can resume.
@@ -633,14 +670,35 @@ public class NetServerHandler extends NetHandler implements ICommandListener {
     }
 
     /**
-     * Queues a packet for sending to the client and updates the keepalive timestamp
-     * to mark that the client just received something from the server.
+     * Queues a packet for sending to the client.
+     *
+     * <p>Faithful to vanilla 1.2.5, which has no side effect here. The previous port
+     * added {@code keepAliveTicksReceived = keepAliveTicksSent}, which was doubly
+     * wrong: it referenced a field that was never advanced, and it reset the
+     * keep-alive scheduler on every outbound packet, so a busy connection would never
+     * be challenged at all.</p>
      *
      * @param packet the packet to send
      */
     public void sendPacket(Packet packet) {
         this.netManager.addToSendQueue(packet);
-        this.keepAliveTicksReceived = this.keepAliveTicksSent;
+    }
+
+    /**
+     * Handles Packet0KeepAlive - the client echoing back the nonce we challenged it with.
+     *
+     * <p>Only a reply whose nonce matches the outstanding challenge is accepted; that
+     * is what makes this a real liveness measurement rather than a packet count. On a
+     * match the round-trip time is folded into the player's smoothed ping with a 3:1
+     * weighted average, so a single slow sample does not swing the reported value.</p>
+     *
+     * @param keepAlivePacket the echoed keep-alive
+     */
+    public void handleKeepAlive(Packet0KeepAlive keepAlivePacket) {
+        if(keepAlivePacket.randomId == this.keepAliveNonce) {
+            int roundTripMillis = (int)(System.nanoTime() / 1000000L - this.keepAliveSentAtMillis);
+            this.playerEntity.ping = (this.playerEntity.ping * 3 + roundTripMillis) / 4;
+        }
     }
 
     /**

@@ -1,5 +1,6 @@
 package net.minecraft.network;
 import net.minecraft.network.packet.Packet;
+import net.minecraft.network.packet.Packet0KeepAlive;
 import net.minecraft.network.packet.Packet100OpenWindow;
 import net.minecraft.network.packet.Packet101CloseWindow;
 import net.minecraft.network.packet.Packet102WindowClick;
@@ -668,6 +669,22 @@ public abstract class NetHandler {
 	 */
 	public void handleRemoveEntityEffect(Packet42RemoveEntityEffect removeEffect) {
 		this.registerPacket(removeEffect);	
+	}
+
+	/**
+	 * Handles keep-alive packets.
+	 *
+	 * <p>The client echoes the nonce straight back so the server can measure round-trip
+	 * time; the server validates it against the outstanding challenge. This is the traffic
+	 * that keeps the connection from ever going silent, which is what the socket-level
+	 * read timeout in NetworkManager depends on.</p>
+	 *
+	 * <p>Left unimplemented here: an unhandled side would silently swallow keep-alives.</p>
+	 *
+	 * @param keepAlivePacket the keep-alive packet carrying the random nonce
+	 */
+	public void handleKeepAlive(Packet0KeepAlive keepAlivePacket) {
+		this.registerPacket(keepAlivePacket);
 	}
 
 	/**
