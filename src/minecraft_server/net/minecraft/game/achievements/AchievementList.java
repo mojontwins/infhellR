@@ -73,6 +73,9 @@ public class AchievementList {
 	
 	public static Achievement cursedCow = (new Achievement(49, "cursedCow", 6, 4, Item.cursedCow, buildPickaxe)).registerAchievement();
 	
+	public static Achievement lunarWand = (new Achievement(50, "lunarWand", -4, 3, Item.lunarWand, diamonds)).registerAchievement();
+	public static Achievement magicBed = (new Achievement(51, "magicBed", -6, 3, Item.bed, lunarWand)).setSpecial().registerAchievement();
+	
 	public static void func_27374_a() {
 	}
 

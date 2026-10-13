@@ -145,3 +145,8 @@ achievement.bucketMilkCursed=Cow milk!
 achievement.bucketMilkCursed.desc=Get milk from a DEMONIC cow }:-D
 achievement.cursedCow=Cursed Cow
 achievement.cursedCow.desc=Spawn a cursed cow attacking cows with something unusual...
+achievement.lunarWand=Lunar Wand
+achievement.lunarWand.desc=Two diamond blocks, one gold block, one glowstone and a disc will let you skip the night
+achievement.magicBed=Magic Bed
+achievement.magicBed.desc=Use the Lunar Wand on a bed and it will let you skip the night
+

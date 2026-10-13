@@ -33,8 +33,7 @@ public class BlockCoral extends Block implements IBlockWithSubtypes {
     public void onNeighborBlockChange(World world, int x, int y, int z, int neighborBlockID) {
         if (!canBlockStay(world, x, y, z)) {
             dropBlockAsItem(world, x, y, z, world.getBlockMetadata(x, y, z));
-            world.setBlock(x, y, z, Block.waterStill.blockID);
-            world.markBlockNeedsUpdate(x, y, z);
+            world.setBlockWithNotify(x, y, z, Block.waterStill.blockID);
         }
     }
     

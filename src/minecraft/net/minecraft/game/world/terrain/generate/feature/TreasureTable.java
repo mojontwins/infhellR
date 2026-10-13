@@ -1,22 +1,22 @@
-package net.minecraft.game.world.terrain.generate.twilightforest;
+package net.minecraft.game.world.terrain.generate.feature;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Random;
 
-import net.minecraft.game.world.block.Block;
 import net.minecraft.game.item.Item;
 import net.minecraft.game.item.ItemStack;
+import net.minecraft.game.world.block.Block;
 
-public class TFTreasureTable {
-	protected ArrayList<TFTreasureItem> list = new ArrayList<TFTreasureItem>();
+public class TreasureTable {
+	protected ArrayList<TreasureItem> list = new ArrayList<TreasureItem>();
 
 	public void add(Item item, int quantity) {
 		this.add((Item)item, quantity, 10);
 	}
 
 	public void add(Item item, int quantity, int rarity) {
-		this.list.add(new TFTreasureItem(item, quantity, rarity));
+		this.list.add(new TreasureItem(item, quantity, rarity));
 	}
 
 	public void add(Block block, int quantity) {
@@ -24,15 +24,15 @@ public class TFTreasureTable {
 	}
 
 	public void add(Block block, int quantity, int rarity) {
-		this.list.add(new TFTreasureItem(block, quantity, rarity));
+		this.list.add(new TreasureItem(block, quantity, rarity));
 	}
 
 	protected int total() {
 		int value = 0;
 
-		TFTreasureItem item;
-		for(Iterator<TFTreasureItem> it = this.list.iterator(); it.hasNext(); value += item.getRarity()) {
-			item = (TFTreasureItem)it.next();
+		TreasureItem item;
+		for(Iterator<TreasureItem> it = this.list.iterator(); it.hasNext(); value += item.getRarity()) {
+			item = (TreasureItem)it.next();
 		}
 
 		return value;
@@ -41,9 +41,9 @@ public class TFTreasureTable {
 	public ItemStack getRandomItem(Random rand) {
 		int value = rand.nextInt(this.total());
 
-		TFTreasureItem item;
-		for(Iterator<TFTreasureItem> it = this.list.iterator(); it.hasNext(); value -= item.getRarity()) {
-			item = (TFTreasureItem)it.next();
+		TreasureItem item;
+		for(Iterator<TreasureItem> it = this.list.iterator(); it.hasNext(); value -= item.getRarity()) {
+			item = (TreasureItem)it.next();
 			if(item.getRarity() > value) {
 				return item.getItemStack(rand);
 			}

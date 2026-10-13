@@ -1,35 +1,35 @@
-package net.minecraft.game.world.terrain.generate.twilightforest;
+package net.minecraft.game.world.terrain.generate.feature;
 
 import java.util.Random;
 
-import net.minecraft.game.world.block.Block;
 import net.minecraft.game.item.Item;
 import net.minecraft.game.item.ItemStack;
-import net.minecraft.game.world.block.tileentity.TileEntityChest;
 import net.minecraft.game.world.World;
+import net.minecraft.game.world.block.Block;
+import net.minecraft.game.world.block.tileentity.TileEntityChest;
 
-public class TFTreasure {
+public class Treasure {
 	int type;
-	protected TFTreasureTable useless;
-	protected TFTreasureTable common;
-	protected TFTreasureTable uncommon;
-	protected TFTreasureTable rare;
-	protected TFTreasureTable ultrarare;
-	public static TFTreasure hill1 = new TFTreasure(1);
-	public static TFTreasure hill2 = new TFTreasure(2);
-	public static TFTreasure hill3 = new TFTreasure(3);
-	public static TFTreasure hedgemaze = new TFTreasure(4);
-	public static TFTreasure underhill_room = new TFTreasure(5);
-	public static TFTreasure underhill_deadend = new TFTreasure(6);
-	public static TFTreasure tower_room = new TFTreasure(7);
+	protected TreasureTable useless;
+	protected TreasureTable common;
+	protected TreasureTable uncommon;
+	protected TreasureTable rare;
+	protected TreasureTable ultrarare;
+	public static Treasure hill1 = new Treasure(1);
+	public static Treasure hill2 = new Treasure(2);
+	public static Treasure hill3 = new Treasure(3);
+	public static Treasure hedgemaze = new Treasure(4);
+	public static Treasure underhill_room = new Treasure(5);
+	public static Treasure underhill_deadend = new Treasure(6);
+	public static Treasure tower_room = new Treasure(7);
 
-	public TFTreasure(int i) {
+	public Treasure(int i) {
 		this.type = i;
-		this.useless = new TFTreasureTable();
-		this.common = new TFTreasureTable();
-		this.uncommon = new TFTreasureTable();
-		this.rare = new TFTreasureTable();
-		this.ultrarare = new TFTreasureTable();
+		this.useless = new TreasureTable();
+		this.common = new TreasureTable();
+		this.uncommon = new TreasureTable();
+		this.rare = new TreasureTable();
+		this.ultrarare = new TreasureTable();
 		this.fill(i);
 	}
 
@@ -51,6 +51,24 @@ public class TFTreasure {
 		}
 
 		return flag;
+	}
+
+	/**
+	 * Roll a full chest's worth of loot without touching the world: 4 common,
+	 * 2 uncommon, 1 rare. Same mix as generate(), returned as a contiguous
+	 * array for ChestSpecialBlockInStructure to fill sequentially.
+	 */
+	public ItemStack[] rollLoot(Random rand) {
+		ItemStack[] loot = new ItemStack[7];
+		int i = 0;
+		for(int n = 0; n < 4; ++n) {
+			loot[i++] = this.getCommonItem(rand);
+		}
+		for(int n = 0; n < 2; ++n) {
+			loot[i++] = this.getUncommonItem(rand);
+		}
+		loot[i] = this.getRareItem(rand);
+		return loot;
 	}
 
 	public ItemStack getCommonItem(Random rand) {
@@ -100,7 +118,6 @@ public class TFTreasure {
 		this.useless.add((Block)Block.sand, 4);
 		this.rare.add((Block)Block.blockCopper, 1);
 		this.rare.add((Item)Item.nametagSimple, 1);
-		
 		if(i == 1 || i == 2 || i == 3) {
 			this.common.add((Item)Item.ingotIron, 4);
 			this.common.add((Item)Item.wheat, 4);
@@ -120,7 +137,6 @@ public class TFTreasure {
 			this.rare.add((Item)Item.knifeSteel, 1);
 			this.ultrarare.add((Item)Item.maceSteel, 1);
 			this.ultrarare.add((Item)Item.hammerSteel, 1);
-			
 		}
 
 		if(i == 4) {
@@ -200,7 +216,6 @@ public class TFTreasure {
 			this.uncommon.add((Item)Item.knifeSteel, 1);
 			this.rare.add((Item)Item.maceSteel, 1);
 			this.rare.add((Item)Item.hammerSteel, 1);
-			
 		}
 
 		if(i == 7) {
@@ -225,7 +240,6 @@ public class TFTreasure {
 			this.uncommon.add((Item)Item.knifeSteel, 1);
 			this.rare.add((Item)Item.maceDiamond, 1);
 			this.rare.add((Item)Item.hammerSteel, 1);
-			
 		}
 
 	}

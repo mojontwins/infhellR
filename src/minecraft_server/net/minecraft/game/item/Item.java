@@ -169,6 +169,7 @@ public class Item {
 	public static Item cursedCow = new Item(1030).setIconCoord(3, 13).setItemName("cursedCow").setShowInCreative(false);
 	public static Item nametagSimple = new ItemNametagSimple(1031).setIconCoord(2,13).setItemName("nametag").setMaxStackSize(1).setCreativeTab(CreativeTabs.tabMisc);
 	public static Item slimeBossFace = new Item(1032).setIconCoord(1, 13).setItemName("slimeBoss").setShowInCreative(false);
+	public static Item lunarWand = new Item(1033).setIconCoord(10, 13).setItemName("lunarWand");
 	
 	public static Item potionEmpty = new ItemPotion(3000, 0xFFFFFF, ItemPotion.EMPTY).setItemName("potionEmpty");
 	public static Item potionPoison = new ItemPotion(3001, 0x30FF30, ItemPotion.POISON).setItemName("potionPoison");
@@ -471,3 +472,6 @@ public class Item {
 		StatList.initStats();
 	}
 }
+
+
+

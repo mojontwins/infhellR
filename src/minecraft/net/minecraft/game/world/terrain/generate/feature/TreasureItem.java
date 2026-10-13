@@ -1,40 +1,40 @@
-package net.minecraft.game.world.terrain.generate.twilightforest;
+package net.minecraft.game.world.terrain.generate.feature;
 
 import java.util.Random;
 
-import net.minecraft.game.world.block.Block;
 import net.minecraft.game.item.Item;
 import net.minecraft.game.item.ItemStack;
+import net.minecraft.game.world.block.Block;
 
-public class TFTreasureItem {
+public class TreasureItem {
 	int itemID;
 	int itemDamage;
 	int quantity;
 	int rarity;
 
-	public TFTreasureItem(Item item) {
+	public TreasureItem(Item item) {
 		this((Item)item, 1, 10);
 	}
 
-	public TFTreasureItem(Item item, int quantity) {
+	public TreasureItem(Item item, int quantity) {
 		this((Item)item, quantity, 10);
 	}
 
-	public TFTreasureItem(Item item, int quantity, int rarity) {
+	public TreasureItem(Item item, int quantity, int rarity) {
 		this.itemID = item.shiftedIndex;
 		this.itemDamage = 0;
 		this.quantity = quantity;
 		this.rarity = rarity;
 	}
 
-	public TFTreasureItem(Block block, int quantity, int rarity) {
+	public TreasureItem(Block block, int quantity, int rarity) {
 		this.itemID = block.blockID;
 		this.itemDamage = 0;
 		this.quantity = quantity;
 		this.rarity = rarity;
 	}
 
-	public TFTreasureItem(ItemStack itemStack, int rarity) {
+	public TreasureItem(ItemStack itemStack, int rarity) {
 		this.itemID = itemStack.itemID;
 		this.itemDamage = itemStack.getItemDamage();
 		this.quantity = itemStack.stackSize;

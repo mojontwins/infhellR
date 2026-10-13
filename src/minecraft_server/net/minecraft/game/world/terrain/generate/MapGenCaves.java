@@ -148,7 +148,9 @@ public class MapGenCaves extends MapGenBase {
 												blockID == Block.dirtPath.blockID || blockID == Block.sand.blockID || blockID == Block.sandStone.blockID
 											) {
 											*/
-											if(blockID != 0 && blockID != Block.waterMoving.blockID && blockID != Block.waterStill.blockID && blockID != Block.lavaMoving.blockID && blockID != Block.lavaStill.blockID) {
+											Block b = Block.blocksList[blockID];
+											if (b != null && b.isNaturalGeneration) {
+											//if(blockID != 0 && blockID != Block.waterMoving.blockID && blockID != Block.waterStill.blockID && blockID != Block.lavaMoving.blockID && blockID != Block.lavaStill.blockID) {
 												if(iy < 10) {
 													data[index] = (byte)Block.lavaMoving.blockID;
 												} else {

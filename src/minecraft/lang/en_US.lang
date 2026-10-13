@@ -782,6 +782,7 @@ item.straw.name=Straw
 item.recoveryCompass.name=Recovery Compass
 item.obsidianShard.name=Obsidian Shard
 item.nametag.name=Name Tag
+item.lunarWand.name=Lunar Wand
 
 itemGroup.buildingBlocks=Building Blocks
 itemGroup.decorations=Decoration Blocks

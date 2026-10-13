@@ -69,7 +69,6 @@ public class ChunkProviderGenerate implements IChunkProvider {
 	protected double[] stoneNoise = new double[256];
 	protected MapGenBase caveGenerator = new MapGenCaves();
 	protected MapGenBase cityGenerator = new MapGenCity();
-	protected MapGenBase underwaterGenerator = new MapGenUnderwater();
 	protected MapGenBase ravineGenerator = new MapGenRavine();
 	protected MapGenBase oceanRavineGenerator = new MapGenOceanRavine();
 	protected MapGenMineshaft mineshaftGenerator;
@@ -382,11 +381,6 @@ public class ChunkProviderGenerate implements IChunkProvider {
 		
 		// If there is only water at sea level in this chunk, this.isOcean == true.
 		chunk.isOcean = this.isOcean;
-
-		if(chunk.isOcean && this.mapFeaturesEnabled) { 
-			((MapGenUnderwater)this.underwaterGenerator).setChunk(chunk);
-			this.underwaterGenerator.generate(this, this.worldObj, chunkX, chunkZ, blockArray);
-		}
 		
 		// Erosion pass (disabled)
 		//this.specialCarving(chunkX, chunkZ, blockArray, chunk);
@@ -1209,10 +1203,6 @@ public class ChunkProviderGenerate implements IChunkProvider {
 		if(this.generateCities) { 
 			((MapGenCity)this.cityGenerator).populate(this.worldObj, this.rand, chunkX, chunkZ, thisChunk);
 			if(thisChunk.building != null) thisChunk.building.populate(this.worldObj, this.rand, chunkX, chunkZ, thisChunk);
-		}
-		
-		if(this.mapFeaturesEnabled) {
-			((MapGenUnderwater)this.underwaterGenerator).populate(this.worldObj, this.rand, chunkX, chunkZ, thisChunk);
 		}
 		
 		// Layered sand

@@ -54,6 +54,8 @@ public class CommandFind extends CommandBase {
 			return -1;
 		}
 		
+		this.theCommandSender.printMessage(theWorld, "FINDING ** This may take a WHILE ** sit back.");
+		
 		// Radius: default 1024 chunks, optionally overridden by a second argument.
 		int radius = DEFAULT_SEARCH_RADIUS;
 		if(idx > 2) {
@@ -80,14 +82,13 @@ public class CommandFind extends CommandBase {
 		int closestChunkX = 0;
 		int closestChunkZ = 0;
 		
-		int scanned = 0;
 		for(int dx = -radius; dx <= radius; dx ++) {
 			for(int dz = -radius; dz <= radius; dz ++) {
 				int chunkX = playerChunkX + dx;
 				int chunkZ = playerChunkZ + dz;
 				
 				Feature feature = featureProvider.getFeatureForChunkCoords(chunkX, chunkZ);
-				scanned ++;
+
 				if(feature == null || feature.getClass() != featureClass) {
 					continue;
 				}

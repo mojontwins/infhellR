@@ -201,7 +201,7 @@ public abstract class FeatureDynamicSchematic extends Feature {
 					idx ++;
 					y ++;
 					
-					if(y == 128) break;
+					if(y == 256) break;
 				}
 			}
 		}
@@ -231,7 +231,7 @@ public abstract class FeatureDynamicSchematic extends Feature {
 					
 					y ++;
 					
-					if (y == 128) break;
+					if (y == 256) break;
 				}
 			}
 		}

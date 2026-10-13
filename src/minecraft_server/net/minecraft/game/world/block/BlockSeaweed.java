@@ -36,16 +36,14 @@ public class BlockSeaweed extends Block {
     public void onNeighborBlockChange(World world, int x, int y, int z, int neighborBlockID) {
         if (!canBlockStay(world, x, y, z)) {
             dropBlockAsItem(world, x, y, z, world.getBlockMetadata(x, y, z));
-            world.setBlock(x, y, z, Block.waterStill.blockID);
-            world.markBlockNeedsUpdate(x, y, z);
+            world.setBlockWithNotify(x, y, z, Block.waterStill.blockID);
         }
     }
     
     public void updateTick(World world, int x, int y, int z, Random rand) {
     	if (rand.nextInt (32) == 0) {
 	    	if (world.getBlockId(x, y + 1, z) == Block.waterStill.blockID && world.getBlockId(x, y + 2, z) == Block.waterStill.blockID ) {
-	    		world.setBlock(x, y + 1, z, blockID);
-                world.markBlockNeedsUpdate(x, y + 1, z);
+	    		world.setBlockWithNotify(x, y + 1, z, blockID);
 	    	}
     	}
     }

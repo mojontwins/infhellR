@@ -5,7 +5,7 @@ import net.minecraft.game.world.World;
 import net.minecraft.game.world.block.Block;
 import net.minecraft.game.world.terrain.generate.WorldGenerator;
 
-public class WorldGenEucalyptus1 extends WorldGenerator {
+public class WorldGenEucalyptus extends WorldGenerator {
 	private int height = 0;
 	private int span = 5;
 	private int branches = 8;
@@ -18,11 +18,11 @@ public class WorldGenEucalyptus1 extends WorldGenerator {
 	// Adapted from Enhanced Biomes
 	// TODO: Fix meta for horizontal branches!
 	
-	public WorldGenEucalyptus1() {
+	public WorldGenEucalyptus() {
 		// TODO Auto-generated constructor stub
 	}
 	
-	public WorldGenEucalyptus1(int height, int span, int branches) {
+	public WorldGenEucalyptus(int height, int span, int branches) {
 		this.height = height;
 		this.span = span;
 		this.branches = branches;
