@@ -1592,8 +1592,8 @@ public abstract class Minecraft implements Runnable {
 			if(this.thePlayer.health <= 0) {
 				// Player died — display the game-over screen (defaulted by displayGuiScreen).
 				this.displayGuiScreen((GuiScreen)null);
-			} else if(this.thePlayer.isPlayerSleeping() && this.theWorld != null && this.theWorld.isRemote) {
-				// Player went to bed on a multiplayer server — show the wake-up screen.
+			} else if(this.thePlayer.isPlayerSleeping() && this.theWorld != null) {
+				// Player went to bed — show the wake-up screen (single-player too).
 				this.displayGuiScreen(new GuiSleepMP(this));
 			}
 		} else if(this.currentScreen != null && this.currentScreen instanceof GuiSleepMP && !this.thePlayer.isPlayerSleeping()) {

@@ -2880,7 +2880,7 @@ public List<AxisAlignedBB> getCollidingBoundingBoxes(Entity entity, AxisAlignedB
 		this.clearWeather();
 	}
 
-	/** Returns true if every player is fully asleep and this is the server side. */
+	/** Returns true if every player is fully asleep in an enchanted bed and this is the server side. */
 	public boolean isAllPlayersFullyAsleep() {
 		if(this.allPlayersSleeping && !this.isRemote) {
 			Iterator<EntityPlayer> iterator = this.playerEntities.iterator();
@@ -2892,7 +2892,7 @@ public List<AxisAlignedBB> getCollidingBoundingBoxes(Entity entity, AxisAlignedB
 				}
 
 				player = (EntityPlayer)iterator.next();
-			} while(player.isPlayerFullyAsleep());
+			} while(player.isPlayerFullyAsleep() && player.isPlayerSleepingInEnchantedBed());
 
 			return false;
 		} else {

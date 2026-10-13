@@ -800,7 +800,7 @@ public class NetServerHandler extends NetHandler implements ICommandListener {
         } else if (packet.state == 2) {
             this.playerEntity.setSneaking(false);
         } else if (packet.state == 3) {
-            this.playerEntity.wakeUpPlayer(false, true, true);
+            this.playerEntity.wakeUpPlayer(false, true, this.playerEntity.isPlayerSleepingInEnchantedBed());
             this.positionValid = false;
         } else if (packet.state == 4) {
             this.playerEntity.setSprinting(true);

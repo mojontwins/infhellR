@@ -183,7 +183,7 @@ public abstract class EntityPlayer extends EntityLiving {
 				if(!this.isInBed()) {
 					this.wakeUpPlayer(true, true, false);
 				} else if(this.worldObj.isDaytime()) {
-					this.wakeUpPlayer(false, true, true);
+					this.wakeUpPlayer(false, true, this.isPlayerSleepingInEnchantedBed());
 				}
 			}
 		} else if(this.sleepTimer > 0) {
@@ -395,6 +395,10 @@ public abstract class EntityPlayer extends EntityLiving {
 
 			// Freeze
 			if(!this.worldObj.isRemote) {
+				if(this.ticksExisted % 20 == 0 && this.wearingFullRags()) {
+					this.triggerAchievement(AchievementList.dressedInRags);
+				}
+
 				if(this.isCreative || this.worldObj.difficultySetting <= 1) {
 					this.freezeLevel = 0;
 				} else {
@@ -1082,6 +1086,12 @@ public abstract class EntityPlayer extends EntityLiving {
 		return this.sleeping && this.sleepTimer >= 100;
 	}
 
+	/** Returns true if this player is sleeping in a bed enchanted with the lunar wand. */
+	public boolean isPlayerSleepingInEnchantedBed() {
+		return this.sleeping && this.bedChunkCoordinates != null && BlockBed.isBedSleepable(
+				this.worldObj.getBlockMetadata(this.bedChunkCoordinates.posX, this.bedChunkCoordinates.posY, this.bedChunkCoordinates.posZ));
+	}
+
 	public int getSleepTimer() {
 		return this.sleepTimer;
 	}
@@ -1238,6 +1248,13 @@ public abstract class EntityPlayer extends EntityLiving {
 					this.getInventoryItem(2) == Item.plateRags ||
 					this.getInventoryItem(1) == Item.legsRags
 				);
+	}
+	
+	/** Full rag set (cap, shirt and trousers) required for the dressedInRags achievement. */
+	public boolean wearingFullRags() {
+		return this.getInventoryItem(3) == Item.helmetRags &&
+				this.getInventoryItem(2) == Item.plateRags &&
+				this.getInventoryItem(1) == Item.legsRags;
 	}
 	
 	public boolean dressedAsAPirate() {

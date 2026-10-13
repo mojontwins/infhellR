@@ -425,7 +425,7 @@ public class EntityAmazon extends EntityArmoredMob implements ISentient {
 						this.setAmazonOwner(entityPlayer1.username);
 						this.showHeartsOrSmokeFX(true);
 						this.worldObj.setEntityState(this, (byte)7);
-						entityPlayer1.triggerAchievement(AchievementList.currency);
+						entityPlayer1.triggerAchievement(AchievementList.hireAmazon);
 					} else {
 						this.showHeartsOrSmokeFX(false);
 						this.worldObj.setEntityState(this, (byte)6);

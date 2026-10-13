@@ -50,6 +50,8 @@ public class SlotCrafting extends Slot {
 			this.thePlayer.addStat(AchievementList.gotCompass, 1);
 		} else if(itemStack1.itemID == Item.recoveryCompass.shiftedIndex) {
 			this.thePlayer.addStat(AchievementList.gotRecoveryCompass, 1);
+		} else if(itemStack1.itemID == Item.lunarWand.shiftedIndex) {
+			this.thePlayer.addStat(AchievementList.lunarWand, 1);
 		}
 
 		for(int i2 = 0; i2 < this.craftMatrix.getSizeInventory(); ++i2) {

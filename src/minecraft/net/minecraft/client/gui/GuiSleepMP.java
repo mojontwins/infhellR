@@ -23,6 +23,10 @@ public class GuiSleepMP extends GuiChat {
 		Keyboard.enableRepeatEvents(false);
 	}
 
+	public boolean doesGuiPauseGame() {
+		return false;
+	}
+
 	protected void keyTyped(char c, int keyCode) {
 		if(keyCode == 1) {
 			this.func_22115_j();
@@ -56,6 +60,9 @@ public class GuiSleepMP extends GuiChat {
 		if(this.mc.thePlayer instanceof EntityClientPlayerMP) {
 			NetClientHandler netClientHandler = ((EntityClientPlayerMP)this.mc.thePlayer).sendQueue;
 			netClientHandler.addToSendQueue(new Packet19EntityAction(this.mc.thePlayer, 3));
+		} else {
+			// Single-player has no server to relay the wake-up to: wake up locally.
+			this.mc.thePlayer.wakeUpPlayer(false, true, this.mc.thePlayer.isPlayerSleepingInEnchantedBed());
 		}
 
 	}

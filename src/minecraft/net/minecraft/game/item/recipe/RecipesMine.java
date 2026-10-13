@@ -59,6 +59,10 @@ public class RecipesMine {
 
 		craftingManager.addRecipe(new ItemStack(Item.cryingObsidianWand),
 				new Object[] { " CD", " sC", "s  ", 'C', Block.cryingObsidian, 'D', Item.diamond, 's', Item.stick });
+		craftingManager.addRecipe(new ItemStack(Item.lunarWand),
+				new Object[] { " Dg", " dD", "G  ", 'D', Block.blockDiamond, 'g', Block.glowStone, 'G', Block.blockGold, 'd', Item.record13 });
+		craftingManager.addRecipe(new ItemStack(Item.lunarWand),
+				new Object[] { " Dg", " dD", "G  ", 'D', Block.blockDiamond, 'g', Block.glowStone, 'G', Block.blockGold, 'd', Item.recordCat });
 		craftingManager.addRecipe(new ItemStack(Block.fenceIron, 16),
 				new Object[] { "###", "###", '#', Item.ingotIron });
 		craftingManager.addRecipe(new ItemStack(Block.thinGlass, 16), 

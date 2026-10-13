@@ -7,6 +7,7 @@ import net.minecraft.game.entity.Entity;
 import net.minecraft.game.entity.player.EntityPlayer;
 import net.minecraft.game.entity.player.EnumStatus;
 import net.minecraft.game.item.Item;
+import net.minecraft.game.item.ItemStack;
 import net.minecraft.game.world.IBlockAccess;
 import net.minecraft.game.world.World;
 import net.minecraft.game.world.chunk.ChunkCoordinates;
@@ -22,25 +23,28 @@ public class BlockBed extends Block {
 	}
 
 	public boolean blockActivated(World world1, int i2, int i3, int i4, EntityPlayer entityPlayer5) {
+		int i6 = world1.getBlockMetadata(i2, i3, i4);
+		if(!isBlockFootOfBed(i6)) {
+			int i7 = getDirectionFromMetadata(i6);
+			i2 += headBlockToFootBlockMap[i7][0];
+			i4 += headBlockToFootBlockMap[i7][1];
+			if(world1.getBlockId(i2, i3, i4) != this.blockID) {
+				return true;
+			}
+
+			i6 = world1.getBlockMetadata(i2, i3, i4);
+		}
+
+		// Right-clicking a not-yet-enchanted bed with the lunar wand is handled by
+		// the item itself (on both client and server, so MP predicts the effects).
+		ItemStack itemStack6 = entityPlayer5.getCurrentEquippedItem();
+		if(itemStack6 != null && itemStack6.itemID == Item.lunarWand.shiftedIndex && !isBedSleepable(i6)) {
+			return false;
+		}
+
 		if(world1.isRemote) {
 			return true;
 		} else {
-			int i6 = world1.getBlockMetadata(i2, i3, i4);
-			if(!isBlockFootOfBed(i6)) {
-				int i7 = getDirectionFromMetadata(i6);
-				i2 += headBlockToFootBlockMap[i7][0];
-				i4 += headBlockToFootBlockMap[i7][1];
-				if(world1.getBlockId(i2, i3, i4) != this.blockID) {
-					return true;
-				}
-
-				i6 = world1.getBlockMetadata(i2, i3, i4);
-			}
-
-			if(!isBedSleepable(i6)) {
-				return false;
-			}
-
 			if(!world1.worldProvider.canRespawnHere()) {
 				double d16 = (double)i2 + 0.5D;
 				double d17 = (double)i3 + 0.5D;
@@ -143,7 +147,17 @@ public class BlockBed extends Block {
 	}
 
 	protected int damageDropped(int i1) {
-		return isBlockFootOfBed(i1) ? 0 : i1 & META_SLEEPABLE;
+		// Breaking an enchanted bed destroys its enchantment: always drop a plain bed.
+		return 0;
+	}
+
+	public void randomDisplayTick(World world1, int i2, int i3, int i4, Random random5) {
+		if(isBedSleepable(world1.getBlockMetadata(i2, i3, i4))) {
+			double d6 = (double)i2 + random5.nextDouble();
+			double d7 = (double)i3 + 0.5D + random5.nextDouble() * 0.35D;
+			double d8 = (double)i4 + random5.nextDouble();
+			world1.spawnParticle("glowdust", d6, d7, d8, 0.0D, 0.02D, 0.0D);
+		}
 	}
 
 	private void setBounds() {
