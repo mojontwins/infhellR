@@ -154,7 +154,7 @@ public class BlockStairs extends Block {
 	}
 
 	public int getBlockTexture(IBlockAccess blockAccess, int x, int y, int z, int side) {
-		return this.modelBlock.getBlockTexture(blockAccess, x, y, z, side);
+		return this.modelBlock.getBlockTextureFromSideAndMetadata(side, 0);
 	}
 
 	public int tickRate() {
@@ -232,7 +232,7 @@ public class BlockStairs extends Block {
 			case 2: meta |= 3; break;
 			case 3: meta |= 0; break;
 		}
-		
+
 		par1World.setBlockMetadataWithNotify(par2, par3, par4, meta);
 	}
 	

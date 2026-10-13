@@ -102,8 +102,8 @@ public class MapGenCavesHell extends MapGenBase {
 					for(i40 = i52; !z55 && i40 < i34; ++i40) {
 						for(int i41 = i54; !z55 && i41 < i38; ++i41) {
 							for(int i42 = i36 + 1; !z55 && i42 >= i53 - 1; --i42) {
-								i43 = (i40 * 16 + i41) * 128 + i42;
-								if(i42 >= 0 && i42 < 128) {
+								i43 = (i40 * 16 + i41) * 256 + i42;
+								if(i42 >= 0 && i42 < 256) {
 									if(b3[i43] == Block.lavaMoving.blockID || b3[i43] == Block.lavaStill.blockID) {
 										z55 = true;
 									}
@@ -122,7 +122,7 @@ public class MapGenCavesHell extends MapGenBase {
 
 							for(i43 = i54; i43 < i38; ++i43) {
 								double d44 = ((double)(i43 + i2 * 16) + 0.5D - d8) / d27;
-								int i46 = (i40 * 16 + i43) * 128 + i36;
+								int i46 = (i40 * 16 + i43) * 256 + i36;
 
 								for(int i47 = i36 - 1; i47 >= i53; --i47) {
 									double d48 = ((double)i47 + 0.5D - d6) / d29;

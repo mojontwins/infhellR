@@ -279,6 +279,24 @@ public class ChunkLoader implements IChunkLoader {
 		nBTTagCompound2.setTag("SpecialEntities", nBTTagList);
 	}
 
+	/**
+	 * Widens a legacy flat 128-tall buffer (index {@code x << 11 | z << 7 | y}) to the current
+	 * 256-tall generation layout (index {@code x << 12 | z << 8 | y}).
+	 *
+	 * <p>Legacy saves predate the taller world, so their columns only ever describe y 0-127; the
+	 * upper half of each widened column is left zero (air). The copy is per column rather than
+	 * per section because doubling the column stride interleaves the halves.</p>
+	 */
+	private static byte[] expandLegacyFlat128(byte[] legacy) {
+		byte[] expanded = new byte[Chunk.FLAT_BUFFER_SIZE];
+		for(int x = 0; x < 16; ++x) {
+			for(int z = 0; z < 16; ++z) {
+				System.arraycopy(legacy, (x << 4 | z) << 7, expanded, (x << 4 | z) << 8, 128);
+			}
+		}
+		return expanded;
+	}
+
 	public static Chunk loadChunkIntoWorldFromCompound(World world0, NBTTagCompound nBTTagCompound1) {
 		int i2 = nBTTagCompound1.getInteger("xPos");
 		int i3 = nBTTagCompound1.getInteger("zPos");
@@ -335,7 +353,8 @@ public class ChunkLoader implements IChunkLoader {
 			hasLightVersion = nBTTagCompound1.getByte("LightVersion") >= 2;
 			chunk4.recomputeEmptyFlags();
 		} else {
-			// Legacy format: slice the flat 128-tall arrays into the eager subchunks 0-7.
+			// Legacy format: the historical flat 128-tall arrays. They are expanded to the current
+			// 256-tall generation layout first, then sliced into subchunks.
 			byte[] flatBlocks = nBTTagCompound1.getByteArray("Blocks");
 			if(flatBlocks.length == 128 * Chunk.SECTION_SIZE * Chunk.SECTION_SIZE) {
 				byte[] flatData;
@@ -351,8 +370,9 @@ public class ChunkLoader implements IChunkLoader {
 				}
 
 				// Re-slice the flat buffers into subchunks and drop the flat storage (same path as
-				// terrain generation uses).
-				chunk4.loadFlatBlocks(flatBlocks, flatData);
+				// terrain generation uses). Only the contiguous prefix holding blocks is
+				// materialized, so the light loops below must tolerate null planes.
+				chunk4.loadFlatBlocks(expandLegacyFlat128(flatBlocks), expandLegacyFlat128(flatData));
 
 				// Move the saved light nibbles into their per-subchunk planes.
 				// The legacy flat planes are column-major: the 128 y-nibbles of a column
@@ -369,6 +389,11 @@ public class ChunkLoader implements IChunkLoader {
 					hasSkyPlanes = true;
 					for(int section = 0; section < flatSectionCount; ++section) {
 						NibbleArray plane = chunk4.skyLightMap[section];
+						if(plane == null) {
+							// Above the materialized prefix: nothing was stored there, so the
+							// saved nibbles for it are all-zero anyway (implicit sky 15 / block 0).
+							continue;
+						}
 						for(int columnBase = 0; columnBase < 256; ++columnBase) {
 							int x = columnBase >> 4;
 							int z = columnBase & 15;
@@ -385,6 +410,9 @@ public class ChunkLoader implements IChunkLoader {
 					hasBlockPlanes = true;
 					for(int section = 0; section < flatSectionCount; ++section) {
 						NibbleArray plane = chunk4.blockLightMap[section];
+						if(plane == null) {
+							continue;
+						}
 						for(int columnBase = 0; columnBase < 256; ++columnBase) {
 							int x = columnBase >> 4;
 							int z = columnBase & 15;

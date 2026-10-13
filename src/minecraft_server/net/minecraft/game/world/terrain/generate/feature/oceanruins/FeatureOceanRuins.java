@@ -158,7 +158,7 @@ public class FeatureOceanRuins extends FeatureVillage {
 		// so world coords are chunkCoord << 4. We query the biome manager directly rather than
 		// world.getBiomeGenAt() because the latter loads/generates chunks via getChunkFromChunkCoords;
 		// doing so from inside a feature's setup() would recurse (that generated chunk runs
-		// getNearestFeatures, which sets up more features, which call this again on other unloaded
+		// collectNearestFeatures, which sets up more features, which call this again on other unloaded
 		// chunks) until the stack overflows. WorldChunkManager.getBiomeGenAt() is pure noise-on-seed,
 		// so it never touches the chunk pipeline.
 		return world.getWorldChunkManager().getBiomeGenAt(x << 4, z << 4) instanceof BiomeGenGlacier || !world.isOceanChunk(x, z);

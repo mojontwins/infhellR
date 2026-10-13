@@ -83,6 +83,16 @@ public class EntityPlayerMP extends EntityPlayer implements ICrafting {
 	public double managedPosX;
 	public double managedPosZ;
 
+	/**
+	 * Smoothed round-trip time to this player, in milliseconds.
+	 *
+	 * <p>Updated by {@link NetServerHandler#handleKeepAlive} whenever the client echoes
+	 * back the outstanding keep-alive nonce, using a 3:1 weighted average so a single
+	 * delayed sample does not dominate. Restored from vanilla 1.2.5, which tracked it
+	 * the same way and published it to clients via Packet201PlayerInfo.</p>
+	 */
+	public int ping = 0;
+
 	/** Chunks that have been sent to the player. */
 	public List<ChunkCoordIntPair> loadedChunks = new LinkedList<ChunkCoordIntPair>();
 

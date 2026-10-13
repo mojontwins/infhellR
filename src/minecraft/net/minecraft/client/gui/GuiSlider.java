@@ -2,6 +2,7 @@ package net.minecraft.client.gui;
 
 import net.minecraft.client.Minecraft;
 
+import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 import net.minecraft.client.EnumOptions;
 
@@ -9,6 +10,8 @@ public class GuiSlider extends GuiButton {
 	public float sliderValue = 1.0F;
 	public boolean dragging = false;
 	private EnumOptions idFloat = null;
+
+	private static EnumOptions draggedOption = null;
 
 	public GuiSlider(int id, int x, int y, EnumOptions enumOption, String label, float value) {
 		super(id, x, y, 150, 20, label);
@@ -22,7 +25,12 @@ public class GuiSlider extends GuiButton {
 
 	protected void mouseDragged(Minecraft minecraft, int mouseX, int mouseY) {
 		if(this.drawButton) {
-			if(this.dragging) {
+			if(draggedOption == this.idFloat && !Mouse.isButtonDown(0)) {
+				draggedOption = null;
+			}
+
+			boolean isDragging = this.dragging || draggedOption == this.idFloat;
+			if(isDragging) {
 				this.sliderValue = (float)(mouseX - (this.xPosition + 4)) / (float)(this.width - 8);
 				if(this.sliderValue < 0.0F) {
 					this.sliderValue = 0.0F;
@@ -56,6 +64,7 @@ public class GuiSlider extends GuiButton {
 			minecraft.gameSettings.setOptionFloatValue(this.idFloat, this.sliderValue);
 			this.displayString = minecraft.gameSettings.getKeyBinding(this.idFloat);
 			this.dragging = true;
+			draggedOption = this.idFloat;
 			return true;
 		} else {
 			return false;
@@ -64,5 +73,6 @@ public class GuiSlider extends GuiButton {
 
 	public void mouseReleased(int mouseX, int mouseY) {
 		this.dragging = false;
+		draggedOption = null;
 	}
 }

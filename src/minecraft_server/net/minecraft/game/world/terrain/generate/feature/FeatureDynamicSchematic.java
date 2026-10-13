@@ -6,7 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
-import net.minecraft.game.world.terrain.generate.betterdungeons.StructureBlockData;
+import net.minecraft.game.world.terrain.generate.feature.StructureBlockData;
 import net.minecraft.game.world.schematic.Schematic;
 
 import net.minecraft.game.world.biome.BiomeGenBase;
@@ -185,7 +185,7 @@ public abstract class FeatureDynamicSchematic extends Feature {
 			for(int z = 0; z < 16; z ++) {
 				int y = y0;
 
-				int idx = (x << 11) | (z << 7) | y;
+				int idx = (x << 12) | (z << 8) | y;
 				
 				for(int i = 0; i < this.getFeatureHeight(); i ++) {
 					short blockAndMeta = this.schematic[pieceXoffs + x][pieceZoffs + z][i];
@@ -201,7 +201,7 @@ public abstract class FeatureDynamicSchematic extends Feature {
 					idx ++;
 					y ++;
 					
-					if(y == 128) break;
+					if(y == 256) break;
 				}
 			}
 		}
@@ -231,7 +231,7 @@ public abstract class FeatureDynamicSchematic extends Feature {
 					
 					y ++;
 					
-					if (y == 128) break;
+					if (y == 256) break;
 				}
 			}
 		}

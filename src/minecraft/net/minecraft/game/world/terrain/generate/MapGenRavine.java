@@ -110,8 +110,8 @@ public class MapGenRavine extends MapGenBase {
             for (int j1 = (int) d4; !flag1 && j1 < k; j1++) {
                 for (int l1 = (int) d6; !flag1 && l1 < i1; l1++) {
                     for (int i2 = l + 1; !flag1 && i2 >= d5 - 1; i2--) {
-                        //int j2 = (j1 * 16 + l1) * 128 + i2;
-                    	int j2 = j1 << 11 | l1 << 7 | i2;
+                        //int j2 = (j1 * 16 + l1) * 256 + i2;
+                    	int j2 = j1 << 12 | l1 << 8 | i2;
 
                         if (i2 < 0 || i2 >= 128) {
                             continue;
@@ -138,7 +138,7 @@ public class MapGenRavine extends MapGenBase {
 
                 for (int k2 = (int) d6; k2 < i1; k2++) {
                     double d9 = (((double)(k2 + par4 * 16) + 0.5D) - par10) / d2;
-                    int l2 = (k1 * 16 + k2) * 128 + l;
+                    int l2 = (k1 * 16 + k2) * 256 + l;
                     boolean flag2 = false;
 
                     if (d8 * d8 + d9 * d9 >= 1.0D) {

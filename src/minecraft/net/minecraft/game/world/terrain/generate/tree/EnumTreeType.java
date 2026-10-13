@@ -63,9 +63,9 @@ public enum EnumTreeType {
 		@Override
 		public WorldGenerator getGen(Random rand) {
 			return rand.nextBoolean() ? 
-					new WorldGenTaiga1()
+					new WorldGenTaigaTree1()
 				:
-					new WorldGenTaiga2();
+					new WorldGenTaigaTree2();
 		}
 	},
 	

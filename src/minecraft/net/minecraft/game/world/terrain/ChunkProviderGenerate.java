@@ -1,8 +1,9 @@
 package net.minecraft.game.world.terrain;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Random;
 
-import net.minecraft.game.world.terrain.generate.betterdungeons.BetterDungeons;
 import net.minecraft.game.world.terrain.generate.structure.mineshaft.MapGenMineshaft;
 import net.minecraft.game.world.terrain.generate.structure.mineshaftmesa.MapGenMineshaftMesa;
 import net.minecraft.game.world.terrain.generate.structure.stronghold.MapGenStronghold;
@@ -23,6 +24,7 @@ import net.minecraft.game.world.terrain.noise.NoiseGeneratorOctaves;
 import net.minecraft.game.world.block.BlockSand;
 import net.minecraft.game.world.block.BlockTerracotta;
 import net.minecraft.game.world.terrain.generate.city.BuildingHighway;
+import net.minecraft.game.world.terrain.generate.feature.Feature;
 import net.minecraft.game.world.terrain.generate.feature.FeatureProvider;
 import net.minecraft.game.world.terrain.generate.MapGenCaves;
 import net.minecraft.game.world.terrain.generate.MapGenCity;
@@ -67,7 +69,6 @@ public class ChunkProviderGenerate implements IChunkProvider {
 	protected double[] stoneNoise = new double[256];
 	protected MapGenBase caveGenerator = new MapGenCaves();
 	protected MapGenBase cityGenerator = new MapGenCity();
-	protected MapGenBase underwaterGenerator = new MapGenUnderwater();
 	protected MapGenBase ravineGenerator = new MapGenRavine();
 	protected MapGenBase oceanRavineGenerator = new MapGenOceanRavine();
 	protected MapGenMineshaft mineshaftGenerator;
@@ -103,9 +104,6 @@ public class ChunkProviderGenerate implements IChunkProvider {
 	// Multi-chunk features	
 	public FeatureProvider featureProvider;
 	
-	// Better Dungeons
-	public BetterDungeons betterDungeons;
-	
 	public ChunkProviderGenerate(World world1, long j2) {
 		this(world1, j2, true, true);
 	}
@@ -123,8 +121,7 @@ public class ChunkProviderGenerate implements IChunkProvider {
 		this.caveNoise = new NoiseGeneratorOctaves(this.rand, 4);
 		this.mobSpawnerNoise = new NoiseGeneratorOctaves(this.rand, 8);
 		
-		this.betterDungeons = new BetterDungeons();
-		this.featureProvider = new FeatureProvider(worldObj, this, this.betterDungeons);
+		this.featureProvider = new FeatureProvider(worldObj, this);
 		
 		this.mapFeaturesEnabled = z4;
 		this.generateCities = z5;
@@ -175,7 +172,7 @@ public class ChunkProviderGenerate implements IChunkProvider {
 		final int xSize = quadrantSize + 1;
 		final byte ySize = 17;
 		final int zSize = quadrantSize + 1;
-		final short chunkHeight = 128;
+		final short chunkHeight = 256;
 
 		this.terrainNoise = this.initializeNoiseField(this.terrainNoise, chunkX * quadrantSize, 0, chunkZ * quadrantSize, xSize, ySize, zSize, chunkX, chunkZ);
 		this.isOcean = true;
@@ -206,7 +203,7 @@ public class ChunkProviderGenerate implements IChunkProvider {
 						int yy = ySection * 8 + y;
 
 						for(int x = 0; x < 4; ++x) {
-							int indexInBlockArray = (x + (xSection << 2)) << 11 | (0 + (zSection << 2)) << 7 | (ySection << 3) + y;
+							int indexInBlockArray = (x + (xSection << 2)) << 12 | (0 + (zSection << 2)) << 8 | (ySection << 3) + y;
 					
 							double density = curDensityMinXMinYMinZ;
 							double densityIncrement = (curDensityMinXMinYMaxZ - curDensityMinXMinYMinZ) * densityVariationSpeed;
@@ -334,7 +331,7 @@ public class ChunkProviderGenerate implements IChunkProvider {
 				
 				// Carve & fill with water.
 				if(height != newHeight) for(int y = newHeight; y <= height; y ++) {							
-					blockArray[x << 11 | z << 7 | y] = (y < 64 && !dry) ? (byte)Block.waterStill.blockID : 0;							
+					blockArray[x << 12 | z << 8 | y] = (y < 64 && !dry) ? (byte)Block.waterStill.blockID : 0;							
 				}
 			
 				chunk.landSurfaceHeightMap[hmIndex] = (byte) newHeight;
@@ -355,8 +352,8 @@ public class ChunkProviderGenerate implements IChunkProvider {
 		this.rand.setSeed((long)chunkX * 341873128712L + (long)chunkZ * 132897987541L);
 		
 		// Empty block array & new Chunk
-		byte[] blockArray = new byte[32768];
-		byte[] metadata = new byte[32768];
+		byte[] blockArray = new byte[Chunk.FLAT_BUFFER_SIZE];
+		byte[] metadata = new byte[Chunk.FLAT_BUFFER_SIZE];
 		Chunk chunk = new Chunk(this.worldObj, blockArray, metadata, chunkX, chunkZ);
 
 		// Calculate biomes & temperatures for this chunk
@@ -384,19 +381,19 @@ public class ChunkProviderGenerate implements IChunkProvider {
 		
 		// If there is only water at sea level in this chunk, this.isOcean == true.
 		chunk.isOcean = this.isOcean;
-
-		if(chunk.isOcean && this.mapFeaturesEnabled) { 
-			((MapGenUnderwater)this.underwaterGenerator).setChunk(chunk);
-			this.underwaterGenerator.generate(this, this.worldObj, chunkX, chunkZ, blockArray);
-		}
 		
 		// Erosion pass (disabled)
 		//this.specialCarving(chunkX, chunkZ, blockArray, chunk);
 		
-		// Features system
+		// Features system: collect the features near this chunk, then immediately draw
+		// the ones flagged "before caves". The after-caves ones are drawn further below,
+		// once the cave/ravine generators have finished carving.
+		List<Feature> nearestFeatures = Collections.emptyList();
 		boolean featureChunk = false;
 		if (this.mapFeaturesEnabled) {
-			featureChunk = this.featureProvider.getNearestFeatures(chunkX, chunkZ, chunk);
+			nearestFeatures = this.featureProvider.collectNearestFeatures(chunkX, chunkZ);
+			featureChunk = !nearestFeatures.isEmpty();
+			this.featureProvider.generateFeatures(nearestFeatures, chunkX, chunkZ, chunk, false);
 		} 
 		
 		// Ocean ravines:
@@ -437,6 +434,13 @@ public class ChunkProviderGenerate implements IChunkProvider {
 		// Ravines
 		if(!chunk.isOcean) {
 			this.ravineGenerator.generate(this, this.worldObj, chunkX, chunkZ, blockArray);
+		}
+
+		// Features flagged to run after caves: now that every carving map-gen (caves,
+		// ravines, ocean ravines, mineshafts) has finished, draw them so they overwrite
+		// anything that was carved and always survive intact.
+		if (this.mapFeaturesEnabled) {
+			this.featureProvider.generateFeatures(nearestFeatures, chunkX, chunkZ, chunk, true);
 		}
 
 		// Terrain generation is done: slice the flat 128-high generation buffers into runtime
@@ -1199,10 +1203,6 @@ public class ChunkProviderGenerate implements IChunkProvider {
 		if(this.generateCities) { 
 			((MapGenCity)this.cityGenerator).populate(this.worldObj, this.rand, chunkX, chunkZ, thisChunk);
 			if(thisChunk.building != null) thisChunk.building.populate(this.worldObj, this.rand, chunkX, chunkZ, thisChunk);
-		}
-		
-		if(this.mapFeaturesEnabled) {
-			((MapGenUnderwater)this.underwaterGenerator).populate(this.worldObj, this.rand, chunkX, chunkZ, thisChunk);
 		}
 		
 		// Layered sand

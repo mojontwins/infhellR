@@ -6,7 +6,7 @@ import net.minecraft.game.world.Weather;
 import net.minecraft.game.world.World;
 import net.minecraft.game.world.block.Block;
 import net.minecraft.game.world.terrain.generate.tree.WorldGenBigTree;
-import net.minecraft.game.world.terrain.generate.tree.WorldGenEucalyptus1;
+import net.minecraft.game.world.terrain.generate.tree.WorldGenEucalyptus;
 import net.minecraft.game.world.terrain.generate.tree.WorldGenEucalyptusBig;
 import net.minecraft.game.world.terrain.generate.WorldGenFlowers;
 import net.minecraft.game.world.terrain.generate.WorldGenLilypad;
@@ -46,7 +46,7 @@ public class BiomeGenHotForest extends BiomeGenForest {
 			case 1:
 			case 5:
 			case 6:
-				return new WorldGenEucalyptus1();
+				return new WorldGenEucalyptus();
 			case 2:
 				this.bo3Tree.setTreeName("Acacia:AcaciaSavanna" + (1 + rand.nextInt(18)));
 				bo3Tree.withLeavesMeta(2);
@@ -68,7 +68,7 @@ public class BiomeGenHotForest extends BiomeGenForest {
 		} else {
 			switch (rand.nextInt(3)) {
 			case 0:
-				return new WorldGenEucalyptus1(12 + rand.nextInt(8), 7, 12);
+				return new WorldGenEucalyptus(12 + rand.nextInt(8), 7, 12);
 			case 1:
 				return new WorldGenEucalyptusBig();
 			case 2:

@@ -692,22 +692,14 @@ public class RenderGlobal implements IWorldAccess {
 	public void renderSky(float f1) {
 		if(!this.mc.theWorld.worldProvider.isNether) {
 			// ## SKY ##	
-		
 			GL11.glDisable(GL11.GL_TEXTURE_2D);
+			//
 			Vec3D vec3D2 = this.worldObj.getSkyColor(this.mc.renderViewEntity, f1);
 			float f3 = (float)vec3D2.xCoord;
 			float f4 = (float)vec3D2.yCoord;
 			float f5 = (float)vec3D2.zCoord;
 			float f7;
 			float f8;
-			if(GameSettingsValues.anaglyph) {
-				float f6 = (f3 * 30.0F + f4 * 59.0F + f5 * 11.0F) / 100.0F;
-				f7 = (f3 * 30.0F + f4 * 70.0F) / 100.0F;
-				f8 = (f3 * 30.0F + f5 * 70.0F) / 100.0F;
-				f3 = f6;
-				f4 = f7;
-				f5 = f8;
-			}
 
 			GL11.glColor3f(f3, f4, f5);
 			Tessellator tessellator17 = Tessellator.instance;

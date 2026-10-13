@@ -75,6 +75,7 @@ import net.minecraft.game.world.chunk.loader.ISaveHandler;
 import net.minecraft.network.NetHandler;
 import net.minecraft.network.NetworkManager;
 import net.minecraft.network.packet.Packet;
+import net.minecraft.network.packet.Packet0KeepAlive;
 import net.minecraft.network.packet.Packet100OpenWindow;
 import net.minecraft.network.packet.Packet101CloseWindow;
 import net.minecraft.network.packet.Packet103SetSlot;
@@ -1676,6 +1677,24 @@ public class NetClientHandler extends NetHandler {
 		if(effectEntity != null && effectEntity instanceof EntityLiving) {
 			((EntityLiving)effectEntity).removeStatusEffect(removeEffectPacket.effectId);
 		}
+	}
+
+	/**
+	 * Handles Packet0KeepAlive - echoes the server's nonce straight back.
+	 *
+	 * <p>Restored from vanilla 1.2.5 (see clean_vanilla_125 NetClientHandler lines
+	 * 785-786). This is what makes the round trip complete: the server sends a nonce at
+	 * most once a second whenever the connection would otherwise be quiet, and only
+	 * counts a reply that matches the outstanding nonce. Without this the server's
+	 * keep-alives were one-way traffic that proved nothing about the client.</p>
+	 *
+	 * <p>Note the nonce is echoed verbatim and the payload is deliberately tiny, so the
+	 * reply is cheap enough to send unconditionally.</p>
+	 *
+	 * @param keepAlivePacket the challenge from the server
+	 */
+	public void handleKeepAlive(Packet0KeepAlive keepAlivePacket) {
+		this.addToSendQueue(new Packet0KeepAlive(keepAlivePacket.randomId));
 	}
 
 	/**

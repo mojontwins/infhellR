@@ -83,14 +83,22 @@ public abstract class PalacePiece {
 							}
 							s = (short)(blockID | (meta << 8));
 						}
-			
+							
 						// Special blocks: chests and spawners. 
 						// Shiny glass (147) is here so it is put out in the populate stage and brightness is handled properly	
 						if(blockID == 52 || blockID == 54 || blockID == 147 || blockID == 151) {
 							this.featureIcePalace.addSpecialBlock(x1 + this.rotateX(x, z), y1 + y, z1 + this.rotateZ(x, z), blockID, meta, blockID == 54);
-							map[x1 + this.rotateX(x, z)][z1 + this.rotateZ(x, z)][y1 + y] = 4; // why 4? solid and easy to spot (in case of bugs)
+							try {
+								map[x1 + this.rotateX(x, z)][z1 + this.rotateZ(x, z)][y1 + y] = 4; // why 4? solid and easy to spot (in case of bugs)
+							} catch(Exception e) {
+								System.out.println ("Debug! Failed special block storage @ " + (x1 + this.rotateX(x, z)) + " " + (y1 + y) + " " + (z1 + this.rotateZ(x, z)) + " @ " + this.featureIcePalace.centerX +  " " + this.featureIcePalace.centerZ);
+							}
 						} else {
-							map[x1 + this.rotateX(x, z)][z1 + this.rotateZ(x, z)][y1 + y] = s;
+							try {
+								map[x1 + this.rotateX(x, z)][z1 + this.rotateZ(x, z)][y1 + y] = s;
+							} catch(Exception e) {
+								System.out.println ("Debug! Failed special block storage @ " + (x1 + this.rotateX(x, z)) + " " + (y1 + y) + " " + (z1 + this.rotateZ(x, z)) + " @ " + this.featureIcePalace.centerX +  " " + this.featureIcePalace.centerZ);
+							}
 						}
 					}
 				}

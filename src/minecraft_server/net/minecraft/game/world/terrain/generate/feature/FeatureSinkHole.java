@@ -118,7 +118,7 @@ public class FeatureSinkHole extends Feature {
 					chunk.landSurfaceHeightMap[heightMapIndex] = (byte) newHeight;
 				}
 				
-				index += 128;
+				index += 256;
 			}
 		}
 		

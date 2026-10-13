@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -95,6 +96,16 @@ import net.minecraft.network.packet.Packet;
 public class NetworkManager {
 	/** Shared synchronization object for cross-thread coordination (debugging/legacy). */
 	public static final Object threadSyncObject = new Object();
+	/**
+	 * Socket read timeout in milliseconds, applied to the game connection.
+	 *
+	 * <p>Vanilla 1.2.5 value (30s), kept deliberately. This is only safe because the
+	 * peer is guaranteed to send something at least once a second: the server sends a
+	 * keep-alive whenever the connection would otherwise be quiet, and the client
+	 * answers it. Do not lower this without first confirming the keep-alive is actually
+	 * flowing in both directions.</p>
+	 */
+	public static final int SOCKET_READ_TIMEOUT_MILLIS = 30000;
 	/** Global counter of active network read threads (diagnostic). */
 	public static int numReadThreads;
 	/** Global counter of active network write threads (diagnostic). */
@@ -149,6 +160,33 @@ public class NetworkManager {
 	 * per {@code chunkDataSendInterval} send cycles. Starts at 50.
 	 */
 	private int chunkDataSendInterval = 50;
+
+	/**
+	 * Read-queue depth at which {@link #processReadPackets()} starts reporting.
+	 *
+	 * <p>A deep inbound backlog means packets are arriving faster than the server tick
+	 * is consuming them, i.e. the tick loop is the bottleneck. That is a completely
+	 * different failure from the read timeout (which is an <em>outbound</em> silence)
+	 * but it presents to players the same way — a laggy, eventually dropping client —
+	 * so it is worth telling the two apart in the log.</p>
+	 *
+	 * <p>Set equal to {@link #MAX_PACKETS_PROCESSED_PER_TICK} deliberately: a backlog
+	 * this deep is by definition one that a single tick cannot clear, so it will only
+	 * keep growing.</p>
+	 */
+	private static final int READ_BACKLOG_WARN_THRESHOLD = 1000;
+
+	/**
+	 * Hard cap on how many inbound packets one tick may process, bounding the game
+	 * thread's per-tick network work. Vanilla 1.2.5's {@code maxPacketsPerTick}.
+	 */
+	private static final int MAX_PACKETS_PROCESSED_PER_TICK = 1000;
+
+	/** Suppresses repeat backlog warnings to at most one per this many milliseconds. */
+	private static final long READ_BACKLOG_WARN_INTERVAL_MILLIS = 30000L;
+
+	/** {@link System#currentTimeMillis()} of the last backlog warning, or 0 if never. */
+	private long lastReadBacklogWarnMillis = 0L;
 	
 	/**
 	 * Constructs a NetworkManager bound to the given socket and packet handler.
@@ -166,11 +204,11 @@ public class NetworkManager {
 		this.remoteSocketAddress = socket.getRemoteSocketAddress();
 		this.netHandler = netHandler;
 
-		// Best-effort socket tuning: 30s SO_TIMEOUT protects the read thread from
+		// Best-effort socket tuning: SO_TIMEOUT protects the read thread from
 		// hanging forever if the peer vanishes silently; IPTOS_LOWDELAY (24) hints
 		// the OS to prioritize low-latency delivery.
 		try {
-			socket.setSoTimeout(30000);
+			socket.setSoTimeout(SOCKET_READ_TIMEOUT_MILLIS);
 			socket.setTrafficClass(24);
 		} catch (SocketException socketException) {
 			System.err.println(socketException.getMessage());
@@ -263,8 +301,26 @@ public class NetworkManager {
 	 * 
 	 * <p>Updates {@link #field_28144_e} (bytes-sent-per-packet-ID stats).</p>
 	 * 
+	 * <h2>Accepted 1.2.5-verbatim risks (do not "fix" without discussion)</h2>
+	 * <p>The following are faithfully inherited from vanilla 1.2.5 and intentionally
+	 * left alone. They are listed so they are not mistaken for oversights:</p>
+	 * <ul>
+	 *   <li><b>Drain is not atomic.</b> {@code isEmpty()} then {@code remove(0)} on an
+	 *       unsynchronized {@link ArrayList} is a check-then-act race with
+	 *       {@link #addToSendQueue}. Note the enqueue side <em>is</em> guarded by
+	 *       {@code sendQueueLock} and so is the remove; only the {@code isEmpty()} probe
+	 *       is outside it. Vanishingly rare (enqueue and drain race) and 1.2.5-exact.</li>
+	 *   <li><b>{@code remove(0)} is O(n)}.</b> {@link ArrayList} head-removal on the send
+	 *       queue. A correctness issue only at extreme packet counts; 1.2.5-exact.</li>
+	 *   <li><b>{@link NetworkMasterThread} uses {@link Thread#stop()}.</b> Can kill the
+	 *       write thread between a successful {@code remove(0)} and a completed write,
+	 *       silently dropping one packet per disconnect. Accepted for 1.2.5 fidelity;
+	 *       see the separate write-up before changing.</li>
+	 * </ul>
+	 * 
 	 * @return true if at least one packet was written this call, false otherwise.
-	 *         Any I/O exception triggers {@link #onNetworkError(Exception)}.
+	 *         A read timeout or any other I/O exception triggers
+	 *         {@link #onNetworkTimeout()} / {@link #onNetworkError(Exception)}.
 	 */
 	private boolean sendPacket() {
 		boolean didSend = false;
@@ -307,6 +363,17 @@ public class NetworkManager {
 			}
 
 			return didSend;
+		} catch (SocketTimeoutException writeTimeout) {
+			// Defensive only, and in practice unreachable: SO_TIMEOUT governs read()
+			// only, so a blocking write cannot produce this. Kept so that if it ever
+			// does (non-blocking streams, a future transport change) it is reported as
+			// the same liveness event as the read path instead of as an internal
+			// exception with a stack trace.
+			if(!this.isTerminating) {
+				this.onNetworkTimeout();
+			}
+
+			return false;
 		} catch (Exception exception) {
 			if(!this.isTerminating) {
 				this.onNetworkError(exception);
@@ -339,7 +406,8 @@ public class NetworkManager {
 	 * as a clean disconnect and triggers {@link #networkShutdown} with
 	 * {@code "disconnect.endOfStream"}.</p>
 	 * 
-	 * @return true if a packet was read this call, false otherwise. On I/O
+	 * @return true if a packet was read this call, false otherwise. On a read
+	 *         timeout {@link #onNetworkTimeout()} is invoked; on any other I/O
 	 *         exception {@link #onNetworkError(Exception)} is invoked.
 	 */
 	private boolean readPacket() {
@@ -365,6 +433,16 @@ public class NetworkManager {
 			}
 
 			return didRead;
+		} catch (SocketTimeoutException readTimeout) {
+			// Caught before the generic handler: the peer simply went quiet for
+			// SO_TIMEOUT milliseconds. That is a liveness event, not a protocol fault,
+			// so it gets its own message and the disconnect.timeout reason instead of
+			// a stack trace and "Internal exception".
+			if(!this.isTerminating) {
+				this.onNetworkTimeout();
+			}
+
+			return false;
 		} catch (Exception exception) {
 			if(!this.isTerminating) {
 				this.onNetworkError(exception);
@@ -376,12 +454,31 @@ public class NetworkManager {
 
 	/**
 	 * Logs the exception and initiates a graceful shutdown with a generic reason.
-	 * 
+	 *
 	 * @param exception the network error that triggered the shutdown
 	 */
 	private void onNetworkError(Exception exception) {
 		exception.printStackTrace();
 		this.networkShutdown("disconnect.genericReason", new Object[]{"Internal exception: " + exception.toString()});
+	}
+
+	/**
+	 * Handles a socket read timeout, which is a liveness symptom rather than an
+	 * internal protocol error.
+	 *
+	 * <p>A {@link SocketTimeoutException} means the peer sent nothing at all for
+	 * {@code SO_TIMEOUT} milliseconds (30s, set in the constructor). It says nothing
+	 * about protocol correctness, so routing it through {@link #onNetworkError(Exception)}
+	 * was actively misleading: it printed a stack trace and disconnected the player with
+	 * "Internal exception: java.net.SocketTimeoutException", which reads like a crash.</p>
+	 *
+	 * <p>Instead we log a single line naming the peer and disconnect with the existing
+	 * {@code disconnect.timeout} key, so the player sees "Timed out". No stack trace.</p>
+	 */
+	private void onNetworkTimeout() {
+		System.out.println("Connection to " + this.remoteSocketAddress
+				+ " timed out: no data received for " + SOCKET_READ_TIMEOUT_MILLIS + "ms");
+		this.networkShutdown("disconnect.timeout", new Object[0]);
 	}
 
 	/**
@@ -438,8 +535,10 @@ public class NetworkManager {
 	 * Main-thread packet dispatcher and connection watchdog.
 	 * 
 	 * <p>Called once per game tick. See class-level docs for the full step-by-step
-	 * description. The {@code maxPacketsPerTick} cap (1000) bounds the work done
-	 * per call so the game thread never falls too far behind the network thread.</p>
+	 * description. Steps 1 and 2 are the two watchdogs (outbound overflow, inbound
+	 * silence), step 3 reports an inbound backlog, and step 4 drains the queue under
+	 * the {@link #MAX_PACKETS_PROCESSED_PER_TICK} cap so the game thread never falls
+	 * too far behind the network thread.</p>
 	 */
 	public void processReadPackets() {
 		// 1) Overflow watchdog — too much pending outbound data means we can't keep up.
@@ -457,9 +556,25 @@ public class NetworkManager {
 			this.timeSinceLastRead = 0;
 		}
 
-		// 3) Drain up to 1000 packets, dispatching each to the handler. This is the
-		//    only place where game logic actually runs in response to network input.
-		int maxPacketsPerTick = 1000;
+		// 3) Inbound backlog report. A queue deeper than the per-tick drain cap means
+		//    packets are accumulating faster than the tick loop consumes them, so the
+		//    server (not the network) is the bottleneck. Rate-limited to keep a
+		//    permanently-overloaded connection from flooding the log.
+		if(this.readPackets.size() >= READ_BACKLOG_WARN_THRESHOLD) {
+			long now = System.currentTimeMillis();
+
+			if(now - this.lastReadBacklogWarnMillis >= READ_BACKLOG_WARN_INTERVAL_MILLIS) {
+				this.lastReadBacklogWarnMillis = now;
+				System.out.println("Inbound packet backlog from " + this.remoteSocketAddress
+						+ ": " + this.readPackets.size() + " packets waiting to be processed"
+						+ " (draining at most " + MAX_PACKETS_PROCESSED_PER_TICK + " per tick)");
+			}
+		}
+
+		// 4) Drain up to MAX_PACKETS_PROCESSED_PER_TICK packets, dispatching each to the
+		//    handler. This is the only place where game logic actually runs in response
+		//    to network input.
+		int maxPacketsPerTick = MAX_PACKETS_PROCESSED_PER_TICK;
 
 		while(!this.readPackets.isEmpty() && maxPacketsPerTick-- >= 0) {
 			//long milis = System.currentTimeMillis();

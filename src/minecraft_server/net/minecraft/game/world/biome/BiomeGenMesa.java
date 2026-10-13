@@ -78,7 +78,7 @@ public class BiomeGenMesa extends BiomeGenBase {
 		boolean flagWtf = false;
 
 		for(int y = 127; y >= 0; --y) {
-			int index = x << 11 | z << 7 | y; 
+			int index = x << 12 | z << 8 | y; 
 			
 			if(y <= 0 + rand.nextInt(5) && !(generator instanceof ChunkProviderSky)) {
 				blocks[index] = (byte)Block.bedrock.blockID;

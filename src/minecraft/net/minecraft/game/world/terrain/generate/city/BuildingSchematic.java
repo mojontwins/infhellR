@@ -25,7 +25,7 @@ public abstract class BuildingSchematic extends Building {
 		int chunkidx;
 		for(int y = 0; y < height; y ++) {
 			for(int z = 0; z < length; z ++) {
-				chunkidx = (y0 + y) | (z << 7);
+				chunkidx = (y0 + y) | (z << 8);
 				for(int x = 0; x < width; x ++) {
 					b = this.schematic.getBlocks()[idx];
 					if(b != (byte)Block.structureVoid.blockID) {	
@@ -33,7 +33,7 @@ public abstract class BuildingSchematic extends Building {
 						chunk.data[chunkidx] = this.schematic.getData()[idx];
 					}
 					
-					chunkidx += 2048;
+					chunkidx += 4096;
 					idx ++;
 				}
 			}

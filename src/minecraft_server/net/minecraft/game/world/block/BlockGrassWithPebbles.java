@@ -1,7 +1,5 @@
 package net.minecraft.game.world.block;
 
-import java.util.Random;
-
 import net.minecraft.game.item.Item;
 import net.minecraft.game.item.ItemStack;
 import net.minecraft.game.world.IBlockAccess;

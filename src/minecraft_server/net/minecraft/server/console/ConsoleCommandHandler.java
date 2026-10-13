@@ -15,7 +15,6 @@ import net.minecraft.game.entity.human.EntityAlphaWitch;
 import net.minecraft.game.item.Item;
 import net.minecraft.game.item.ItemStack;
 import net.minecraft.network.packet.Packet3Chat;
-import net.minecraft.network.packet.Packet4UpdateTime;
 
 public class ConsoleCommandHandler {
 	private static Logger minecraftLogger = Logger.getLogger("Minecraft");
@@ -112,15 +111,27 @@ public class ConsoleCommandHandler {
 							}
 						}
 						if (timeChanged) {
+							// Change the clock of the world the command came FROM, not always the
+							// overworld. getWorldManager() maps -1 -> worldMngr[1] (nether),
+							// 0 -> worldMngr[0]. Console/rcon has no player, so it keeps the
+							// overworld default.
 							worldServer = this.minecraftServer.worldMngr[0];
+							EntityPlayerMP timeCommandIssuer = serverConfigurationManager.getPlayerEntity(username);
+							if (timeCommandIssuer != null) {
+								worldServer = this.minecraftServer.getWorldManager(timeCommandIssuer.dimension);
+							}
 							long worldTime = worldServer.getWorldTime();
 							long timeBaseDay = worldTime / 24000L * 24000L;
 							long remaining = worldTime % 24000L;
 							if (timeToSet < remaining) {
 								timeBaseDay += 24000;
 							}
+							// No extra broadcast here on purpose: WorldServer.setWorldTime()
+							// already sends Packet4UpdateTime to this dimension only. The old
+							// sendPacketToAllPlayers() ignored dimension, so a nether player got
+							// the overworld's new time and their own 20-tick sync immediately
+							// snapped them back to their unchanged clock.
 							worldServer.setWorldTime(timeBaseDay + timeToSet);
-							serverConfigurationManager.sendPacketToAllPlayers(new Packet4UpdateTime(worldServer.getWorldTime()));
 						} else {
 							commandListener.log("Syntax error, use time set [night|day|0-23999].");
 						}	

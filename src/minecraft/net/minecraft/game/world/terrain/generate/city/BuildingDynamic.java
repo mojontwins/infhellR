@@ -11,7 +11,7 @@ public abstract class BuildingDynamic extends Building {
 	}
 
 	public int coords2Idx(int x, int y, int z) {
-		return x << 11 | z << 7 | y;
+		return x << 12 | z << 8 | y;
 	}
 
 	public void setBlockIdAndMetadata(int x, int y, int z, int blockID, int metadata) {

@@ -32,6 +32,11 @@ public class ChunkProvider implements IChunkProvider {
 		this.chunkProvider = iChunkProvider3;
 	}
 
+	/** Returns the chunk generator wrapped by this cache (e.g. a ChunkProviderGenerate). */
+	public IChunkProvider getInnerChunkProvider() {
+		return this.chunkProvider;
+	}
+
 	public boolean chunkExists(int i1, int i2) {
 		return this.chunkMap.containsKey(ChunkCoordIntPair.chunkXZ2Int(i1, i2));
 	}

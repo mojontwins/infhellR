@@ -2,7 +2,7 @@ package net.minecraft.game.world.terrain.generate.feature;
 
 import java.util.Random;
 
-import net.minecraft.game.world.terrain.generate.betterdungeons.schematics.SchematicsShips;
+import net.minecraft.game.world.terrain.generate.feature.schematics.SchematicsShips;
 
 import net.minecraft.game.world.biome.BiomeGenBase;
 import net.minecraft.game.world.biome.BiomeGenGlacier;
@@ -22,7 +22,7 @@ public class FeatureShip extends FeatureBetterDungeons {
 	public void setup(World world, Random rand, BiomeGenBase biomeGenBase, int chunkX, int chunkZ) {	
 		super.setup(world, rand, biomeGenBase, chunkX, chunkZ);;
 		
-		this.schematics = new SchematicsShips(this.betterDungeons);
+		this.schematics = new SchematicsShips();
 		this.shipID = this.rand.nextInt(schematics.getStructureCount());
 		
 		System.out.println ("Ship @ " + this.centerX + " " + this.centerZ);

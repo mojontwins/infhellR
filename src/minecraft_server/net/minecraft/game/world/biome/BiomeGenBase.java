@@ -492,7 +492,7 @@ public class BiomeGenBase {
 		byte fillerBlock = this.fillerBlock;
 
 		for(int y = 127; y >= 0; --y) {
-			int index = x << 11 | z << 7 | y; // (x * 16 + z) * 128 + y
+			int index = x << 12 | z << 8 | y; // (x * 16 + z) * 256 + y
 			
 			if (y > 127 - monolithNoise) {
 				blocks[index] = (byte)0;

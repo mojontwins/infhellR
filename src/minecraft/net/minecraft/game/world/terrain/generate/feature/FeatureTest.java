@@ -31,7 +31,7 @@ public class FeatureTest extends Feature {
 					}
 				}
 				rz ++;
-				index += 128;
+				index += 256;
 			}
 			rx ++;			
 		}

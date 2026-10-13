@@ -24,7 +24,7 @@ import net.minecraft.game.world.terrain.generate.feature.FeatureDynamicSchematic
 import net.minecraft.game.world.terrain.generate.feature.FeatureProvider;
 
 public class FeatureIcePalace extends FeatureDynamicSchematic {
-	private static final int palaceHeight = 64;
+	private static final int palaceHeight = 120;
 	private List<FeatureAABB> pieceAABBs = new ArrayList<FeatureAABB> ();
 	private List<PalacePiecePosition> corridorPositions = new ArrayList<PalacePiecePosition> ();
 	private List<PalacePiecePosition> topPositions = new ArrayList<PalacePiecePosition> ();
@@ -144,7 +144,7 @@ public class FeatureIcePalace extends FeatureDynamicSchematic {
 		// First find if this tower can grow up or we must register a top
 		PalacePiece nextPiece = this.getNewPiece(pieceRand);
 		
-		if(y + newPiece.height + nextPiece.height <= 56 && this.pieceRand.nextInt(6) != 0) {
+		if(y + newPiece.height + nextPiece.height <= palaceHeight - 8 && this.pieceRand.nextInt(6) != 0) {
 			// Spawn new piece up: would next piece fit?
 			
 			nextPiece.place(x, y + newPiece.height, z);
@@ -261,6 +261,13 @@ public class FeatureIcePalace extends FeatureDynamicSchematic {
 	@Override
 	public int getFeatureRadius() {
 		return 2;
+	}
+
+	@Override
+	public boolean isGeneratedAfterCaves() {
+		// The palace must never be cut by cave/ravine carving, so its generation is
+		// deferred to the after-caves pass of provideChunk.
+		return true;
 	}
 
 	@Override
