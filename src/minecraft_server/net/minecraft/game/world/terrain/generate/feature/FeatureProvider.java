@@ -13,7 +13,10 @@ import java.util.Random;
 import net.minecraft.game.world.terrain.generate.feature.amazonvillage.FeatureAmazonVillage;
 import net.minecraft.game.world.terrain.generate.feature.fossils.FeatureFossil;
 import net.minecraft.game.world.terrain.generate.feature.icepalace.FeatureIcePalace;
+import net.minecraft.game.world.terrain.generate.feature.mineshaft.FeatureMineshaft;
+import net.minecraft.game.world.terrain.generate.feature.mineshaftmesa.FeatureMineshaftMesa;
 import net.minecraft.game.world.terrain.generate.feature.oceanruins.FeatureOceanRuins;
+import net.minecraft.game.world.terrain.generate.feature.stronghold.FeatureStronghold;
 import net.minecraft.game.world.biome.BiomeGenBase;
 import net.minecraft.game.world.chunk.Chunk;
 import net.minecraft.game.world.chunk.ChunkCoordIntPair;
@@ -35,6 +38,13 @@ import net.minecraft.game.world.World;
  * into one {@code long} (bijectively), so the maps here double as coord-keyed lookup tables.
  */
 public class FeatureProvider {
+	/**
+	 * Maximum feature scan radius, in chunks. The provider sweeps a
+	 * (2*MAX_FEATURE_RADIUS+1) square around every chunk and no registered feature may
+	 * return a larger {@link Feature#getFeatureRadius()} than this.
+	 */
+	public static final int MAX_FEATURE_RADIUS = 5;
+
 	public World world;
 	public IChunkProvider chunkProvider; 
 
@@ -327,10 +337,10 @@ public class FeatureProvider {
 	public List<Feature> collectNearestFeatures(int chunkX, int chunkZ) {
 		HashSet<Long> featureHashes = new HashSet<Long>();
 		
-		// Single sweep, rings 0..3. Cell order is the same as the old loop would have
-		// VISITED each cell for the FIRST time, which is all that matters for creation
-		// order (re-visits could never create anything new).
-		for(int i = 0; i <= 3; i ++) {
+		// Single sweep, rings 0..MAX_FEATURE_RADIUS. Cell order is the same as the old
+		// loop would have VISITED each cell for the FIRST time, which is all that matters
+		// for creation order (re-visits could never create anything new).
+		for(int i = 0; i <= MAX_FEATURE_RADIUS; i ++) {
 			for(int x = chunkX - i; x <= chunkX + i; x ++) {
 				for(int z = chunkZ - i; z <= chunkZ + i; z ++) {
 					// Skip cells that appear on an inner ring - they were handled already.
@@ -426,7 +436,7 @@ public class FeatureProvider {
 		this.populatedChunks.put(thisChunkHash, Boolean.TRUE);
 				
 		// Look which nearby features would affect this chunk
-		int i = 3; {
+		int i = MAX_FEATURE_RADIUS; {
 			for(int x = chunkX - i; x <= chunkX + i; x ++) {
 				for(int z = chunkZ - i; z <= chunkZ + i; z ++) {
 					long chunkHash = ChunkCoordIntPair.chunkXZ2Long(x, z);
@@ -553,6 +563,9 @@ public class FeatureProvider {
 		registerFeature(FeatureIcePalace.class);
 		registerFeature(FeatureFossil.class);
 		registerFeature(FeatureStoneArch.class);
+		registerFeature(FeatureMineshaft.class);
+		registerFeature(FeatureMineshaftMesa.class);
+		registerFeature(FeatureStronghold.class);
 		//registerFeature(FeatureSinkHole.class);
 	}
 }

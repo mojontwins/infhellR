@@ -4,9 +4,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
-import net.minecraft.game.world.terrain.generate.structure.mineshaft.MapGenMineshaft;
-import net.minecraft.game.world.terrain.generate.structure.mineshaftmesa.MapGenMineshaftMesa;
-import net.minecraft.game.world.terrain.generate.structure.stronghold.MapGenStronghold;
 import net.minecraft.game.IProgressUpdate;
 import net.minecraft.game.MathHelper;
 import net.minecraft.game.world.Weather;
@@ -71,9 +68,6 @@ public class ChunkProviderGenerate implements IChunkProvider {
 	protected MapGenBase cityGenerator = new MapGenCity();
 	protected MapGenBase ravineGenerator = new MapGenRavine();
 	protected MapGenBase oceanRavineGenerator = new MapGenOceanRavine();
-	protected MapGenMineshaft mineshaftGenerator;
-	protected MapGenMineshaftMesa mineshaftMesaGenerator;
-	protected MapGenStronghold strongholdGenerator;
 
 	// Reusable world generators: each holds only immutable constructor state,
 	// so a single instance is shared across every per-chunk population attempt.
@@ -126,10 +120,6 @@ public class ChunkProviderGenerate implements IChunkProvider {
 		this.mapFeaturesEnabled = z4;
 		this.generateCities = z5;
 		
-		this.mineshaftGenerator = new MapGenMineshaft(world1);
-		this.mineshaftMesaGenerator = new MapGenMineshaftMesa(world1);
-		this.strongholdGenerator = new MapGenStronghold(world1);
-
 		// Reusable decoration/ore generators (immutable constructor state).
 		this.coalGen      = new WorldGenMinable(Block.oreCoal.blockID, 16);
 		this.glowGen      = new WorldGenMinable(Block.oreGlow.blockID, 6);
@@ -415,13 +405,6 @@ public class ChunkProviderGenerate implements IChunkProvider {
 		// Caves
 		this.caveGenerator.generate(this, this.worldObj, chunkX, chunkZ, blockArray);
 		
-		// Mineshafts
-		if (this.mapFeaturesEnabled) {
-			this.mineshaftMesaGenerator.generate(this, this.worldObj, chunkX, chunkZ, blockArray);
-			this.mineshaftGenerator.generate(this, this.worldObj, chunkX, chunkZ, blockArray);
-			this.strongholdGenerator.generate(this, this.worldObj, chunkX, chunkZ, blockArray);
-		}
-		
 		// Cities & highways
 		if (this.generateCities) { 
 			if(BuildingHighway.generate(chunkX, chunkZ, this.rand, blockArray, this instanceof ChunkProviderSky)) {
@@ -437,7 +420,7 @@ public class ChunkProviderGenerate implements IChunkProvider {
 		}
 
 		// Features flagged to run after caves: now that every carving map-gen (caves,
-		// ravines, ocean ravines, mineshafts) has finished, draw them so they overwrite
+		// ravines, ocean ravines) has finished, draw them so they overwrite
 		// anything that was carved and always survive intact.
 		if (this.mapFeaturesEnabled) {
 			this.featureProvider.generateFeatures(nearestFeatures, chunkX, chunkZ, chunk, true);
@@ -982,20 +965,6 @@ public class ChunkProviderGenerate implements IChunkProvider {
 	}
 	
 	/**
-	 * Generates mineshafts and strongholds in the chunk if map features are enabled.
-	 *
-	 * @param chunkX  Chunk X coordinate
-	 * @param chunkZ  Chunk Z coordinate
-	 */
-	public void generateMapFeatures(int chunkX, int chunkZ) {
-		if (this.mapFeaturesEnabled) {
-			this.mineshaftGenerator.generateStructuresInChunk(this.worldObj, this.rand, chunkX, chunkZ, false);
-			this.mineshaftMesaGenerator.generateStructuresInChunk(this.worldObj, this.rand, chunkX, chunkZ, true);
-			this.strongholdGenerator.generateStructuresInChunk(this.worldObj, this.rand, chunkX, chunkZ, true);
-		}
-	}
-	
-	/**
 	 * Populates the chunk with features such as ores, flora, trees, and structures.
 	 *
 	 * @param chunkProvider  Chunk provider to get the base chunk
@@ -1029,9 +998,6 @@ public class ChunkProviderGenerate implements IChunkProvider {
 
 		// Features
 		if(this.mapFeaturesEnabled) {
-			// Vanilla map features (mineshafts)
-			this.generateMapFeatures(chunkX, chunkZ);
-			
 			// Custom features
 			this.featureProvider.populateFeatures(worldObj, rand, chunkX, chunkZ);
 		}
