@@ -37,6 +37,7 @@ import net.minecraft.client.gui.GuiMinimap;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiSleepMP;
 import net.minecraft.client.gui.GuiUnused;
+import net.minecraft.client.gui.LoadingScreenRenderer;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.gui.container.GuiContainerCreative;
 import net.minecraft.client.gui.container.GuiInventory;

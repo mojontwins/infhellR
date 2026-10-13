@@ -1,12 +1,6 @@
-package net.minecraft.game.world.terrain.generate.betterdungeons.schematics;
-
-import net.minecraft.game.world.terrain.generate.betterdungeons.BetterDungeons;
+package net.minecraft.game.world.terrain.generate.feature.schematics;
 
 public class SchematicsBigShipCog extends SchematicsBigShip implements ISchematic {
-
-	public SchematicsBigShipCog(BetterDungeons betterDungeons) {
-		super(betterDungeons);
-	}
 
 	@Override
 	public short[][][][] getStructureList() {

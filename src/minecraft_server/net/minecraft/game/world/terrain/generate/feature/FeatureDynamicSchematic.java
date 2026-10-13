@@ -6,7 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
-import net.minecraft.game.world.terrain.generate.betterdungeons.StructureBlockData;
+import net.minecraft.game.world.terrain.generate.feature.StructureBlockData;
 import net.minecraft.game.world.schematic.Schematic;
 
 import net.minecraft.game.world.biome.BiomeGenBase;

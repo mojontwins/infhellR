@@ -1,10 +1,11 @@
-package net.minecraft.client;
+package net.minecraft.client.gui;
 
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.GL11;
 
 import net.minecraft.game.IProgressUpdate;
-import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftError;
 import net.minecraft.client.render.Tessellator;
 
 /**
@@ -34,11 +35,23 @@ public class LoadingScreenRenderer implements IProgressUpdate {
     private long timeElapsed = System.currentTimeMillis();
     /** True when the current operation is a world save (changes bar display behavior). */
     private boolean isSaving = false;
+    
+    private String hint = "";
+    private static long hintTimer = System.currentTimeMillis();
 
     public LoadingScreenRenderer(Minecraft minecraft) {
         this.minecraft = minecraft;
+        this.selectHint();
     }
+    
+    private void selectHint() {
+		this.setHint(GameHints.getRandomHint());
+	}
 
+	public void setHint(String hint) {
+		this.hint = hint;
+	}
+	
     /**
      * Sets the loading headline message and resets the save flag.
      *
@@ -113,6 +126,12 @@ public class LoadingScreenRenderer implements IProgressUpdate {
             }
         } else {
             long now = System.currentTimeMillis();
+            
+            if(now - hintTimer >= 4000) {
+				this.selectHint();
+				hintTimer = now;
+			}
+            
             if (now - this.timeElapsed < 20L) {
                 return;  // throttle: draw at most every 20 ms
             }
@@ -184,6 +203,9 @@ public class LoadingScreenRenderer implements IProgressUpdate {
                 screenHeight / 2 - 4 + 8,
                 0xFFFFFF);
 
+			this.minecraft.fontRenderer.drawStringWithShadow(this.hint,
+					(screenWidth - this.minecraft.fontRenderer.getStringWidth(this.hint)) / 2, screenHeight - 24, 0xFFFF00);
+            
             Display.update();
             Thread.yield();
         }

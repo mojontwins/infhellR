@@ -1,10 +1,10 @@
-package net.minecraft.game.world.terrain.generate.betterdungeons.schematics;
+package net.minecraft.game.world.terrain.generate.feature.schematics;
 
 import java.util.ArrayList;
 import java.util.Random;
 
-import net.minecraft.game.world.terrain.generate.betterdungeons.BetterDungeons;
-import net.minecraft.game.world.terrain.generate.betterdungeons.StructureBlockData;
+import net.minecraft.game.world.terrain.generate.feature.FeatureUtils;
+import net.minecraft.game.world.terrain.generate.feature.StructureBlockData;
 
 import net.minecraft.game.world.block.Block;
 import net.minecraft.game.world.block.BlockContainer;
@@ -13,10 +13,6 @@ import net.minecraft.game.world.World;
 
 public abstract class SchematicsBigShip extends Schematics implements ISchematic {
 
-	public SchematicsBigShip(BetterDungeons betterDungeons) {
-		super(betterDungeons);
-	}
-	
 	public abstract short[][][][] getStructureList();
 	
 	public abstract int getStructurePiecesX();
@@ -99,16 +95,16 @@ public abstract class SchematicsBigShip extends Schematics implements ISchematic
 								) {
 									specialBlocks.add(new StructureBlockData(absX, absY, absZ, blockID, metadata, false));
 								} else if(blockID == 52) {
-									this.betterDungeons.addSpawner(rand, world, absX, absY, absZ);
+									FeatureUtils.addSpawner(rand, world, absX, absY, absZ);
 								} else if(blockID == 54) {
-									this.betterDungeons.addChest(rand, world, absX, absY, absZ);
+									FeatureUtils.addChest(rand, world, absX, absY, absZ);
 								} else if (blockID < 254) { 
 									if(blockID == Block.thinGlass.blockID) blockID = Block.glass.blockID;
 									else if(blockID == Block.blockBed.blockID) { blockID = Block.stairSingle.blockID; metadata = 0; }
 									
 									chunk.setBlockIDWithMetadataNoLights(x, absY, z, blockID, metadata);
 								} else {
-									this.betterDungeons.addCustomBlock(absX, absY, absZ, blockID, metadata, world, structureId);
+									FeatureUtils.addCustomBlock(absX, absY, absZ, blockID, metadata, world, structureId);
 								}
 							}
 						}
@@ -120,7 +116,7 @@ public abstract class SchematicsBigShip extends Schematics implements ISchematic
 			}
 		}
 		
-		this.betterDungeons.copySpecialBlocksCustom(world, specialBlocks);
+		FeatureUtils.copySpecialBlocksCustom(world, specialBlocks);
 		chunk.clearAllLights();
 		chunk.generateHeightMap();
 		chunk.generateSkylightMap();

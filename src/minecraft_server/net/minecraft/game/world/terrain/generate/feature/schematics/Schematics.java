@@ -1,8 +1,11 @@
-package net.minecraft.game.world.terrain.generate.betterdungeons.schematics;
+package net.minecraft.game.world.terrain.generate.feature.schematics;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
-import net.minecraft.game.world.terrain.generate.betterdungeons.BetterDungeons;
+import net.minecraft.game.world.terrain.generate.feature.FeatureUtils;
+import net.minecraft.game.world.terrain.generate.feature.StructureBlockData;
 
 import net.minecraft.game.world.block.Block;
 import net.minecraft.game.world.block.BlockContainer;
@@ -10,12 +13,9 @@ import net.minecraft.game.world.chunk.Chunk;
 import net.minecraft.game.world.World;
 
 public abstract class Schematics implements ISchematic {
-	public BetterDungeons betterDungeons = null;	
-	public abstract short[][][][] getStructureList();
+	private final List<StructureBlockData> specialBlocks = new ArrayList<StructureBlockData>();
 
-	public Schematics(BetterDungeons betterDungeons) {
-		this.betterDungeons = betterDungeons;
-	}
+	public abstract short[][][][] getStructureList();
 	
 	public short[][][] pickupRandomStructure(Random rand) {
 		short[][][][] structureList = this.getStructureList();
@@ -80,7 +80,7 @@ public abstract class Schematics implements ISchematic {
 	 * Remember that everything is column-ordered [x][z][y]!!
 	 */
 	public void unpackStructureToWorldTransparentAt(short[][][] structure, World world, Random rand, int x0, int y0, int z0, int structureId) {
-		this.betterDungeons.getSpecialBlocks().clear();
+		this.specialBlocks.clear();
 		
 		short element;
 		int count;
@@ -121,11 +121,11 @@ public abstract class Schematics implements ISchematic {
 											blockID == 50 || blockID == 64 || blockID == 65 || blockID == 69 || 
 											blockID == 71 || blockID == 75 || blockID == 76 || blockID == 77
 									) {
-										this.betterDungeons.addSpecialBlock(absX, absY, absZ, blockID, metadata, false);
+										FeatureUtils.addSpecialBlock(this.specialBlocks, absX, absY, absZ, blockID, metadata, false);
 									} else if(blockID == 52) {
-										this.betterDungeons.addSpawner(rand, world, absX, absY, absZ);
+										FeatureUtils.addSpawner(rand, world, absX, absY, absZ);
 									} else if(blockID == 54) {
-										this.betterDungeons.addChest(rand, world, absX, absY, absZ);
+										FeatureUtils.addChest(rand, world, absX, absY, absZ);
 									} else if (blockID < 254) {
 										if(blockID == Block.stoneBricks.blockID) {
 											metadata = rand.nextInt(7); 
@@ -135,7 +135,7 @@ public abstract class Schematics implements ISchematic {
 										}
 										chunk.setBlockIDWithMetadata(cx, absY, cz, blockID, metadata);
 									} else {
-										this.betterDungeons.addCustomBlock(absX, absY, absZ, blockID, metadata, world, structureId);
+										FeatureUtils.addCustomBlock(absX, absY, absZ, blockID, metadata, world, structureId);
 									}
 								}
 							}
@@ -147,7 +147,7 @@ public abstract class Schematics implements ISchematic {
 			}
 		}
 		
-		this.betterDungeons.copySpecialBlocks(world);
+		FeatureUtils.copySpecialBlocks(world, this.specialBlocks);
 	}	
 	
 	/*
@@ -156,7 +156,7 @@ public abstract class Schematics implements ISchematic {
 	 * Chunk-alligned version
 	 */
 	public void unpackStructureToWorldTransparentAtChunk(short[][][] structure, World world, Random rand, int x0, int y0, int z0, int structureId) {
-		this.betterDungeons.getSpecialBlocks().clear();
+		this.specialBlocks.clear();
 		
 		short element;
 		int count;
@@ -197,11 +197,11 @@ public abstract class Schematics implements ISchematic {
 										blockID == 50 || blockID == 64 || blockID == 65 || blockID == 69 || 
 										blockID == 71 || blockID == 75 || blockID == 76 || blockID == 77
 								) {
-									this.betterDungeons.addSpecialBlock(absX, absY, absZ, blockID, metadata, false);
+									FeatureUtils.addSpecialBlock(this.specialBlocks, absX, absY, absZ, blockID, metadata, false);
 								} else if(blockID == 52) {
-									this.betterDungeons.addSpawner(rand, world, absX, absY, absZ);
+									FeatureUtils.addSpawner(rand, world, absX, absY, absZ);
 								} else if(blockID == 54) {
-									this.betterDungeons.addChest(rand, world, absX, absY, absZ);
+									FeatureUtils.addChest(rand, world, absX, absY, absZ);
 								} else if (blockID < 254) {
 									if(blockID == Block.stoneBricks.blockID) {
 										metadata = rand.nextInt(7); 
@@ -211,7 +211,7 @@ public abstract class Schematics implements ISchematic {
 									}
 									chunk.setBlockIDWithMetadataNoLights(x, absY, z, blockID, metadata);
 								} else {
-									this.betterDungeons.addCustomBlock(absX, absY, absZ, blockID, metadata, world, structureId);
+									FeatureUtils.addCustomBlock(absX, absY, absZ, blockID, metadata, world, structureId);
 								}
 							}
 						}
@@ -222,6 +222,6 @@ public abstract class Schematics implements ISchematic {
 			}
 		}
 		
-		this.betterDungeons.copySpecialBlocks(world);
+		FeatureUtils.copySpecialBlocks(world, this.specialBlocks);
 	}
 }

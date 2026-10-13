@@ -101,6 +101,22 @@ public abstract class Feature {
 	}
 	
 	/*
+	 * Generation stage selector.
+	 *
+	 * Returning false (the default) draws this feature in the classic "before caves" pass:
+	 * the cave and ravine generators carve the terrain *after* the feature, so carving can
+	 * cut through the structure.
+	 *
+	 * Returning true defers the feature to the "after caves" pass, which runs once every
+	 * carving map-gen (caves, ravines, ...) has finished - the feature then overwrites
+	 * whatever was carved, so it always survives intact. Use it for structures that must
+	 * never be cut (e.g. the ice palace).
+	 */
+	public boolean isGeneratedAfterCaves() {
+		return false;
+	}
+
+	/*
 	 * Called during the generation stage (in `provideChunk`). You usually want to read/write to `chunk.blocks` directly
 	 */
 	public abstract void generate(int chunkX, int chunkZ, Chunk chunk);

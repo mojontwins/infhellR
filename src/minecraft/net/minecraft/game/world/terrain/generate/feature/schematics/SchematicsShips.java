@@ -1,12 +1,6 @@
-package net.minecraft.game.world.terrain.generate.betterdungeons.schematics;
-
-import net.minecraft.game.world.terrain.generate.betterdungeons.BetterDungeons;
+package net.minecraft.game.world.terrain.generate.feature.schematics;
 
 public class SchematicsShips extends Schematics implements ISchematic {
-
-	public SchematicsShips(BetterDungeons betterDungeons) {
-		super(betterDungeons);
-	}
 
 	@Override
 	public short[][][][] getStructureList() {
@@ -15,7 +9,7 @@ public class SchematicsShips extends Schematics implements ISchematic {
 			this.ship4(), this.ship5(), this.skeleton()
 			
 			// This will go out soon
-			//, this.trade_cogXiraxis(), this.fishing_boatXiraxis()
+			// , this.trade_cogXiraxis(), this.fishing_boatXiraxis()
 		};
 	}
 

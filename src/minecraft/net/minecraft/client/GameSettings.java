@@ -161,6 +161,12 @@ public class GameSettings {
             GameSettingsValues.ambientOcclusion = GameSettingsValues.ofAoLevel > 0.0F;
             this.minecraft.renderGlobal.loadRenderers();
         }
+
+        if (option == EnumOptions.DISPLAY_MODES) {
+            int index = Math.round(value * (float)(AVAILABLE_DISPLAY_MODES.size() - 1));
+            index = Math.max(0, Math.min(AVAILABLE_DISPLAY_MODES.size() - 1, index));
+            GameSettingsValues.displayMode = AVAILABLE_DISPLAY_MODES.get(index);
+        }
     }
 
     /**
@@ -251,13 +257,6 @@ public class GameSettings {
             GameSettingsValues.colouredAthmospherics = !GameSettingsValues.colouredAthmospherics;
         }
 
-        if (option == EnumOptions.DISPLAY_MODES) {
-            int index = AVAILABLE_DISPLAY_MODES.indexOf(GameSettingsValues.displayMode);
-            index++;
-            if (index >= AVAILABLE_DISPLAY_MODES.size()) index = 0;
-            GameSettingsValues.displayMode = AVAILABLE_DISPLAY_MODES.get(index);
-        }
-
         if (option == EnumOptions.MELTBUILD) {
             GameSettingsValues.meltBuild = !GameSettingsValues.meltBuild;
         }
@@ -291,6 +290,13 @@ public class GameSettings {
         if (option == EnumOptions.FOV) return (float)GameSettingsValues.FOV / 60.0F;
         if (option == EnumOptions.GAMMA) return GameSettingsValues.gammaSetting;
         if (option == EnumOptions.AO_LEVEL) return GameSettingsValues.ofAoLevel;
+        if (option == EnumOptions.DISPLAY_MODES) {
+            int index = AVAILABLE_DISPLAY_MODES.indexOf(GameSettingsValues.displayMode);
+            if (index < 0 || AVAILABLE_DISPLAY_MODES.size() <= 1) {
+                return 0.0F;
+            }
+            return (float)index / (float)(AVAILABLE_DISPLAY_MODES.size() - 1);
+        }
         return 0.0F;
     }
 
@@ -351,6 +357,8 @@ public class GameSettings {
                 } else {
                     return label + (int)(value * 100.0F) + "%";
                 }
+            } else if (option == EnumOptions.DISPLAY_MODES) {
+                return label + GameSettingsValues.displayMode;
             } else {
                 if (value == 0.0F) {
                     return label + translator.translateKey("options.off");
@@ -394,7 +402,6 @@ public class GameSettings {
                 case CLEAR_WATERS:       return label + (GameSettingsValues.clearWaters
                                                ? translator.translateKey("options.on")
                                                : translator.translateKey("options.off"));
-                case DISPLAY_MODES:      return label + GameSettingsValues.displayMode;
                 case MIPMAP_LEVEL:       return label + GameSettingsValues.ofMipmapLevel;
                 case MIPMAP_TYPE:        return GameSettingsValues.ofMipmapLinear ? label + "Linear" : label + "Nearest";
                 default:                 return label;
@@ -562,6 +569,8 @@ public class GameSettings {
             }
         }
 
+        String defaultMode = AVAILABLE_DISPLAY_MODES.get(0);
         Collections.sort(AVAILABLE_DISPLAY_MODES, new GraphicsModeSorter());
+        AVAILABLE_DISPLAY_MODES.add(0, defaultMode);
     }
 }

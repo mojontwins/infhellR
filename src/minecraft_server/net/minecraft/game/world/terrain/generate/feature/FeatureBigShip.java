@@ -2,12 +2,12 @@ package net.minecraft.game.world.terrain.generate.feature;
 
 import java.util.Random;
 
-import net.minecraft.game.world.terrain.generate.betterdungeons.schematics.SchematicsBigShip;
-import net.minecraft.game.world.terrain.generate.betterdungeons.schematics.SchematicsBigShipCog;
-import net.minecraft.game.world.terrain.generate.betterdungeons.schematics.SchematicsBigShipFishing;
-import net.minecraft.game.world.terrain.generate.betterdungeons.schematics.SchematicsBigShipGaleon;
-import net.minecraft.game.world.terrain.generate.betterdungeons.schematics.SchematicsBigShipIsland;
-import net.minecraft.game.world.terrain.generate.betterdungeons.schematics.SchematicsBigShipShark;
+import net.minecraft.game.world.terrain.generate.feature.schematics.SchematicsBigShip;
+import net.minecraft.game.world.terrain.generate.feature.schematics.SchematicsBigShipCog;
+import net.minecraft.game.world.terrain.generate.feature.schematics.SchematicsBigShipFishing;
+import net.minecraft.game.world.terrain.generate.feature.schematics.SchematicsBigShipGaleon;
+import net.minecraft.game.world.terrain.generate.feature.schematics.SchematicsBigShipIsland;
+import net.minecraft.game.world.terrain.generate.feature.schematics.SchematicsBigShipShark;
 
 import net.minecraft.game.world.biome.BiomeGenBase;
 import net.minecraft.game.world.biome.BiomeGenGlacier;
@@ -30,11 +30,11 @@ public class FeatureBigShip extends FeatureBetterDungeons {
 		this.shipID = this.rand.nextInt(5);
 		
 		switch(this.shipID) {
-		case 0: schematics = new SchematicsBigShipGaleon(this.betterDungeons); break;
-		case 1: schematics = new SchematicsBigShipShark(this.betterDungeons); break;
-		case 2: schematics = new SchematicsBigShipCog(this.betterDungeons); break;
-		case 3: schematics = new SchematicsBigShipFishing(this.betterDungeons); break;
-		default: schematics = new SchematicsBigShipIsland(this.betterDungeons); break;
+		case 0: schematics = new SchematicsBigShipGaleon(); break;
+		case 1: schematics = new SchematicsBigShipShark(); break;
+		case 2: schematics = new SchematicsBigShipCog(); break;
+		case 3: schematics = new SchematicsBigShipFishing(); break;
+		default: schematics = new SchematicsBigShipIsland(); break;
 		}
 		
 		System.out.println ("Big ship @ " + this.centerX + " " + this.centerZ);

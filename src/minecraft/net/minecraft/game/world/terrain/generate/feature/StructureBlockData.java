@@ -1,4 +1,4 @@
-package net.minecraft.game.world.terrain.generate.betterdungeons;
+package net.minecraft.game.world.terrain.generate.feature;
 
 public class StructureBlockData {
 	public int x;

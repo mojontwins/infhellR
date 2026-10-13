@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import net.minecraft.game.world.terrain.generate.betterdungeons.BetterDungeons;
 import net.minecraft.game.world.terrain.generate.feature.amazonvillage.FeatureAmazonVillage;
 import net.minecraft.game.world.terrain.generate.feature.fossils.FeatureFossil;
 import net.minecraft.game.world.terrain.generate.feature.icepalace.FeatureIcePalace;
@@ -38,7 +37,6 @@ import net.minecraft.game.world.World;
 public class FeatureProvider {
 	public World world;
 	public IChunkProvider chunkProvider; 
-	public BetterDungeons betterDungeons;
 
 	/**
 	 * Registered feature classes, in registration order.
@@ -115,10 +113,9 @@ public class FeatureProvider {
 	/** How many "no feature here" cells we remember. */
 	private static final int NO_FEATURE_CHUNK_CACHE_CAPACITY = 4096;
 
-	public FeatureProvider(World world, IChunkProvider chunkProvider, BetterDungeons betterDungeons) {
+	public FeatureProvider(World world, IChunkProvider chunkProvider) {
 		this.world = world;
 		this.chunkProvider = chunkProvider;
-		this.betterDungeons = betterDungeons;
 		this.featureList = new HashMap<Long, Feature> ();
 		
 		// accessOrder=true turns the LinkedHashMaps into LRU caches; removeEldestEntry
@@ -156,6 +153,26 @@ public class FeatureProvider {
 		}
 	}
 	
+	/**
+	 * Looks up a registered feature class by its simple or fully-qualified name,
+	 * case-insensitively (e.g. "FeatureIcePalace").
+	 *
+	 * @param featureClassName the class name to look up
+	 * @return the matching registered class, or {@code null} if no registered
+	 *         feature matches
+	 */
+	public static Class<?> getRegisteredFeatureClass(String featureClassName) {
+		if(featureClassName == null) return null;
+		for(Class<?> featureClass : registeredFeatures) {
+			if(featureClass == null) continue;
+			if(featureClass.getSimpleName().equalsIgnoreCase(featureClassName)
+					|| featureClass.getName().equalsIgnoreCase(featureClassName)) {
+				return featureClass;
+			}
+		}
+		return null;
+	}
+
 	/**
 	 * Adds a feature type to the spawn pool and caches its constructor so chunk
 	 * selection never has to reflect on it again.
@@ -290,7 +307,8 @@ public class FeatureProvider {
 	
 	/**
 	 * Scans the 7x7 chunk square centered on (chunkX, chunkZ) for features that are
-	 * near or overlapping this chunk and runs their generation stage.
+	 * near or overlapping this chunk and returns them in the order their generation
+	 * stage must run.
 	 *
 	 * <p>The scan visits every cell exactly ONCE (ordered by ring distance, 0..3), which
 	 * preserves the exact feature-creation order of the original quadruple-nested sweep:
@@ -300,11 +318,13 @@ public class FeatureProvider {
 	 * are remembered in {@link #noFeatureChunks} so later, overlapping chunk requests
 	 * short-circuit instead of re-running the gate.
 	 *
-	 * @return true if any feature drew blocks into this chunk
+	 * <p>This method only <em>collects</em>. The actual drawing is split across two
+	 * generation stages by {@link #generateFeatures(List, int, int, Chunk, boolean)}:
+	 * one pass before cave/ravine carving and one after it.
+	 *
+	 * @return the overlapping features, in the deterministic order their stage must run
 	 */
-	public boolean getNearestFeatures(int chunkX, int chunkZ, Chunk chunk) {
-		boolean featureInChunk = false;
-		
+	public List<Feature> collectNearestFeatures(int chunkX, int chunkZ) {
 		HashSet<Long> featureHashes = new HashSet<Long>();
 		
 		// Single sweep, rings 0..3. Cell order is the same as the old loop would have
@@ -350,15 +370,40 @@ public class FeatureProvider {
 			}
 		}
 		
-		// Generation phase. Iteration order over the HashSet is deterministic for a given
-		// set of entries + insertion sequence, both of which we preserved above, so the
-		// generation order is unchanged from the original two-phase scan.
+		// Materialize in the HashSet's iteration order, which is deterministic for the
+		// insertion sequence preserved above. Keeping this order means the relative
+		// generation order of same-stage features is unchanged from the old single pass.
+		List<Feature> features = new ArrayList<Feature>(featureHashes.size());
 		Iterator<Long> iterator = featureHashes.iterator();
 		while(iterator.hasNext()) {
-			Feature feature = this.featureList.get(iterator.next());
-			
-			feature.generate(chunkX, chunkZ, chunk);
-			featureInChunk = true;
+			features.add(this.featureList.get(iterator.next()));
+		}
+		
+		return features;
+	}
+	
+	/**
+	 * Runs the generation stage of every collected feature whose carving stage matches.
+	 *
+	 * <p>Features are drawn in the order {@link #collectNearestFeatures(int, int)}
+	 * returned them, so within a stage the draw order is identical to the historical
+	 * single pass. A feature opts into the after-caves stage by overriding
+	 * {@link Feature#isGeneratedAfterCaves()}.
+	 *
+	 * @param features   the list from {@link #collectNearestFeatures(int, int)}
+	 * @param afterCaves {@code false} for the pass before carving, {@code true} for the
+	 *        pass that runs once caves and ravines have been carved
+	 * @return true if any feature of this stage drew into the chunk
+	 */
+	public boolean generateFeatures(List<Feature> features, int chunkX, int chunkZ, Chunk chunk, boolean afterCaves) {
+		boolean featureInChunk = false;
+		
+		for(int i = 0; i < features.size(); i ++) {
+			Feature feature = features.get(i);
+			if(feature.isGeneratedAfterCaves() == afterCaves) {
+				feature.generate(chunkX, chunkZ, chunk);
+				featureInChunk = true;
+			}
 		}
 		
 		return featureInChunk;

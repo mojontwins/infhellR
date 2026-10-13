@@ -225,6 +225,7 @@ public class CommandProcessor {
 		registerCommand(CommandSummon.class);
 		registerCommand(CommandTime.class);
 		registerCommand(CommandTp.class);
+		registerCommand(CommandFind.class);
 		registerCommand(CommandNextMoonBad.class);
 		registerCommand(CommandSnow.class);
 		registerCommand(CommandRain.class);

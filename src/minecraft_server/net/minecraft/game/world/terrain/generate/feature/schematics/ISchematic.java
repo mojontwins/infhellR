@@ -1,4 +1,4 @@
-package net.minecraft.game.world.terrain.generate.betterdungeons.schematics;
+package net.minecraft.game.world.terrain.generate.feature.schematics;
 
 import java.util.Random;
 
