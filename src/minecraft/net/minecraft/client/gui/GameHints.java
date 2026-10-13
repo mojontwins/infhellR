@@ -47,7 +47,9 @@ public class GameHints {
 		"It's a good idea to stay away from cities at first",
 		"The dark forest is incredibly dangerous!",
 		"Monsters will attack animals. Be careful.",
-		"Some animals will retaliate."
+		"Plain beds won't skip the night. Enchanted beds do!",
+		"Craft a Lunar Wand and right-click a bed to enchant it.",
+		"Enchanted beds set your spawn when you sleep or wake up in them."
 	};
 	
 	public static String getRandomHint() {
