@@ -3,7 +3,6 @@ package net.minecraft.game.world.terrain.generate.feature;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -56,9 +55,11 @@ public class FeatureProvider {
 	/**
 	 * Registered feature classes, in registration order.
 	 *
-	 * <p>Order matters: {@link #getFeatureForChunkCoords} walks this list and hands the
-	 * chunk to the FIRST feature whose spawn gate passes. Volcanos are registered first
-	 * on purpose, so a rocky/volcanic biome surface picks the volcano over anything else.
+	 * <p>Order matters: {@link #getFeatureForChunkCoords} walks this list in order and
+	 * accepts every feature whose gate passes. Because exclusive features are
+	 * first-come-first-served, a class registered earlier wins the single exclusive slot
+	 * for its chunk. Volcanos are registered first on purpose, so a rocky/volcanic biome
+	 * surface picks the volcano over any other exclusive feature.
 	 */
 	private static final List<Class<?>> registeredFeatures;
 	
@@ -84,8 +85,13 @@ public class FeatureProvider {
 	 * "no feature" cell because the spawn gate short-circuits on the fully built
 	 * structure. Only features that are still drawing - schematics still live - are
 	 * ever present here.
+	 *
+	 * Each cell maps to the LIST of features owned by that origin chunk. Today the
+	 * selection stage yields at most one feature per cell, so every list holds a single
+	 * element, but the list form is kept so the provider can grow to multiple features
+	 * per chunk without another type change.
 	 */
-	private HashMap<Long, Feature> featureList;
+	private HashMap<Long, List<Feature>> featureList;
 	
 	/*
 	 * Bounded (LRU) set of chunks that already went through the population stage.
@@ -131,7 +137,7 @@ public class FeatureProvider {
 	public FeatureProvider(World world, IChunkProvider chunkProvider) {
 		this.world = world;
 		this.chunkProvider = chunkProvider;
-		this.featureList = new HashMap<Long, Feature> ();
+		this.featureList = new HashMap<Long, List<Feature>> ();
 		
 		// accessOrder=true turns the LinkedHashMaps into LRU caches; removeEldestEntry
 		// drops the least-recently-touched entry once the cap is exceeded.
@@ -216,15 +222,20 @@ public class FeatureProvider {
 
 	/**
 	 * Selects a feature at random for chunkX, chunkZ. If successful the feature is
-	 * initialized (but not yet setup) and returned.
+	 * initialized (but not yet setup) and returned inside a list.
+	 *
+	 * <p>Returns the list of features that spawn here, or {@code null} when none does.
+	 * A chunk can host several features: only exclusive features refuse to share their
+	 * origin chunk with another exclusive feature (see {@link Feature#exclusive()}), so
+	 * the result may hold one exclusive feature plus any number of non-exclusive ones.
 	 *
 	 * <p>Determinism: the whole selection is a function of the world seed, the chunk
 	 * coordinates and the biomes known so far - the gate Random is reseeded identically
 	 * on every call so the same chunk always selects the same feature.
 	 */
-	public Feature getFeatureForChunkCoords(int chunkX, int chunkZ) { 
-		// Provide a feature.
-		Feature feature = null;
+	public List<Feature> getFeatureForChunkCoords(int chunkX, int chunkZ) { 
+		// Features accepted for this origin chunk. A chunk can hold more than one.
+		List<Feature> features = new ArrayList<Feature>();
 		
 		// Seed must be consistent. Note the multiplications are INT arithmetic and may
 		// overflow - that overflow is part of the (intentionally) stable seed, so keep
@@ -234,7 +245,12 @@ public class FeatureProvider {
 		// Get the biome
 		BiomeGenBase biome = this.world.getWorldChunkManager().getBiomeGenAt((chunkX << 4) + 8, (chunkZ << 4) + 8);
 		
-		// Select a feature. First feature from the list which can be spawned is selected!
+		// Walk EVERY registered class (not just the first match): non-exclusive features
+		// (like the mineshafts) may share the origin chunk with anything, so several can
+		// be accepted here. An exclusive feature claims the chunk on a first-come,
+		// first-served basis: at most one exclusive feature may live here, but any number
+		// of non-exclusive features are welcome alongside it.
+		boolean hasExclusive = false;
 		Iterator<Class<?>> featureClassIterator = registeredFeatures.iterator();
 		while(featureClassIterator.hasNext()) {					
 			Class<?> featureClass = featureClassIterator.next();
@@ -244,62 +260,88 @@ public class FeatureProvider {
 			// is a pure function of (world, seed, biome, coords) the probe's verdict is
 			// byte-identical to building a fresh instance - without the allocation.
 			Feature probe = this.probeFeatures.get(featureClass);
-			if(probe != null && probe.shouldFeatureSpawn(this.chunkProvider, this.world, new Random(seed), biome, chunkX, chunkZ)) {
-				// The probe passed: construct the REAL feature for this chunk now.
-				try {
-					feature = (Feature) featureConstructors.get(featureClass)
-							.newInstance(new Object[] { world, Integer.valueOf(chunkX), Integer.valueOf(chunkZ), this });
-					System.out.println ("Feature " + feature.getClass().getName() + " @ " + feature.centerX + " " + feature.centerZ);
+			if(probe == null || !probe.shouldFeatureSpawn(this.chunkProvider, this.world, new Random(seed), biome, chunkX, chunkZ)) {
+				continue;
+			}
+			
+			// Exclusivity gate: an exclusive class refuses to share this chunk with another
+			// exclusive class, but never with a non-exclusive one. `exclusive()` is pure
+			// constant state, so asking the probe is equivalent to asking the real feature.
+			boolean exclusive = probe.exclusive();
+			if(exclusive && hasExclusive) {
+				continue;
+			}
+			
+			// The probe passed: construct the REAL feature for this chunk now.
+			Feature feature;
+			try {
+				feature = (Feature) featureConstructors.get(featureClass)
+						.newInstance(new Object[] { world, Integer.valueOf(chunkX), Integer.valueOf(chunkZ), this });
+			} catch (Exception e) {
+				// Mirror the original behaviour: treat the failed construction as "not
+				// a feature here" and keep trying the remaining classes.
+				e.printStackTrace();
+				continue;
+			}
+			
+			// Skip re-creating a structure that is already fully built into the world.
+			//
+			// Every world entry constructs a fresh provider with an empty featureList, so a
+			// chunk generated next to a feature whose chunks were persisted in an earlier
+			// session re-runs this gate, passes (the seed is deterministic), and would
+			// create a brand-new feature object - rebuilding its (potentially several-hundred
+			// kilobyte) schematic from scratch and re-printing its setup, even though every
+			// block the structure would draw is already in the world or on disk. Skip exactly
+			// like a failed gate: the caller remembers the cell as "no feature" for this
+			// session. A feature whose box is only PARTLY built (e.g. the frontier of a saved
+			// world) is NOT skipped: the outstanding box chunks legitimately need the feature
+			// object so the deterministic schematic rebuild completes the structure there.
+			if(this.isFeatureFullyBuilt(feature)) {
+				continue;
+			}
+			
+			// Check if it's not too close to other features. Only features from OTHER origin
+			// chunks are compared: features sharing this chunk are meant to overlap, so the
+			// ones accepted earlier in this same call must not veto this one.
+			// The separation is expressed in CHUNKS (minimumSeparation returns a chunk count),
+			// so the block-space centers are shifted back to chunk coords before comparing.
+			int separation = feature.minimumSeparation();
+			boolean tooClose = false;
+			Iterator<List<Feature>> iterator = this.featureList.values().iterator();
+			while(iterator.hasNext()) {
+				List<Feature> otherFeatures = iterator.next();
+				for(Feature otherFeature : otherFeatures) {
+					if(
+							/*otherFeature.getClass() == feature.getClass() &&*/ (
+								Math.abs((feature.centerX >> 4) - (otherFeature.centerX >> 4)) <= separation || 
+								Math.abs((feature.centerZ >> 4) - (otherFeature.centerZ >> 4)) <= separation
+							)
+					) {
+						tooClose = true;
+						break;
+					}
+				}
+				if(tooClose) {
 					break;
-				} catch (Exception e) {
-					// Mirror the original behaviour: treat the failed construction as "not
-					// a feature here" and keep trying the remaining classes.
-					e.printStackTrace();
-					feature = null;
 				}
 			}
-		}
-		
-		if(feature == null) return null;
-		
-		// Skip re-creating a structure that is already fully built into the world.
-		//
-		// Every world entry constructs a fresh provider with an empty featureList, so a
-		// chunk generated next to a feature whose chunks were persisted in an earlier
-		// session re-runs this gate, passes (the seed is deterministic), and would
-		// create a brand-new feature object - rebuilding its (potentially several-hundred
-		// kilobyte) schematic from scratch and re-printing its setup, even though every
-		// block the structure would draw is already in the world or on disk. Skip exactly
-		// like a failed gate: the caller remembers the cell as "no feature" for this
-		// session. A feature whose box is only PARTLY built (e.g. the frontier of a saved
-		// world) is NOT skipped: the outstanding box chunks legitimately need the feature
-		// object so the deterministic schematic rebuild completes the structure there.
-		if(this.isFeatureFullyBuilt(feature)) {
-			return null;
-		}
-		
-		// Check if it's not too close to other features.
-		// The separation is expressed in CHUNKS (minimumSeparation returns a chunk count),
-		// so the block-space centers are shifted back to chunk coords before comparing.
-		int separation = feature.minimumSeparation();
-		Iterator<Feature> iterator = this.featureList.values().iterator();
-		while(iterator.hasNext()) {
-			Feature otherFeature = iterator.next();
-			if(
-					/*otherFeature.getClass() == feature.getClass() &&*/ (
-						Math.abs((feature.centerX >> 4) - (otherFeature.centerX >> 4)) <= separation || 
-						Math.abs((feature.centerZ >> 4) - (otherFeature.centerZ >> 4)) <= separation
-					)
-			) {
-				return null;
+			if(tooClose) {
+				continue;
+			}
+			
+			// Set this feature up (for instance creating a list of pieces or creating a logic representation of it)
+			feature.setup(world, new Random(seed), biome, chunkX, chunkZ);
+			System.out.println ("Feature " + feature.getClass().getName() + " @ " + feature.centerX + " " + feature.centerZ);
+			features.add(feature);
+			
+			// An accepted exclusive feature now blocks any later exclusive class.
+			if(exclusive) {
+				hasExclusive = true;
 			}
 		}
 		
-		// Set this feature up (for instance creating a list of pieces or creating a logic representation of it)
-		feature.setup(world, new Random(seed), biome, chunkX, chunkZ);
-		
-		// Return so it can be processed
-		return feature;
+		if(features.isEmpty()) return null;
+		return features;
 	}
 	
 	/**
@@ -316,8 +358,12 @@ public class FeatureProvider {
 	 */
 	public void removeFeature(Feature feature) {
 		long chunkHash = ChunkCoordIntPair.chunkXZ2Long(feature.originChunkX, feature.originChunkZ);
-		if(this.featureList.get(chunkHash) == feature) {
-			this.featureList.remove(chunkHash);
+		List<Feature> features = this.featureList.get(chunkHash);
+		if(features != null) {
+			features.remove(feature);
+			if(features.isEmpty()) {
+				this.featureList.remove(chunkHash);
+			}
 		}
 	}
 	
@@ -341,7 +387,7 @@ public class FeatureProvider {
 	 * @return the overlapping features, in the deterministic order their stage must run
 	 */
 	public List<Feature> collectNearestFeatures(int chunkX, int chunkZ) {
-		HashSet<Long> featureHashes = new HashSet<Long>();
+		List<Feature> features = new ArrayList<Feature>();
 		
 		// Single sweep, rings 0..3. Cell order is the same as the old loop would have
 		// VISITED each cell for the FIRST time, which is all that matters for creation
@@ -353,25 +399,23 @@ public class FeatureProvider {
 					int ring = Math.max(Math.abs(x - chunkX), Math.abs(z - chunkZ));
 					if(ring < i) continue;
 					
-					Feature feature = null;
-					
-					// First check already calculated features
+					// First check already calculated features for this cell.
 					long chunkHash = ChunkCoordIntPair.chunkXZ2Long(x, z);
-					feature = this.featureList.get(chunkHash); 
+					List<Feature> chunkFeatures = this.featureList.get(chunkHash); 
 					
 					// Skip cells we already proved have no feature - the verdict is stable
 					// for the whole session, so this is a pure cache hit.
-					if(feature == null && this.noFeatureChunks.containsKey(chunkHash)) {
+					if(chunkFeatures == null && this.noFeatureChunks.containsKey(chunkHash)) {
 						continue;
 					}
 					
-					// Not found, get a new (possibly)
-					if(feature == null) {
-						feature = this.getFeatureForChunkCoords(x, z);
+					// Not found, get a new one (possibly)
+					if(chunkFeatures == null) {
+						chunkFeatures = this.getFeatureForChunkCoords(x, z);
 						
-						if(feature != null) {
-							// If we got a feature for this chunk, store
-							this.featureList.put(chunkHash, feature);	
+						if(chunkFeatures != null) {
+							// If we got features for this chunk, store them
+							this.featureList.put(chunkHash, chunkFeatures);	
 							
 						} else {
 							// Remember the negative answer so other chunks don't re-ask.
@@ -379,22 +423,23 @@ public class FeatureProvider {
 						}
 					}
 					
-					if(feature != null && feature.getFeatureRadius() >= i) {
-						featureHashes.add(chunkHash);
+					if(chunkFeatures != null) {
+						for(Feature chunkFeature : chunkFeatures) {
+							// Filter PER feature: features sharing a cell can have different
+							// radii, and each one's radius must actually reach this chunk or
+							// it has no business drawing here.
+							if(chunkFeature.getFeatureRadius() >= i) {
+								features.add(chunkFeature);
+							}
+						}
 					}
 				}
 			}
 		}
 		
-		// Materialize in the HashSet's iteration order, which is deterministic for the
-		// insertion sequence preserved above. Keeping this order means the relative
-		// generation order of same-stage features is unchanged from the old single pass.
-		List<Feature> features = new ArrayList<Feature>(featureHashes.size());
-		Iterator<Long> iterator = featureHashes.iterator();
-		while(iterator.hasNext()) {
-			features.add(this.featureList.get(iterator.next()));
-		}
-		
+		// The list is already in cell-visit order (rings 0..MAX, then within-cell
+		// registration order), which keeps the generation order of same-stage features
+		// stable across runs.
 		return features;
 	}
 	
@@ -447,28 +492,35 @@ public class FeatureProvider {
 				for(int z = chunkZ - i; z <= chunkZ + i; z ++) {
 					long chunkHash = ChunkCoordIntPair.chunkXZ2Long(x, z);
 					
-					Feature feature = this.featureList.get(chunkHash);
-					if(feature != null &&
-							Math.abs(feature.originChunkX - x) <= feature.getFeatureRadius() &&
-							Math.abs(feature.originChunkZ - z) <= feature.getFeatureRadius()
-					) {
-							
-						// Scattering passes (lilypads, seaweed, coral, spawners...) run for
-						// every chunk around the origin; each feature's populate() guards its
-						// own piece window, so all chunk within the scan are visited.
-						feature.populate(world, rand, chunkX, chunkZ);
-						
-						// But the schematic-release counter must only tick for the feature's
-						// OWN box chunks: those are the only draws the schematic is needed
-						// for. A chunk inside the +/-3 scan but outside the box holds no part
-						// of the structure, so it must not count towards release - otherwise
-						// the counter drains early (via unrelated neighbors) and the schematic
-						// is freed before its true last draw.
-						if(
-							Math.abs(chunkX - feature.originChunkX) <= feature.getFeatureRadius() &&
-							Math.abs(chunkZ - feature.originChunkZ) <= feature.getFeatureRadius()
-						) {
-							feature.onChunkPopulated(chunkX, chunkZ);
+					List<Feature> chunkFeatures = this.featureList.get(chunkHash);
+					if(chunkFeatures != null) {
+						// Iterate a SNAPSHOT: a feature may remove itself from the provider (and
+						// therefore from this very list) inside onChunkPopulated once its last
+						// chunk is drawn. With several features sharing a cell the iteration
+						// would otherwise keep going and throw a ConcurrentModificationException.
+						for(Feature feature : new ArrayList<Feature>(chunkFeatures)) {
+							if(
+								Math.abs(feature.originChunkX - x) <= feature.getFeatureRadius() &&
+								Math.abs(feature.originChunkZ - z) <= feature.getFeatureRadius()
+							) {
+								// Scattering passes (lilypads, seaweed, coral, spawners...) run for
+								// every chunk around the origin; each feature's populate() guards its
+								// own piece window, so all chunk within the scan are visited.
+								feature.populate(world, rand, chunkX, chunkZ);
+								
+								// But the schematic-release counter must only tick for the feature's
+								// OWN box chunks: those are the only draws the schematic is needed
+								// for. A chunk inside the +/-3 scan but outside the box holds no part
+								// of the structure, so it must not count towards release - otherwise
+								// the counter drains early (via unrelated neighbors) and the schematic
+								// is freed before its true last draw.
+								if(
+									Math.abs(chunkX - feature.originChunkX) <= feature.getFeatureRadius() &&
+									Math.abs(chunkZ - feature.originChunkZ) <= feature.getFeatureRadius()
+								) {
+									feature.onChunkPopulated(chunkX, chunkZ);
+								}
+							}
 						}
 					}					
 				}

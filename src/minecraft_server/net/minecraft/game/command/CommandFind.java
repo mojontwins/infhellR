@@ -1,5 +1,7 @@
 package net.minecraft.game.command;
 
+import java.util.List;
+
 import net.minecraft.game.MathHelper;
 import net.minecraft.game.entity.player.EntityPlayer;
 import net.minecraft.game.world.World;
@@ -87,21 +89,27 @@ public class CommandFind extends CommandBase {
 				int chunkX = playerChunkX + dx;
 				int chunkZ = playerChunkZ + dz;
 				
-				Feature feature = featureProvider.getFeatureForChunkCoords(chunkX, chunkZ);
+				List<Feature> features = featureProvider.getFeatureForChunkCoords(chunkX, chunkZ);
 
-				if(feature == null || feature.getClass() != featureClass) {
+				if(features == null) {
 					continue;
 				}
 				
-				// Distance from the player's block position to the feature center.
-				long deltaX = (long)MathHelper.floor_double(feature.centerX) - (long)MathHelper.floor_double(thePlayer != null ? thePlayer.posX : coordinates.posX);
-				long deltaZ = (long)MathHelper.floor_double(feature.centerZ) - (long)MathHelper.floor_double(thePlayer != null ? thePlayer.posZ : coordinates.posZ);
-				long distanceSq = deltaX * deltaX + deltaZ * deltaZ;
-				if(distanceSq < closestDistanceSq) {
-					closestDistanceSq = distanceSq;
-					closestFeature = feature;
-					closestChunkX = chunkX;
-					closestChunkZ = chunkZ;
+				for(Feature feature : features) {
+					if(feature.getClass() != featureClass) {
+						continue;
+					}
+					
+					// Distance from the player's block position to the feature center.
+					long deltaX = (long)MathHelper.floor_double(feature.centerX) - (long)MathHelper.floor_double(thePlayer != null ? thePlayer.posX : coordinates.posX);
+					long deltaZ = (long)MathHelper.floor_double(feature.centerZ) - (long)MathHelper.floor_double(thePlayer != null ? thePlayer.posZ : coordinates.posZ);
+					long distanceSq = deltaX * deltaX + deltaZ * deltaZ;
+					if(distanceSq < closestDistanceSq) {
+						closestDistanceSq = distanceSq;
+						closestFeature = feature;
+						closestChunkX = chunkX;
+						closestChunkZ = chunkZ;
+					}
 				}
 			}
 		}

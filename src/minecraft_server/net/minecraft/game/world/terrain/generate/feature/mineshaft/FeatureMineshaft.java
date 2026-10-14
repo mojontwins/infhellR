@@ -148,4 +148,9 @@ public class FeatureMineshaft extends Feature {
 		seed = seed * 31L + component.getComponentType();
 		return seed;
 	}
+	
+	@Override
+	public boolean exclusive() {
+		return false;
+	}
 }

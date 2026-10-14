@@ -125,4 +125,11 @@ public abstract class Feature {
 	 * Called during the population stage (in `populate`).
 	 */
 	public abstract void populate(World world, Random rand, int chunkX, int chunkZ);
+	
+	/*
+	 * If this returns true, no other feature that returns true can share the origin chunk
+	 */
+	public boolean exclusive() {
+		return true;
+	}
 }
