@@ -420,7 +420,8 @@ public class ChunkProviderGenerate implements IChunkProvider {
 			//this.mineshaftMesaGenerator.generate(this, this.worldObj, chunkX, chunkZ, blockArray);
 			// Unhooked: replaced by FeatureMineshaft (net.minecraft.game.world.terrain.generate.feature.mineshaft).
 			//this.mineshaftGenerator.generate(this, this.worldObj, chunkX, chunkZ, blockArray);
-			this.strongholdGenerator.generate(this, this.worldObj, chunkX, chunkZ, blockArray);
+			// Unhooked: replaced by FeatureStronghold (net.minecraft.game.world.terrain.generate.feature.stronghold).
+			//this.strongholdGenerator.generate(this, this.worldObj, chunkX, chunkZ, blockArray);
 		}
 		
 		// Cities & highways
@@ -994,7 +995,8 @@ public class ChunkProviderGenerate implements IChunkProvider {
 			//this.mineshaftGenerator.generateStructuresInChunk(this.worldObj, this.rand, chunkX, chunkZ, false);
 			// Unhooked: replaced by FeatureMineshaftMesa (net.minecraft.game.world.terrain.generate.feature.mineshaft).
 			//this.mineshaftMesaGenerator.generateStructuresInChunk(this.worldObj, this.rand, chunkX, chunkZ, true);
-			this.strongholdGenerator.generateStructuresInChunk(this.worldObj, this.rand, chunkX, chunkZ, true);
+			// Unhooked: replaced by FeatureStronghold (net.minecraft.game.world.terrain.generate.feature.stronghold).
+			//this.strongholdGenerator.generateStructuresInChunk(this.worldObj, this.rand, chunkX, chunkZ, true);
 		}
 	}
 	
@@ -1040,6 +1042,7 @@ public class ChunkProviderGenerate implements IChunkProvider {
 		}
 
 		// Random very big tree
+		/*
 		if(this.rand.nextInt(512) == 0) {
 			x = x0 + this.rand.nextInt(16) + 8;
 			z = z0 + this.rand.nextInt(16) + 8;
@@ -1050,6 +1053,7 @@ public class ChunkProviderGenerate implements IChunkProvider {
 				System.out.println("Big tree @ " + x + " " + y + " " + z);
 			}
 		}
+		*/
 		
 		int maxDungeonHeight = 128;
 		if(thisChunk.hasBuilding) maxDungeonHeight = 70;

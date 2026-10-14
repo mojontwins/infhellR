@@ -37,7 +37,6 @@ public class FeatureBigShip extends FeatureBetterDungeons {
 		default: schematics = new SchematicsBigShipIsland(); break;
 		}
 		
-		System.out.println ("Big ship @ " + this.centerX + " " + this.centerZ);
 	}
 	
 	@Override

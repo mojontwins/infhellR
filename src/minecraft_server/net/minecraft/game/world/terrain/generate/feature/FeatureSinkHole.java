@@ -73,7 +73,6 @@ public class FeatureSinkHole extends Feature {
 			}
 		}
 		
-		System.out.println ("Sink Hole @ " + this.centerX + " " + this.centerZ);
 	}
 	
 	@Override

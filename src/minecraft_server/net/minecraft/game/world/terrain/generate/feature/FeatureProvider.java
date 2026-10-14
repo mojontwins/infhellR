@@ -16,6 +16,7 @@ import net.minecraft.game.world.terrain.generate.feature.icepalace.FeatureIcePal
 import net.minecraft.game.world.terrain.generate.feature.mineshaft.FeatureMineshaft;
 import net.minecraft.game.world.terrain.generate.feature.mineshaft.FeatureMineshaftMesa;
 import net.minecraft.game.world.terrain.generate.feature.oceanruins.FeatureOceanRuins;
+import net.minecraft.game.world.terrain.generate.feature.stronghold.FeatureStronghold;
 import net.minecraft.game.world.biome.BiomeGenBase;
 import net.minecraft.game.world.chunk.Chunk;
 import net.minecraft.game.world.chunk.ChunkCoordIntPair;
@@ -568,6 +569,9 @@ public class FeatureProvider {
 		registerFeature(FeatureIcePalace.class);
 		registerFeature(FeatureFossil.class);
 		registerFeature(FeatureStoneArch.class);
+		// The stronghold is rare (1 in 2048 chunks) but must be picked before the much
+		// more common mineshafts, or a shaft gate that also passes would preempt it.
+		registerFeature(FeatureStronghold.class);
 		// Mesa shafts must be picked before the regular ones so a mesa chunk rolls the
 		// (rarer, above-ground) mesa variant first; non-mesa chunks fall through because
 		// FeatureMineshaftMesa.shouldSpawn requires a mesa biome.

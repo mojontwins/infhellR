@@ -265,24 +265,24 @@ public class FeatureFossil extends FeatureDynamicSchematic {
 					
 					if(!sky || skullY > 0) {			
 						skull.draw(this.schematic, skullX, skullY, skullZ, direction);
-
-					if (direction) {
-						int x = skullX - skull.length / 2 - 1;
-						for (int i = 0; i < tailLength; i++) {
+	
+						if (direction) {
+							int x = skullX - skull.length / 2 - 1;
+							for (int i = 0; i < tailLength; i++) {
 								skullY = this.surfaceHeight(x, skullZ);
 								if(sky && skullY == 0) break;
 								
 								body.draw(this.schematic, x, skullY, skullZ, direction);
-							x -= 2;
-						}
-					} else {
-						int z = skullZ - skull.length / 2 - 1;
-						for (int i = 0; i < tailLength; i++) {
+								x -= 2;
+							}
+						} else {
+							int z = skullZ - skull.length / 2 - 1;
+							for (int i = 0; i < tailLength; i++) {
 								skullY = this.surfaceHeight(skullX, z);
 								if(sky && skullY == 0) break;
 								
 								body.draw(this.schematic, skullX, skullY, z, direction);
-							z -= 2;
+								z -= 2;
 							}
 						}
 					}
@@ -295,7 +295,6 @@ public class FeatureFossil extends FeatureDynamicSchematic {
 			}
 		}
 
-		System.out.println("Fossils @ " + this.centerX + " " + this.centerZ);
 	}
 
 	private int surfaceHeight(int x, int z) {

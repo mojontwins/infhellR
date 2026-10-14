@@ -64,7 +64,6 @@ public class FeatureAmazonVillage extends FeatureVillage {
 		centerPiece.placeBuilding(x, yAtCenter, z);
 		
 		this.generateBuildingListRecursive(centerPiece);
-		System.out.println ("Placing BuildingAmazonAtalaya @ " + x + " " + yAtCenter + " " + z + " - Total buildings " + this.buildingList.size());
 	}
 	
 	public void generateBuildingListRecursive(BuildingAmazon piece) {

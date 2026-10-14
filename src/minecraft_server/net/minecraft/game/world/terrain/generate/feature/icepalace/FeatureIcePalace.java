@@ -135,7 +135,6 @@ public class FeatureIcePalace extends FeatureDynamicSchematic {
 			corridor.drawPiece(schematic);
 		}
 		
-		System.out.println ("Palace @ " + this.centerX + " " + this.centerZ);
 	}
 	
 	private void generateSchematicRecursive(int x, int y, int z, PalacePiece newPiece) {
