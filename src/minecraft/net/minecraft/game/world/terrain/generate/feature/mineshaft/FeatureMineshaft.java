@@ -10,7 +10,7 @@ import net.minecraft.game.world.chunk.Chunk;
 import net.minecraft.game.world.chunk.IChunkProvider;
 import net.minecraft.game.world.terrain.generate.feature.Feature;
 import net.minecraft.game.world.terrain.generate.feature.FeatureProvider;
-import net.minecraft.game.world.terrain.generate.structure.StructureBoundingBox;
+import net.minecraft.game.world.terrain.generate.feature.StructureBoundingBox;
 
 /**
  * A mineshaft, reimplemented as a {@link Feature}.

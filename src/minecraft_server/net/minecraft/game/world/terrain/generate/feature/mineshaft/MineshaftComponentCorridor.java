@@ -5,7 +5,7 @@ import java.util.Random;
 
 import net.minecraft.game.world.World;
 import net.minecraft.game.world.block.Block;
-import net.minecraft.game.world.terrain.generate.structure.StructureBoundingBox;
+import net.minecraft.game.world.terrain.generate.feature.StructureBoundingBox;
 
 /**
  * A mineshaft corridor: a 3-wide tunnel that may carry rails, spider webs and a spider

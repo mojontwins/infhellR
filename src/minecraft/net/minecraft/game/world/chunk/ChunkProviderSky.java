@@ -304,14 +304,6 @@ public class ChunkProviderSky extends ChunkProviderGenerate implements IChunkPro
 		}
 	}
 	
-	public void generateMapFeatures(int chunkX, int chunkZ) {
-		if (this.mapFeaturesEnabled) {
-			this.mineshaftGenerator.generateStructuresInChunk(this.worldObj, this.rand, chunkX, chunkZ, true);
-			this.mineshaftMesaGenerator.generateStructuresInChunk(this.worldObj, this.rand, chunkX, chunkZ, true);
-			this.strongholdGenerator.generateStructuresInChunk(this.worldObj, this.rand, chunkX, chunkZ, true);
-		}
-	}
-
 	public boolean chunkExists(int i1, int i2) {
 		return true;
 	}

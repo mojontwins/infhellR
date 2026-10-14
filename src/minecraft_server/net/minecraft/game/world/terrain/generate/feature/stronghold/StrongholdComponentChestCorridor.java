@@ -8,8 +8,8 @@ import net.minecraft.game.world.World;
 import net.minecraft.game.world.block.Block;
 import net.minecraft.game.world.terrain.generate.feature.mineshaft.MineshaftComponent;
 import net.minecraft.game.world.terrain.generate.feature.mineshaft.MineshaftWriter;
-import net.minecraft.game.world.terrain.generate.structure.StructureBoundingBox;
-import net.minecraft.game.world.terrain.generate.structure.StructurePieceTreasure;
+import net.minecraft.game.world.terrain.generate.feature.StructureBoundingBox;
+import net.minecraft.game.world.terrain.generate.feature.StructurePieceTreasure;
 
 /** A dead-end corridor with a chest at the far wall. */
 public class StrongholdComponentChestCorridor extends StrongholdComponent {

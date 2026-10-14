@@ -17,7 +17,7 @@ import net.minecraft.game.world.terrain.generate.feature.Feature;
 import net.minecraft.game.world.terrain.generate.feature.FeatureProvider;
 import net.minecraft.game.world.terrain.generate.feature.mineshaft.MineshaftComponent;
 import net.minecraft.game.world.terrain.generate.feature.mineshaft.MineshaftWriter;
-import net.minecraft.game.world.terrain.generate.structure.StructureBoundingBox;
+import net.minecraft.game.world.terrain.generate.feature.StructureBoundingBox;
 
 /**
  * A stronghold, reimplemented as a {@link Feature}.

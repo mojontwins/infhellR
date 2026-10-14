@@ -6,8 +6,8 @@ import java.util.Random;
 import net.minecraft.game.item.Item;
 import net.minecraft.game.world.World;
 import net.minecraft.game.world.block.Block;
-import net.minecraft.game.world.terrain.generate.structure.StructureBoundingBox;
-import net.minecraft.game.world.terrain.generate.structure.StructurePieceTreasure;
+import net.minecraft.game.world.terrain.generate.feature.StructureBoundingBox;
+import net.minecraft.game.world.terrain.generate.feature.StructurePieceTreasure;
 
 /**
  * Factory and loot table for mineshaft pieces.

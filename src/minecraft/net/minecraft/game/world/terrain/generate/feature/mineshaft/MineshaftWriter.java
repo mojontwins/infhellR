@@ -2,7 +2,7 @@ package net.minecraft.game.world.terrain.generate.feature.mineshaft;
 
 import net.minecraft.game.world.World;
 import net.minecraft.game.world.chunk.Chunk;
-import net.minecraft.game.world.terrain.generate.structure.StructureBoundingBox;
+import net.minecraft.game.world.terrain.generate.feature.StructureBoundingBox;
 
 /**
  * Block access layer shared by the mineshaft pieces.

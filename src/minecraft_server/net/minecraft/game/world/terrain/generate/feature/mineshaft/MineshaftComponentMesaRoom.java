@@ -3,7 +3,7 @@ package net.minecraft.game.world.terrain.generate.feature.mineshaft;
 import java.util.Random;
 
 import net.minecraft.game.world.World;
-import net.minecraft.game.world.terrain.generate.structure.StructureBoundingBox;
+import net.minecraft.game.world.terrain.generate.feature.StructureBoundingBox;
 
 /**
  * The starting room of a mesa mineshaft. The room itself is drawn exactly like the

@@ -13,8 +13,8 @@ import net.minecraft.game.world.block.Block;
 import net.minecraft.game.world.block.tileentity.TileEntityChest;
 import net.minecraft.game.world.block.tileentity.TileEntityMobSpawner;
 import net.minecraft.game.world.material.Material;
-import net.minecraft.game.world.terrain.generate.structure.StructureBoundingBox;
-import net.minecraft.game.world.terrain.generate.structure.StructurePieceTreasure;
+import net.minecraft.game.world.terrain.generate.feature.StructureBoundingBox;
+import net.minecraft.game.world.terrain.generate.feature.StructurePieceTreasure;
 
 /**
  * One piece (room, corridor, cross or stairwell) of a mineshaft.
@@ -456,7 +456,6 @@ public abstract class MineshaftComponent {
 	 * the mesa shaft carves its tunnel through solid ground instead of through air.
 	 */
 	protected void fillIfRock(MineshaftWriter writer, StructureBoundingBox chunkBox, int x1, int y1, int z1, int x2, int y2, int z2, int blockID1, int blockID2, boolean onlyReplaceSolid) {
-		World world = writer.getWorld();
 		for(int y = y1; y <= y2; ++y) {
 			for(int x = x1; x <= x2; ++x) {
 				for(int z = z1; z <= z2; ++z) {

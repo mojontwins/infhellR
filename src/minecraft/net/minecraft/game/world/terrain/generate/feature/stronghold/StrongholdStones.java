@@ -2,7 +2,7 @@ package net.minecraft.game.world.terrain.generate.feature.stronghold;
 
 import java.util.Random;
 
-import net.minecraft.game.world.terrain.generate.structure.StructurePieceBlockSelector;
+import net.minecraft.game.world.terrain.generate.feature.StructurePieceBlockSelector;
 
 /**
  * Chooses the stone variety for a stronghold block: solid stone bricks on the piece

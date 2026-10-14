@@ -1,4 +1,4 @@
-package net.minecraft.game.world.terrain.generate.structure;
+package net.minecraft.game.world.terrain.generate.feature;
 
 public class StructureBoundingBox {
 	public int minX;

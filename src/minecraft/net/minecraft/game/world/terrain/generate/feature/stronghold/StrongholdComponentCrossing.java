@@ -7,7 +7,7 @@ import net.minecraft.game.world.World;
 import net.minecraft.game.world.block.Block;
 import net.minecraft.game.world.terrain.generate.feature.mineshaft.MineshaftComponent;
 import net.minecraft.game.world.terrain.generate.feature.mineshaft.MineshaftWriter;
-import net.minecraft.game.world.terrain.generate.structure.StructureBoundingBox;
+import net.minecraft.game.world.terrain.generate.feature.StructureBoundingBox;
 
 /** A four-way crossing room, each side optionally opening onto a branch. */
 public class StrongholdComponentCrossing extends StrongholdComponent {

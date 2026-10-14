@@ -1,4 +1,4 @@
-package net.minecraft.game.world.terrain.generate.structure;
+package net.minecraft.game.world.terrain.generate.feature;
 
 import net.minecraft.game.WeightedRandomChoice;
 

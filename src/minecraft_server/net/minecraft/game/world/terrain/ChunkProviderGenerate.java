@@ -36,10 +36,6 @@ import net.minecraft.game.world.terrain.generate.WorldGenerator;
 import net.minecraft.game.world.terrain.generate.city.BuildingHighway;
 import net.minecraft.game.world.terrain.generate.feature.Feature;
 import net.minecraft.game.world.terrain.generate.feature.FeatureProvider;
-import net.minecraft.game.world.terrain.generate.structure.mineshaft.MapGenMineshaft;
-import net.minecraft.game.world.terrain.generate.structure.mineshaftmesa.MapGenMineshaftMesa;
-import net.minecraft.game.world.terrain.generate.structure.stronghold.MapGenStronghold;
-import net.minecraft.game.world.terrain.generate.tree.WorldGenBigTree;
 import net.minecraft.game.world.terrain.noise.NoiseGeneratorOctaves;
 
 
@@ -70,9 +66,6 @@ public class ChunkProviderGenerate implements IChunkProvider {
 	protected MapGenBase cityGenerator = new MapGenCity();
 	protected MapGenBase ravineGenerator = new MapGenRavine();
 	protected MapGenBase oceanRavineGenerator = new MapGenOceanRavine();
-	protected MapGenMineshaft mineshaftGenerator;
-	protected MapGenMineshaftMesa mineshaftMesaGenerator;
-	protected MapGenStronghold strongholdGenerator;
 
 	// Reusable world generators: each holds only immutable constructor state,
 	// so a single instance is shared across every per-chunk population attempt.
@@ -124,10 +117,6 @@ public class ChunkProviderGenerate implements IChunkProvider {
 		
 		this.mapFeaturesEnabled = z4;
 		this.generateCities = z5;
-		
-		this.mineshaftGenerator = new MapGenMineshaft(world1);
-		this.mineshaftMesaGenerator = new MapGenMineshaftMesa(world1);
-		this.strongholdGenerator = new MapGenStronghold(world1);
 
 		// Reusable decoration/ore generators (immutable constructor state).
 		this.coalGen      = new WorldGenMinable(Block.oreCoal.blockID, 16);

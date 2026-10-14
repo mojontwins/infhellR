@@ -6,7 +6,7 @@ import java.util.Random;
 import net.minecraft.game.world.World;
 import net.minecraft.game.world.terrain.generate.feature.mineshaft.MineshaftComponent;
 import net.minecraft.game.world.terrain.generate.feature.mineshaft.MineshaftWriter;
-import net.minecraft.game.world.terrain.generate.structure.StructureBoundingBox;
+import net.minecraft.game.world.terrain.generate.feature.StructureBoundingBox;
 
 /** The mirror of {@link StrongholdComponentLeftTurn}. */
 public class StrongholdComponentRightTurn extends StrongholdComponentLeftTurn {
