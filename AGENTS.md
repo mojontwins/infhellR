@@ -66,31 +66,6 @@ infhell-release/
 
 The flat `net/minecraft/src/` package has been **reorganized** into proper subpackages matching the `src-inf2010625-1/` reference structure. This was done via Python scripts (`backup_pre_reorg/` contains a pre-reorg backup if needed).
 
-### What was reorganized
-- ~263 classes moved to `net.minecraft.game.*` subpackages (physics, world, entity, item)
-- ~250 classes moved to `net.minecraft.client.*` subpackages (render, gui, model, etc.)
-- ~13 NBT classes moved to `net.minecraft.nbt`
-- 618 mod classes reorganized from `com.*` to `net.minecraft.*` packages following infdev conventions:
-  - Entity classes → `net.minecraft.game.entity.animal`, `monster`, `player`, etc.
-  - AI classes → `net.minecraft.game.entity.ai`
-  - Render classes → `net.minecraft.client.render.entity`
-  - Model classes → `net.minecraft.client.model`
-  - WorldGen classes → `net.minecraft.game.world.terrain.generate.*`
-  - Structure classes → `net.minecraft.game.world.terrain.generate.structure.*`
-  - Trading classes → `net.minecraft.game.trading`
-  - Command classes → `net.minecraft.game.command.worldedit`
-  - Creative tab classes → `net.minecraft.client.gui.container.creativetab`
-- All package declarations updated
-- ~3500+ import statements updated across 1000+ files
-- 24 unused imports removed
-- 15+ classes made public for cross-package access
-- 6 classes fixed with duplicate `public public` modifiers
-- 10+ fields/methods made public
-- 2 Path import conflicts fixed
-- 1 invalid Java syntax fixed
-- FQN references replaced with proper imports
-- Fixed `WorldGenCypress`/`WorldGenWillow` (wrong file version used previously)
-
 ### Package structure summary (post-reorg)
 
 **Shared (`net.minecraft.game.*`)**
@@ -130,20 +105,6 @@ Note: `Packet*.java` classes are currently in `net.minecraft.game.*` and referen
 **Server-only (`net.minecraft.server.*`)**
 - `server.MinecraftServer` — main server entry
 - `server.network.*` — `NetServerHandler`, `NetLoginHandler` (will move to `net.minecraft.server.network.*` in cleanup phase)
-
-### Client compilation: **ZERO ERRORS**
-The client (`src/minecraft/`) compiles cleanly with javac:
-```
-javac -d build_test -cp "lib/client/*.jar" -sourcepath src/minecraft src/minecraft/net/minecraft/client/Minecraft.java
-```
--> 0 errors
-
-### Server compilation: **ZERO ERRORS**
-The server (`src/minecraft_server/`) also compiles cleanly:
-```
-javac -d build_test -cp "lib/server/*.jar" -sourcepath src/minecraft_server src/minecraft_server/net/minecraft/server/MinecraftServer.java
-```
--> 0 errors
 
 ## Scripts Used
 
@@ -265,7 +226,6 @@ All classes (core Minecraft + third-party mods) reorganized into `net.minecraft.
 
 - **Compile in Eclipse**: Use the Client or Server project in workspace
 - **Test in launcher**: Export jar, place in versions folder, use with appropriate launcher profile
-- **Check package structure**: Compare with `src-inf2010625-1/` for reference organization
 - **Resource files**:
   - `src/minecraft/resources/` — bo3, schematics, sounds, unusedbo3 (bundled in client jar)
   - `src/minecraft_server/resources/` — bo3 (bundled in server jar)
@@ -274,17 +234,50 @@ All classes (core Minecraft + third-party mods) reorganized into `net.minecraft.
   - `jars/resources/` — runtime sound/music streaming source
 - **Client-Server parity**: classes that exist both in Client and Server must be identical, save for `WorldEdit.java` (client & server have different implementations) and `Minecraft.java` vs `MinecraftServer.java` (which are themselves the different entry points).
 - **Parity verification**: run `C:\Users\na_th\AppData\Local\Temp\opencode\check_parity.py` after structural changes to confirm only intentional diffs remain.
+- **Deobfuscation**: every file touched that still uses obfuscated style naming needs to have identifiers renamed to have readable names.
 
 ## Work State
 
 
+## Work State
+
+### Structure→Feature reimplementation (mineshaft, mineshaftmesa, stronghold)
+Reimplementing structures backported from release vanilla minecraft (package `net.minecraft.game.world.terrain.generate.structure`) as Features for the FeatureProvider system (package `net.minecraft.game.world.terrain.generate.feature`). Each structure must be user-tested and confirmed before moving on; the original structure hook is unhooked (not deleted) once its Feature is validated.
+
+**Decision: extend `FeatureProvider` to a shared `MAX_FEATURE_RADIUS` constant.** The provider's per-chunk scan and population scan used a hardcoded ring of 3; they now use `MAX_FEATURE_RADIUS = 8` (set in `FeatureProvider`), enough for the mineshaft (corridors can reach ~7 chunks from the origin room). `collectNearestFeatures`/`populateFeatures` loops and the mineshaft's `getFeatureRadius()` use it. This raises per-chunk scan work (sum of (2i+1)^2 for i=0..8 = 1938 cheap iterations, vs 84 before) but gate results are cached in `noFeatureChunks`.
+
+**Decision: "two-step faithful-ish" split.** Plan the deterministic skeleton in `setup` (no world reads); lay normal/shell blocks in `generate` (writes directly into the chunk's flat buffers `chunk.blocks`/`chunk.data` at index `x<<12 | z<<8 | y`, the FeatureHollowHill pattern); resolve world-dependent decor (arches vs. hanging chains) AND specials (chests, spawners, torches, webs, rails) in `populate` (via `MineshaftWriter` -> `chunk.setBlockIDWithMetadata` / `world`). Each piece gets a deterministic per-piece seed so it draws identically regardless of which chunk (or how many times) it is rendered for; the vanilla shared RNG stream across components is intentionally given up.
+
+**Mineshaft — DONE and CONFIRMED in-game** (user: "mineshafts spawn correctly, and are structurally correct and everything works as intended"). Temporary `[MS]`/`Shaft Chest` diagnostics have since been removed.
+- New self-contained package `feature.mineshaft`: `FeatureMineshaft`, `MineshaftWriter` (chunk-flat generate writer vs. world populate writer), `MineshaftComponent` base (offset helpers + `fill`/`fillVariation`/`randomFill`/`randomBlock`/`randomRareFill`/`createTreasureChest`/`placeSpawner`), `MineshaftComponentRoom`/`Corridor`/`Cross`/`Stairs`, `MineshaftPieces` (factory + loot table).
+- `FeatureMineshaft extends Feature` (NOT `FeatureDynamicSchematic`), `isGeneratedAfterCaves() == true`, spawn gate = vanilla rule (`rand.nextInt(80) < max(|cX|,|cZ|)` with `getSpawnChance()` = `MAXCHANCE/100`).
+- `setup` ports `StructureStart.updateBoundingBox` + `markAvailableHeight(world, rand, 10)` so the shaft stays buried.
+- Registered LAST in `FeatureProvider` (features are first-match exclusive; earlier broad-biome gates would preempt it — only `FeatureSlimeBossLair` is broad, at 1/4096, so preemption is negligible).
+- Original mineshaft unhooked: `ChunkProviderGenerate` `mineshaftGenerator.generate` (~421) and `mineshaftGenerator.generateStructuresInChunk` (~994) commented; mesa and stronghold hooks initially left intact, mesa since unhooked (see below).
+- Client and server copies byte-identical; both compile clean via the raw `javac` commands in `build.bat` (note: `build.bat` ends with `pause`, so run the javac lines directly for CI-style checks).
+- **BUG FOUND & FIXED (separation veto):** `FeatureMineshaft` did not override `minimumSeparation()`, so it inherited `Feature.getFeatureRadius()` = `MAX_FEATURE_RADIUS` = 8. `FeatureProvider.getFeatureForChunkCoords` rejects a feature if ANY already-placed feature is within `separation` chunks, so with an 8-chunk keep-out (~289 nearby cells) some other feature was nearly always in range — the shaft passed the spawn gate and printed `Feature ...FeatureMineshaft @ x z`, then was silently rejected before `setup`/`generate`/`populate` (hence no blocks, no chests). Other features use tiny separations (hollow hill 1, volcano 3, stone arch 0). Fix: `FeatureMineshaft.minimumSeparation()` returns `0` (shafts may overlap other structures, like vanilla). NOTE the side effect: other features' own larger separations (ice palace 8, big ship/amazon/ocean/slime 16) will now treat dense shafts as blockers — acceptable but watch for suppressed rarities.
+**Mineshaftmesa — IMPLEMENTED, awaiting in-game test:**
+- Reuses the mineshaft package. `MineshaftPieces` was refactored into an instance factory: static `REGULAR = new MineshaftPieces(70)`, constructor takes the stair roll threshold (`>= t`), protected `createCorridor/createCross/createStairs`, and public `getNextComponent`/`getLoot`. `MineshaftComponent` got a `protected MineshaftPieces pieces` field + `setPieces()` so children are built by the correct variant.
+- **World is threaded into every piece constructor.** `MineshaftComponent` now holds `protected final World world` and its constructor takes it; every subclass (room/corridor/cross/stairs + mesa variants) and both factories (`MineshaftPieces(World, int)`, `MineshaftPiecesMesa(World)`) pass it along. `MineshaftPieces.REGULAR` / `MineshaftPiecesMesa.INSTANCE` static singletons were removed (a factory is now per-feature, holding the world); `FeatureMineshaft.setup` uses `new MineshaftPieces(this.world, 70)` and `FeatureMineshaftMesa.setup` uses `new MineshaftPiecesMesa(this.world)`.
+- **Mesa room base Y** is now terrain-derived: `world.getLandSurfaceHeightValue(x, z) - 5` (was `66 + rand(32)`), so the room is embedded near the local surface instead of floating above thin mesas (the old base frequently sat in air, so `isMostlySolid` failed and the room was never drawn). `setup` reads the height map, which is available because `ChunkProviderGenerate.provideChunk` calls `chunk.generateLandSurfaceHeightMap()` (~379) before `collectNearestFeatures` (~393).
+- A diagnostic `System.out.println("[MesaMS] @ cx cy cz")` (room bounding-box center) is left in `FeatureMineshaftMesa.setup` to locate shafts in-game; remove once confirmed.
+- `MineshaftPiecesMesa extends MineshaftPieces` (`super(world, 60)`) overrides all three `create*` to the mesa pieces.
+- New mesa pieces (`MineshaftComponentMesaRoom`/`MesaCross`/`MesaStairs`/`MesaCorridor`), all `.generate()` no-ops that draw in `populate()` (the mesa needs the world for every decision). Room base is terrain-derived (see above); body otherwise identical to regular. Cross gate = `isLiquid || fracSolid < 0.4 || fracExposed > 0.5`; room/stairs gate = `isLiquid || !isMostlySolid`; corridor is a faithful port of `ComponentMineshaftMesaCorridor` (env-aware: `fillIfRock`, arches vs. hanging chains, plank floor, rails, webs, chests, spider spawner).
+- `FeatureMineshaftMesa extends Feature`: `getFeatureRadius()=MAX_FEATURE_RADIUS`, `getSpawnChance()=MAXCHANCE`, `minimumSeparation()=0`, `shouldSpawn` = `biome instanceof BiomeGenMesa && rand.nextInt(50)==0`, `isGeneratedAfterCaves()=true`, `setup` builds the mesa room (no `markAvailableHeight`), `generate` empty, `populate` draws every intersecting piece with `new Random(pieceSeed(component))`.
+- Env helpers ported onto `MineshaftComponent` (`isLiquidInChunk`, `getFractionSolid`, `isMostlySolid`, `getFractionExposed`, `fillIfRock`, `getBlockMaterial`, `placeBlockIfNextToSolid`, `randomBlockIfNextToSolid`) reading through `MineshaftWriter` + `getChunkBox()`; they mirror vanilla `StructureComponent` bounds exactly (chunk box = `chunkX<<4 .. +15`, y 0..255; vanilla used y 1..512 — the difference never affects the intersections).
+- Registered `FeatureMineshaftMesa` immediately BEFORE `FeatureMineshaft` (mesa gate is specific, so it must not be preempted by the broad regular gate).
+- Old mesa hooks commented in `ChunkProviderGenerate`: `mineshaftMesaGenerator.generate` (~420) and `mineshaftMesaGenerator.generateStructuresInChunk` (~995); stronghold hooks left intact.
+- Client and server copies byte-identical; both compile clean via the raw `javac` lines in `build.bat`.
+- **BUG FOUND & FIXED during compile:** `MineshaftPiecesMesa` initially did not override `createCross`/`createStairs`, so the mesa cross/stairs were unreferenced (javac never even compiled them) and the mesa would have used the regular cross/stairs — whose blocks are only emitted during `generate`, which the mesa leaves empty (silent no-op). Fixed by overriding both to the mesa pieces.
+
+**Remaining:** user test of the mesa shaft, then stronghold (same package/method pattern). After each, ask the user to test in-game before proceeding.
+
+**Repo note (state discovered this session):** the last commit `351220d "Structures ... gone, 1st step"` already contains an OLDER, now-superseded feature implementation (`MineRoomPiece`, `MineCorridorPiece`, `MineshaftRoomPool`, `MineshaftLoot`, a shared `feature.structure` framework with `FeatureStructure`/`StructurePiece`/`StructureRoomPool`, and `mineshaftmesa`/`stronghold` Feature packages). The working tree DELETES all of those (they show as `D` in `git status`) and replaces the mineshaft with the new self-contained `MineshaftComponent*`/`MineshaftWriter`/`MineshaftPieces` design; the working-tree `FeatureProvider` drops the mesa/stronghold registrations accordingly. So `mineshaftmesa`/`stronghold` Features must be reimplemented from scratch (the old committed versions are a reference but were deliberately removed).
+
 ## Next Move
-0. **Network keepalive work COMPLETE and user-verified** (commit `4b97bc6`) — nothing outstanding. One open optional thread if it ever comes up: replacing `NetworkMasterThread`'s `Thread.stop()` with a shutdown flag (deliberately left as 1.2.5-verbatim; see Completed), and `Packet201PlayerInfo` if player-list ping display is ever wanted.
-0b. **Server playtesting fixes still awaiting verification** (PlayerManager movement crash, respawn crash): the HauntedCow instant-night broadcast is **NOT yet user-verified** — still needs a transform-a-cow test to confirm clients snap to night.
-1. **`ensureSchematic` removal + temp counter revert COMPLETE** (probes re-verified against a clean build, jars exported) — the only open thread is the still-unexplained 3–4 "Fossils @" prints on a brand-new world at creation (re-entry theory disproven by rejoin probe: `PASS=1 FAIL=0`). If still in scope, trace creation-time flow (`Minecraft.java:1922 new World` → `World.chunkProvider` field init line 174 / `getChunkProvider()` line 307 / `getInitialSpawnLocation()` line 325 / `spawnPlayerWithLoadedChunks`); probes currently skip the spawn-probe path for determinism, so a dedicated probe for the creation path is needed. Otherwise leave as documented-wontfix.
-2. Continue **`net.minecraft.client.gui` package cleanup**: process `GuiButton.java`, `GuiTextField.java`, `GuiSlider.java`, `GuiIngame.java`, `GuiIngameMenu.java`, `GuiMainMenu.java`, and all remaining GUI files (256-height implementation and its post-implementation lighting/`LightVersion` fixes are complete — see Completed).
-3. Then move to `net.minecraft.client.render` package.
-4. Then `net.minecraft.client.model`, `net.minecraft.client.sound`, `net.minecraft.client.particle`, `net.minecraft.client.effect`, `net.minecraft.client.controller`, `net.minecraft.client.player`.
+1. Ask the user to test the mineshaftmesa Feature in-game: find a mesa biome, confirm above-ground mesa shafts generate with their arches/chains, plank floors, rails, webs, chests and spider spawners. The old mesa generator is unhooked, so any mesa shaft seen is the new Feature.
+2. If confirmed, proceed to reimplement `stronghold` as a Feature using the same package/method pattern.
+3. If mineshaft frequency feels too low, consider moving `registerFeature(FeatureMineshaft.class)` earlier in the registration order.
 
 ## Code Conventions
 

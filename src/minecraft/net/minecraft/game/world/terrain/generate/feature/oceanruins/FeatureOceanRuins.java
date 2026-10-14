@@ -66,7 +66,6 @@ public class FeatureOceanRuins extends FeatureVillage {
 		centerPiece.placeBuilding(x, yAtCenter, z);
 		
 		this.generateBuildingListRecursive(centerPiece);
-		System.out.println ("Placing Ocean Ruins @ " + this.centerX + " " +this.centerZ + " - Total buildings " + this.buildingList.size());
 
 	}
 	

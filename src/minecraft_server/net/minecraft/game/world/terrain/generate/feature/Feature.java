@@ -47,7 +47,7 @@ public abstract class Feature {
 	}
 
 	/*
-	 * Return this feature radius (1 to FeatureProvider.MAX_FEATURE_RADIUS, currently 5)
+	 * Return this feature radius 1-3
 	 */
 	public abstract int getFeatureRadius();
 	

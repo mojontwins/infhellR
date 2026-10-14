@@ -7,15 +7,23 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.ConcurrentModificationException;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import net.minecraft.client.render.RenderEngineMin;
+import net.minecraft.game.IProgressUpdate;
+import net.minecraft.game.Seasons;
+import net.minecraft.game.Version;
+import net.minecraft.game.achievements.StatList;
 import net.minecraft.game.physics.AxisAlignedBB;
+import net.minecraft.game.physics.Vec3D;
+import net.minecraft.game.world.WorldSettings;
+import net.minecraft.game.world.WorldType;
 import net.minecraft.game.world.biome.BiomeGenBase;
 import net.minecraft.game.world.chunk.ChunkCoordinates;
 import net.minecraft.game.world.chunk.loader.ISaveFormat;
@@ -31,16 +39,6 @@ import net.minecraft.server.console.PropertyManager;
 import net.minecraft.server.console.ServerCommand;
 import net.minecraft.server.console.ServerConfigurationManager;
 import net.minecraft.server.console.ServerGUI;
-import net.minecraft.server.EntityPlayerMP;
-import net.minecraft.server.NetServerHandler;
-import net.minecraft.game.IProgressUpdate;
-import net.minecraft.client.render.RenderEngineMin;
-import net.minecraft.game.Seasons;
-import net.minecraft.game.physics.Vec3D;
-import net.minecraft.game.Version;
-import net.minecraft.game.achievements.StatList;
-import net.minecraft.game.world.WorldSettings;
-import net.minecraft.game.world.WorldType;
 
 /**
  * MinecraftServer - The core server application class.

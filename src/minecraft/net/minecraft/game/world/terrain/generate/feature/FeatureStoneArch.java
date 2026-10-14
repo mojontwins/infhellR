@@ -67,8 +67,6 @@ public class FeatureStoneArch extends FeatureDynamicSchematic {
 		int h2 = world.getLandSurfaceHeightValue(this.centerX + xx, this.centerZ + zz);
 		
 		this.calculatedY0 = Math.min(128 - maxHeight, Math.min(h1, h2) - 3);
-		
-		System.out.println ("Arch @ " + this.centerX + " " + this.calculatedY0  + " " + this.centerZ);
 	}
 
 	public void corneeze(Random rand, int x0, int y0, int z0, int r, short s, int variance) {

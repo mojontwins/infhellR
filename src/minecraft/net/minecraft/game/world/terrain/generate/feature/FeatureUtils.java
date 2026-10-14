@@ -4,15 +4,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
-import net.minecraft.game.world.biome.BiomeGenBase;
-import net.minecraft.game.world.block.Block;
-import net.minecraft.game.world.block.BlockLever;
 import net.minecraft.game.item.Item;
 import net.minecraft.game.item.ItemStack;
+import net.minecraft.game.world.World;
+import net.minecraft.game.world.block.Block;
+import net.minecraft.game.world.block.BlockLever;
 import net.minecraft.game.world.block.tileentity.TileEntityChest;
 import net.minecraft.game.world.block.tileentity.TileEntityMobSpawner;
 import net.minecraft.game.world.block.tileentity.TileEntityMobSpawnerOneshot;
-import net.minecraft.game.world.World;
 
 /**
  * Utility class for feature generation, providing common functionality

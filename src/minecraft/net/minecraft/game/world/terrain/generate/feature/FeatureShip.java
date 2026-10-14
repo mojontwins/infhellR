@@ -25,7 +25,6 @@ public class FeatureShip extends FeatureBetterDungeons {
 		this.schematics = new SchematicsShips();
 		this.shipID = this.rand.nextInt(schematics.getStructureCount());
 		
-		System.out.println ("Ship @ " + this.centerX + " " + this.centerZ);
 	}
 	
 	@Override

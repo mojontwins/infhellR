@@ -295,7 +295,6 @@ public class FeatureFossil extends FeatureDynamicSchematic {
 			}
 		}
 
-		System.out.println("Fossils @ " + this.centerX + " " + this.centerZ);
 	}
 
 	private int surfaceHeight(int x, int z) {

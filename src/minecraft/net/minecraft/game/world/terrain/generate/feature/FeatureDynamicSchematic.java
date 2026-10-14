@@ -6,13 +6,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
-import net.minecraft.game.world.terrain.generate.feature.StructureBlockData;
-import net.minecraft.game.world.schematic.Schematic;
-
+import net.minecraft.game.world.World;
 import net.minecraft.game.world.biome.BiomeGenBase;
 import net.minecraft.game.world.chunk.Chunk;
 import net.minecraft.game.world.chunk.loader.IChunkLoader;
-import net.minecraft.game.world.World;
+import net.minecraft.game.world.schematic.Schematic;
 
 public abstract class FeatureDynamicSchematic extends Feature {	
 	/*

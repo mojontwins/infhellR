@@ -162,7 +162,6 @@ public class FeatureVolcano extends FeatureDynamicSchematic {
 		this.generateIrregularBlob(x0, 2, rand, 8, 8, 8);
 		this.generateIrregularBlob(x0, 1, rand, 8, 16, 8);
 		
-		System.out.println ("Volcano @ " + this.centerX + " " + this.centerZ);
 	}
 	
 	private void generateIrregularBlob(int x0, int y0, Random rand, int dOffset, int dispersion, int maxPoints) {

@@ -32,7 +32,6 @@ public class FeatureSlimeBossLair extends Feature {
 	}
 	
 	public void setup(World world, Random rand, BiomeGenBase biome, int chunkX, int chunkZ) {
-		System.out.println ("Slime Boss Lair @ " + this.centerX + " " + this.centerZ);
 	}
 	
 	@Override

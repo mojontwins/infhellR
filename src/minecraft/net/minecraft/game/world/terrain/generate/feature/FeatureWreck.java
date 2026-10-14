@@ -897,7 +897,6 @@ public class FeatureWreck extends FeatureDynamicSchematic {
 			}
 		}
 		
-		System.out.println ("Wreck @ " + this.centerX + " " + this.centerZ);
 	}
 	
 	protected int rotateMeta(int blockID, int meta) {

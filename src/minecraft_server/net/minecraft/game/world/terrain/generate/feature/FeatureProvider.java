@@ -14,9 +14,8 @@ import net.minecraft.game.world.terrain.generate.feature.amazonvillage.FeatureAm
 import net.minecraft.game.world.terrain.generate.feature.fossils.FeatureFossil;
 import net.minecraft.game.world.terrain.generate.feature.icepalace.FeatureIcePalace;
 import net.minecraft.game.world.terrain.generate.feature.mineshaft.FeatureMineshaft;
-import net.minecraft.game.world.terrain.generate.feature.mineshaftmesa.FeatureMineshaftMesa;
+import net.minecraft.game.world.terrain.generate.feature.mineshaft.FeatureMineshaftMesa;
 import net.minecraft.game.world.terrain.generate.feature.oceanruins.FeatureOceanRuins;
-import net.minecraft.game.world.terrain.generate.feature.stronghold.FeatureStronghold;
 import net.minecraft.game.world.biome.BiomeGenBase;
 import net.minecraft.game.world.chunk.Chunk;
 import net.minecraft.game.world.chunk.ChunkCoordIntPair;
@@ -39,11 +38,16 @@ import net.minecraft.game.world.World;
  */
 public class FeatureProvider {
 	/**
-	 * Maximum feature scan radius, in chunks. The provider sweeps a
-	 * (2*MAX_FEATURE_RADIUS+1) square around every chunk and no registered feature may
-	 * return a larger {@link Feature#getFeatureRadius()} than this.
+	 * Largest feature radius the provider scans for, in chunks.
+	 *
+	 * <p>The per-chunk feature sweep walks a square of this half-size (rings
+	 * {@code 0..MAX_FEATURE_RADIUS}) around the chunk being generated/populated, and the
+	 * population scan re-visits the same square. A feature whose {@link Feature#getFeatureRadius()}
+	 * exceeds this value would have some of its outer chunks never drawn, so registered
+	 * features must keep their radius at or below this bound. Eight is enough for the
+	 * mineshaft (its corridors can reach ~7 chunks from the origin room).
 	 */
-	public static final int MAX_FEATURE_RADIUS = 5;
+	public static final int MAX_FEATURE_RADIUS = 8;
 
 	public World world;
 	public IChunkProvider chunkProvider; 
@@ -244,6 +248,7 @@ public class FeatureProvider {
 				try {
 					feature = (Feature) featureConstructors.get(featureClass)
 							.newInstance(new Object[] { world, Integer.valueOf(chunkX), Integer.valueOf(chunkZ), this });
+					System.out.println ("Feature " + feature.getClass().getName() + " @ " + feature.centerX + " " + feature.centerZ);
 					break;
 				} catch (Exception e) {
 					// Mirror the original behaviour: treat the failed construction as "not
@@ -337,9 +342,9 @@ public class FeatureProvider {
 	public List<Feature> collectNearestFeatures(int chunkX, int chunkZ) {
 		HashSet<Long> featureHashes = new HashSet<Long>();
 		
-		// Single sweep, rings 0..MAX_FEATURE_RADIUS. Cell order is the same as the old
-		// loop would have VISITED each cell for the FIRST time, which is all that matters
-		// for creation order (re-visits could never create anything new).
+		// Single sweep, rings 0..3. Cell order is the same as the old loop would have
+		// VISITED each cell for the FIRST time, which is all that matters for creation
+		// order (re-visits could never create anything new).
 		for(int i = 0; i <= MAX_FEATURE_RADIUS; i ++) {
 			for(int x = chunkX - i; x <= chunkX + i; x ++) {
 				for(int z = chunkZ - i; z <= chunkZ + i; z ++) {
@@ -563,9 +568,11 @@ public class FeatureProvider {
 		registerFeature(FeatureIcePalace.class);
 		registerFeature(FeatureFossil.class);
 		registerFeature(FeatureStoneArch.class);
-		registerFeature(FeatureMineshaft.class);
+		// Mesa shafts must be picked before the regular ones so a mesa chunk rolls the
+		// (rarer, above-ground) mesa variant first; non-mesa chunks fall through because
+		// FeatureMineshaftMesa.shouldSpawn requires a mesa biome.
 		registerFeature(FeatureMineshaftMesa.class);
-		registerFeature(FeatureStronghold.class);
+		registerFeature(FeatureMineshaft.class);
 		//registerFeature(FeatureSinkHole.class);
 	}
 }

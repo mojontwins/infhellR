@@ -114,7 +114,6 @@ public class FeatureHollowHill extends Feature {
 		this.planInterior();
 		this.planMaze();
 
-		System.out.println("Hollow hill @ " + this.centerX + " " + this.centerZ);
 	}
 
 	@Override
