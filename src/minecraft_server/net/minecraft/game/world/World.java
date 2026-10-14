@@ -2910,6 +2910,40 @@ public List<AxisAlignedBB> getCollidingBoundingBoxes(Entity entity, AxisAlignedB
 	public float getRainStrength(float tick) {
 		return this.prevRainingStrength + (this.rainingStrength - this.prevRainingStrength) * tick;
 	}
+
+	/**
+	 * Fog intensity added to normal fog to simulate early morning fog. The peak
+	 * intensity for the current day comes from a lookup table in {@link Seasons};
+	 * the value ramps up, holds, then fades out around dawn and fades to zero
+	 * below y=56 so underground areas stay clear.
+	 */
+	public float getFogIntensity(Entity viewerEntity, float renderPartialTicks) {
+		float celestialAngle = this.getCelestialAngle(renderPartialTicks);
+		float intensityLUT = Seasons.getMaxMorningFogIntensityForToday();
+		float intensity;
+
+		// Must be 0 from 0 to 0.625, lerp to the peak from 0.625 to 0.75,
+		// hold the peak to 0.825, then lerp back to 0 from 0.825 to 0.95.
+		if (celestialAngle < 0.625F) {
+			intensity = 0F;
+		} else if (celestialAngle < 0.75F) {
+			intensity = MathHelper.lerp(0F, intensityLUT, (celestialAngle - 0.625F) / 0.125F);
+		} else if (celestialAngle < 0.825F) {
+			intensity = intensityLUT;
+		} else {
+			intensity = MathHelper.lerp(intensityLUT, 0F, (celestialAngle - 0.825F) / 0.125F);
+		}
+
+		// Fade the fog out as the viewer descends below Y=64.
+		int y = (int)viewerEntity.posY;
+		if (y < 64 && y >= 56) {
+			intensity = MathHelper.lerp(intensity, 0, (64 - y) / 8F);
+		} else if (y < 56) {
+			intensity = 0;
+		}
+
+		return intensity;
+	}
 	
 	/** Returns the snow strength interpolated for the given partial tick. */
 	public float getSnowStrength(float tick) {

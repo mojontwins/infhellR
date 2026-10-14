@@ -39,6 +39,7 @@ public enum EnumOptions {
     FOV("options.fov", true, false),
     GAMMA("options.gamma", true, false),
     COLOURED_ATHMOSPHERICS("options.colouredAthmospherics", false, false),
+    MORNING_FOG("options.morningFog", false, true),
     DISPLAY_MODES("options.displayModes", true, false),
     MELTBUILD("options.meltBuild", false, true),
     HAND("options.hand", false, true),

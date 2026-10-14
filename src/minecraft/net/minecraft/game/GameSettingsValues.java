@@ -38,6 +38,7 @@ public class GameSettingsValues {
 	
 	// Mine
 	public static boolean clearWaters = true;
+	public static boolean morningFog = true;
 	public static boolean colouredAthmospherics = true;
 	public static int FOV = 0;
 	public static float gammaSetting = 0.0F;

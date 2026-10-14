@@ -19,6 +19,8 @@ public class Seasons {
 	private static final int colorizerSky0[] = new int [SEASON_DURATION * 4];
 	private static final int colorizerFog0[] = new int [SEASON_DURATION * 4];
 	
+	private static final float morningFog[] = new float [SEASON_DURATION * 4];
+	
 	World world;
 	public static int dayOfTheYear = 12;
 	public static int currentSeason;
@@ -74,6 +76,10 @@ public class Seasons {
 		return colorizerSky0[dayOfTheYear];
 	}
 	
+	public static float getMaxMorningFogIntensityForToday() {
+		return morningFog[dayOfTheYear];
+	}
+	
 	public static void loadRamp(String resource, int[] ramp) {
 		try {
 			BufferedImage bufferedImage = ImageIO.read(Seasons.class.getResource(resource));
@@ -87,6 +93,28 @@ public class Seasons {
 		loadRamp("/seasons/leavesColor0.png", colorizerLeaves0);
 		loadRamp("/seasons/skyColor0.png", colorizerSky0);
 		loadRamp("/seasons/fogColor0.png", colorizerFog0);
+		
+		// Precalc morning fog values.
+		
+		for(int i = 0; i < SEASON_DURATION; i ++) {
+			// WINTER: 0.8 to 0.2
+			morningFog[i] = MathHelper.lerp(0.5F, 0.2F, (float)i / SEASON_DURATION);
+			
+			// SPRING: 0.2, 0.15, 0.1, 0.05, 0...
+			morningFog[i + SEASON_DURATION] = i < 5 ?
+					MathHelper.lerp(0.2F, 0, (float)i / 4.0F)
+				:
+					0.0F;
+			
+			// SUMMER: 0
+			morningFog[i + SEASON_DURATION * 2] = 0;
+			
+			// AUTUMN: 0.25, 0.75, 1, ... , 0.9, 0.8
+			morningFog[i + SEASON_DURATION * 3] = i < 2 ?
+					MathHelper.lerp(0.25F, 1.0F, (float)i / 2.0F)
+				:
+					(i < SEASON_DURATION - 1 ? 1F : 0.9F);
+		}
 	}
 }
 
