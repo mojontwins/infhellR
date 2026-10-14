@@ -9,6 +9,7 @@ import net.minecraft.game.world.terrain.generate.feature.mineshaft.MineshaftComp
 import net.minecraft.game.world.terrain.generate.feature.mineshaft.MineshaftWriter;
 import net.minecraft.game.world.terrain.generate.feature.StructureBoundingBox;
 import net.minecraft.game.world.terrain.generate.feature.StructurePieceBlockSelector;
+import net.minecraft.game.world.terrain.generate.feature.StructurePieceTreasure;
 
 /**
  * One piece (corridor, room, crossing, stairwell, library, ...) of a stronghold.
@@ -68,6 +69,81 @@ public abstract class StrongholdComponent extends MineshaftComponent {
 	 * (matching the vanilla {@code StructureStart.generateStructure} removal).
 	 */
 	protected abstract boolean addComponentParts(MineshaftWriter writer, Random rand, StructureBoundingBox chunkBox);
+
+	// ------------------------------------------------------------------
+	// Block substitution gate
+	//
+	// The piece draws its masonry first and its doors, openings and decor on top of it,
+	// so every write goes through canReplaceBlock: air and opted-in terrain may be
+	// written, the stronghold's own blocks may be rewritten, everything else - tree
+	// trunks and leaves overflowing from neighbouring chunks, player builds - is kept.
+	// ------------------------------------------------------------------
+
+	/** The blocks a stronghold piece places itself. */
+	private static final int[] ownBlockIDs = new int[] {
+		StrongholdPieces.BRICKS_ID,
+		StrongholdPieces.BRICKS_ALT1_ID,
+		StrongholdPieces.BRICKS_ALT2_ID,
+		StrongholdPieces.IRON_FENCE_ID,
+		Block.planks.blockID,
+		Block.bookShelf.blockID,
+		Block.fence.blockID,
+		Block.ladder.blockID,
+		Block.torchWood.blockID,
+		Block.stairSingle.blockID,
+		Block.stairDouble.blockID,
+		Block.stairCompactCobblestone.blockID,
+		Block.stairCompactPlanks.blockID,
+		Block.rail.blockID,
+		Block.web.blockID,
+		Block.doorWood.blockID,
+		Block.doorSteel.blockID,
+		Block.button.blockID
+	};
+
+	private static boolean isOwnBlock(int blockID) {
+		for(int i = 0; i < ownBlockIDs.length; ++i) {
+			if(ownBlockIDs[i] == blockID) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Whether this piece may substitute whatever currently sits in the given piece-local
+	 * cell. Air is always writable (nothing is substituted); any other block must have
+	 * opted in through {@link Block#replaceableByFeature} or be part of the stronghold's
+	 * own palette, so foreign blocks - above all the tree blocks that overflow into the
+	 * chunk from its neighbours - are never overwritten.
+	 */
+	protected boolean canReplaceBlock(MineshaftWriter writer, int x, int y, int z) {
+		Block existingBlock = Block.blocksList[this.getBlockID(writer, x, y, z)];
+		return existingBlock == null || existingBlock.replaceableByFeature || isOwnBlock(existingBlock.blockID);
+	}
+
+	@Override
+	protected void placeBlock(MineshaftWriter writer, int blockID, int metadata, int x, int y, int z) {
+		if(this.canReplaceBlock(writer, x, y, z)) {
+			super.placeBlock(writer, blockID, metadata, x, y, z);
+		}
+	}
+
+	@Override
+	protected void createTreasureChest(MineshaftWriter writer, Random rand, int x, int y, int z, StructurePieceTreasure[] loot, int numberOfStacks) {
+		if(!this.canReplaceBlock(writer, x, y, z)) {
+			return;
+		}
+		super.createTreasureChest(writer, rand, x, y, z, loot, numberOfStacks);
+	}
+
+	@Override
+	protected void placeSpawner(MineshaftWriter writer, int x, int y, int z, String mobID) {
+		if(!this.canReplaceBlock(writer, x, y, z)) {
+			return;
+		}
+		super.placeSpawner(writer, x, y, z, mobID);
+	}
 
 	// ------------------------------------------------------------------
 	// Stronghold fill helper (built on the inherited placeBlock / getBlockID)
