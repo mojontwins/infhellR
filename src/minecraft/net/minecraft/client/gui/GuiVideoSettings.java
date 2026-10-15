@@ -20,6 +20,7 @@ public class GuiVideoSettings extends GuiScreen {
 			
 			EnumOptions.CLEAR_WATERS, 
 			EnumOptions.COLOURED_ATHMOSPHERICS,
+			EnumOptions.MORNING_FOG,
 			
 			EnumOptions.FOV,
 			EnumOptions.VIEW_BOBBING, 

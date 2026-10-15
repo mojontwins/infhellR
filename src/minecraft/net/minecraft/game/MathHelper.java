@@ -62,6 +62,14 @@ public class MathHelper {
 		return i >= 0 ? i : -i;
 	}
 
+	public static float lerp(float min, float max, float progress) {
+		return min + (max - min) * progress;
+	}
+
+	public static double lerp(double min, double max, double progress) {
+		return min + (max - min) * progress;
+	}
+
 	static {
 		for (int i0 = 0; i0 < 65536; ++i0) {
 			SIN_TABLE[i0] = (float) Math.sin((double) i0 * Math.PI * 2.0D / 65536.0D);

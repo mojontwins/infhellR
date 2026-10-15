@@ -143,6 +143,7 @@ options.survival=Survival
 options.clearWaters=Clear water/ice
 options.fov=Field Of View
 options.colouredAthmospherics=Coloured fog/sky
+options.morningFog=Morning Fog
 options.displayModes=Display
 options.gamma=Gamma Correction
 options.meltBuild=Dynamic ice/snow

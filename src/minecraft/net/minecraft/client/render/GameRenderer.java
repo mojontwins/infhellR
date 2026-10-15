@@ -1308,13 +1308,22 @@ public class GameRenderer {
 				if(GameSettingsValues.anaglyph) {
 				}
 			} else {
-				// World fog: linear from a quarter of the far plane out.
+				// World fog: linear from a quarter of the far plane out. Morning fog
+				// pulls the far plane in as dawn fog intensifies.
+				float fogIntensity;
+				if(!GameSettingsValues.morningFog) {
+					fogIntensity = 0.0F;
+				} else {
+					fogIntensity = (float)Math.max(0, this.mc.theWorld.getFogIntensity(viewEntity, renderPartialTicks) - this.mc.theWorld.getRainStrength(renderPartialTicks));
+				}
+				float fogEnd = (float)Math.min(this.farPlaneDistance, 256.0F - 192.0F * fogIntensity);
+
 				GL11.glFogi(GL11.GL_FOG_MODE, GL11.GL_LINEAR);
-				GL11.glFogf(GL11.GL_FOG_START, this.farPlaneDistance * 0.25F);
-				GL11.glFogf(GL11.GL_FOG_END, this.farPlaneDistance);
+				GL11.glFogf(GL11.GL_FOG_START, fogEnd * 0.25F);
+				GL11.glFogf(GL11.GL_FOG_END, fogEnd);
 				if(fogType < 0) {
 					GL11.glFogf(GL11.GL_FOG_START, 0.0F);
-					GL11.glFogf(GL11.GL_FOG_END, this.farPlaneDistance * 0.8F);
+					GL11.glFogf(GL11.GL_FOG_END, fogEnd * 0.8F);
 				}
 
 				if(GLContext.getCapabilities().GL_NV_fog_distance) {

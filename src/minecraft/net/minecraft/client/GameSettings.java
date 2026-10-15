@@ -211,6 +211,10 @@ public class GameSettings {
             this.minecraft.renderGlobal.loadRenderers();
         }
 
+        if (option == EnumOptions.MORNING_FOG) {
+            GameSettingsValues.morningFog = !GameSettingsValues.morningFog;
+        }
+
         if (option == EnumOptions.FRAMERATE_LIMIT) {
             GameSettingsValues.limitFramerate = (GameSettingsValues.limitFramerate + delta + 3) % 3;
         }
@@ -315,6 +319,7 @@ public class GameSettings {
         case USE_VBO:            return GameSettingsValues.useVbo;
         case AMBIENT_OCCLUSION:  return GameSettingsValues.ambientOcclusion;
         case COLOURED_ATHMOSPHERICS: return GameSettingsValues.colouredAthmospherics;
+        case MORNING_FOG:        return GameSettingsValues.morningFog;
         case MELTBUILD:          return GameSettingsValues.meltBuild;
         case HAND:               return GameSettingsValues.retardedArm;
         case THREADED_LIGHT:     return GameSettingsValues.threadedLighting;
@@ -453,6 +458,7 @@ public class GameSettings {
                         case "FOV":            GameSettingsValues.FOV = Integer.parseInt(value); break;
                         case "gammaSetting":   GameSettingsValues.gammaSetting = this.parseFloatOrBoolean(value); break;
                         case "colouredAthmospherics": GameSettingsValues.colouredAthmospherics = value.equals("true"); break;
+                        case "morningFog":     GameSettingsValues.morningFog = value.equals("true"); break;
                         case "displayMode":    GameSettingsValues.displayMode = value; break;
                         case "meltBuild":      GameSettingsValues.meltBuild = value.equals("true"); break;
                         case "ofMipmapLevel":
@@ -525,6 +531,7 @@ public class GameSettings {
             writer.println("FOV:" + GameSettingsValues.FOV);
             writer.println("gammaSetting:" + GameSettingsValues.gammaSetting);
             writer.println("colouredAthmospherics:" + GameSettingsValues.colouredAthmospherics);
+            writer.println("morningFog:" + GameSettingsValues.morningFog);
             writer.println("displayMode:" + GameSettingsValues.displayMode);
             writer.println("meltBuild:" + GameSettingsValues.meltBuild);
 
