@@ -12,8 +12,6 @@ public class EntityCityHusk extends EntityHusk {
 	
 	public EntityCityHusk(World world) {
 		super(world);
-		this.texture = "/mob/cityhusk1.png";
-		this.texturePrefix = "cityhusk";
 		this.moveSpeed = 0.7F;
 		this.attackStrength = 7;
 		this.scoreValue = 60;
@@ -32,6 +30,11 @@ public class EntityCityHusk extends EntityHusk {
 	
 	protected int getMaxTextureVariations() {
 		return 5;
+	}
+
+	@Override
+	protected String getVariantTextureStem() {
+		return "/mob/cityhusk";
 	}
 
 	@Override

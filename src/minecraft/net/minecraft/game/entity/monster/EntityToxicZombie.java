@@ -10,7 +10,6 @@ public class EntityToxicZombie extends EntityCityHusk {
 
 	public EntityToxicZombie(World world) {
 		super(world);
-		this.texture = "/mob/toxiczombie1.png";
 		this.moveSpeed = 0.8F;
 		this.attackStrength = 2;
 		this.scoreValue = 30;
@@ -18,6 +17,11 @@ public class EntityToxicZombie extends EntityCityHusk {
 	
 	protected int getMaxTextureVariations() {
 		return 2;
+	}
+
+	@Override
+	protected String getVariantTextureStem() {
+		return "/mob/toxiczombie";
 	}
 	
 	public void onLivingUpdate() {

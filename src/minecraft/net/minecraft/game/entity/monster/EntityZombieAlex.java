@@ -8,8 +8,6 @@ public class EntityZombieAlex extends EntityZombie {
 	
 	public EntityZombieAlex(World world) {
 		super(world);
-		this.texture = "/mob/zombie_alex1.png";
-		this.texturePrefix = "zombie_alex";
 		this.moveSpeed = 0.8F;
 		this.attackStrength = 3;
 		this.scoreValue = 20;
@@ -17,6 +15,11 @@ public class EntityZombieAlex extends EntityZombie {
 	
 	protected int getMaxTextureVariations() {
 		return 3;
+	}
+
+	@Override
+	protected String getVariantTextureStem() {
+		return "/mob/zombie_alex";
 	}
 	
 	protected int getDropItemId() {

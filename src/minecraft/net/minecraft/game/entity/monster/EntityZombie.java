@@ -18,9 +18,7 @@ import net.minecraft.game.world.block.Block;
 import net.minecraft.game.world.block.BlockDoor;
 import net.minecraft.game.world.path.PathEntity;
 import net.minecraft.game.world.path.PathPoint;
-import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.game.entity.AttackableTargetSorter;
-import net.minecraft.game.entity.Datawatchers;
 import net.minecraft.game.entity.EntityMeatBlock;
 import net.minecraft.game.entity.ISentient;
 
@@ -37,12 +35,9 @@ public class EntityZombie extends EntityArmoredMob implements IHostileToPlayer {
 	protected boolean chasingDoor = false;
 	
 	protected int doorBreakTime;
-	protected String texturePrefix;
 	
 	public EntityZombie(World world1) {
 		super(world1);
-		this.texture = "/mob/zombie1.png";
-		this.texturePrefix = "zombie";
 		this.moveSpeed = 0.5F;
 		this.attackStrength = 5;
 		this.scoreValue = 15;
@@ -54,25 +49,8 @@ public class EntityZombie extends EntityArmoredMob implements IHostileToPlayer {
 	}
 
 	@Override
-	protected void entityInit() {
-		super.entityInit();
-		this.dataWatcher.addObject(Datawatchers.DW_TYPE, (byte)0);
-		this.setTextureVariation((byte) (1 + rand.nextInt(this.getMaxTextureVariations())));
-	}
-	
-	public void setTextureVariation(byte variation) {
-		this.dataWatcher.updateObject(Datawatchers.DW_TYPE, variation);
-	}
-	
-	public byte getTextureVariation() {
-		return this.dataWatcher.getWatchableObjectByte(Datawatchers.DW_TYPE);
-	}
-		
-	@Override
-	public String getEntityTexture() {
-		if(this.getMaxTextureVariations() > 1) {
-			return "/mob/" + this.texturePrefix + this.dataWatcher.getWatchableObjectByte(Datawatchers.DW_TYPE) + ".png";		
-		} else return this.texture;
+	protected String getVariantTextureStem() {
+		return "/mob/zombie";
 	}
 	
 	@Override
@@ -181,24 +159,6 @@ public class EntityZombie extends EntityArmoredMob implements IHostileToPlayer {
 		return true;
 	}
 
-	@Override
-	public void readEntityFromNBT(NBTTagCompound nbtTagCompound) {
-		super.readEntityFromNBT(nbtTagCompound);
-		byte textureVariation = 1;
-		if(nbtTagCompound.hasKey("TextureVariation")) {
-			textureVariation = nbtTagCompound.getByte("TextureVariation");
-		} else {
-			System.out.println("Importing old level, overrode texture variation for " + this.getClass() + " with default.");
-		}
-		this.setTextureVariation(textureVariation);
-	}
-
-	@Override
-	public void writeEntityToNBT(NBTTagCompound nbtTagCompound) {
-		super.writeEntityToNBT(nbtTagCompound);
-		nbtTagCompound.setByte("TextureVariation", this.getTextureVariation());
-	}
-	
 	@Override
 	protected String getLivingSound() {
 		return "mob.zombie";

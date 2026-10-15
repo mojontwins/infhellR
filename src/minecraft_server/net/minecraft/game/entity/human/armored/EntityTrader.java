@@ -1,6 +1,5 @@
 package net.minecraft.game.entity.human.armored;
 
-import net.minecraft.game.entity.Datawatchers;
 import net.minecraft.game.entity.Entity;
 import net.minecraft.game.entity.EntityArmoredMob;
 import net.minecraft.game.entity.ISentient;
@@ -25,10 +24,6 @@ import net.minecraft.nbt.NBTTagList;
 public abstract class EntityTrader extends EntityArmoredMob implements ITrader, ISentient {
 	public TradingRecipeList tradingRecipeList;
 	public EntityPlayer tradingWith;
-
-	// Texture variations. TODO: this block is duplicated from EntityZombie and
-	// is planned to move to a shared EntityLiving once all mobs support skins.
-	protected String texturePrefix;
 
 	public int traderType;
 	protected int angerLevel = 0;
@@ -62,33 +57,6 @@ public abstract class EntityTrader extends EntityArmoredMob implements ITrader, 
 
 		this.health = 20;
 		this.attackStrength = 4;
-	}
-
-	protected int getMaxTextureVariations() {
-		return 1;
-	}
-
-	@Override
-	protected void entityInit() {
-		super.entityInit();
-		this.dataWatcher.addObject(Datawatchers.DW_TYPE, (byte)0);
-		this.setTextureVariation((byte)(1 + this.rand.nextInt(this.getMaxTextureVariations())));
-	}
-
-	public void setTextureVariation(byte variation) {
-		this.dataWatcher.updateObject(Datawatchers.DW_TYPE, variation);
-	}
-
-	public byte getTextureVariation() {
-		return this.dataWatcher.getWatchableObjectByte(Datawatchers.DW_TYPE);
-	}
-
-	@Override
-	public String getEntityTexture() {
-		if(this.getMaxTextureVariations() > 1) {
-			return "/mob/" + this.texturePrefix + this.getTextureVariation() + ".png";
-		}
-		return this.texture;
 	}
 
 	public void setCustomer(EntityPlayer player) {
@@ -153,7 +121,6 @@ public abstract class EntityTrader extends EntityArmoredMob implements ITrader, 
 		tag.setBoolean("AngryAtPlayer", this.angryAtPlayer);
 		tag.setInteger("TraderType", this.traderType);
 		tag.setInteger("DefaultHeldItemID", this.defaultHeldItem.itemID);
-		tag.setByte("TextureVariation", this.getTextureVariation());
 	}
 
 	@Override
@@ -165,7 +132,6 @@ public abstract class EntityTrader extends EntityArmoredMob implements ITrader, 
 		this.angryAtPlayer = tag.getBoolean("AngryAtPlayer");
 		this.traderType = tag.getInteger("TraderType");
 		this.defaultHeldItem = new ItemStack(tag.getInteger("DefaultHeldItemID"));
-		this.setTextureVariation(tag.hasKey("TextureVariation") ? tag.getByte("TextureVariation") : (byte)1);
 	}
 
 	@Override

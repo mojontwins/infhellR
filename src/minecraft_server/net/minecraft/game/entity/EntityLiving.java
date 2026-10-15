@@ -136,6 +136,18 @@ public abstract class EntityLiving extends Entity {
 		this.entitySenses = new EntitySenses(this);
 		
 		this.activeStatusEffectsMap = new HashMap<Integer,StatusEffect>();
+
+		// Pick a texture variant, if this mob has more than one. The watcher entry is declared
+		// only when it is actually used: it is replicated in every spawn snapshot this entity
+		// sends to each tracking player, so a fixed-texture mob would pay that forever just to
+		// replicate a 0. This runs before subclass field initialisers have run, so an override
+		// of getMaxTextureVariations/getRandomTextureVariation must return a constant and must
+		// not read any instance field; both sides roll independently and the server's value
+		// overwrites the client's when the entity is spawned over the network.
+		int textureVariationCount = this.getMaxTextureVariations();
+		if(textureVariationCount > 0) {
+			this.dataWatcher.addObject(Datawatchers.DW_VARIANT, Byte.valueOf((byte)this.getRandomTextureVariation(this.rand, textureVariationCount)));
+		}
 	}
 
 	protected void entityInit() { 
@@ -145,7 +157,53 @@ public abstract class EntityLiving extends Entity {
 		return this.worldObj.rayTraceBlocks(Vec3D.createVector(this.posX, this.posY + (double)this.getEyeHeight(), this.posZ), Vec3D.createVector(entity1.posX, entity1.posY + (double)entity1.getEyeHeight(), entity1.posZ)) == null;
 	}
 
+	/**
+	 * How many distinct textures this entity may be drawn with. 0 (the default) means a
+	 * single fixed texture named by {@link #texture}. Called from the EntityLiving
+	 * constructor, before subclass field initialisers have run, so an override must return
+	 * a constant and must not read any instance field.
+	 */
+	protected int getMaxTextureVariations() {
+		return 0;
+	}
+
+	/**
+	 * Texture path stem, without the ".png" suffix. {@link #getEntityTexture} appends
+	 * (1 + variant), so never include the suffix here. The stem must name a real classpath
+	 * resource; a missing one is drawn as the shared fallback texture rather than crashing.
+	 */
+	protected String getVariantTextureStem() {
+		return "/mob/char";
+	}
+
+	/**
+	 * Picks the initial variant in [0, count). Overridable for weighted distributions.
+	 * Called during construction, so an override must use only its arguments.
+	 */
+	public int getRandomTextureVariation(Random rand, int count) {
+		return rand.nextInt(count);
+	}
+
+	/**
+	 * Texture variant index, in [0, getMaxTextureVariations()). Read live from the data
+	 * watcher so a variant pushed by the server is picked up by the client renderer.
+	 */
+	public int getVariant() {
+		return this.dataWatcher.getWatchableObjectByte(Datawatchers.DW_VARIANT) & 255;
+	}
+
+	public void setVariant(int variant) {
+		// Only the server owns this value. A client-side write is never replicated, so the
+		// two sides would silently disagree until the next full spawn snapshot.
+		if(!this.worldObj.isRemote) {
+			this.dataWatcher.updateObject(Datawatchers.DW_VARIANT, Byte.valueOf((byte)variant));
+		}
+	}
+
 	public String getEntityTexture() {
+		if(this.getMaxTextureVariations() > 0) {
+			return this.getVariantTextureStem() + (1 + this.getVariant()) + ".png";
+		}
 		return this.texture;
 	}
 
@@ -794,6 +852,12 @@ public abstract class EntityLiving extends Entity {
 		if(this.getHeldItem() != null) {
 			nBTTagCompound1.setInteger("HeldItemId", this.getHeldItem().itemID);
 		}
+
+		// Texture variant, stored 1-based to stay compatible with the byte the mobs wrote
+		// before this was centralised. Omitted entirely for single-texture mobs.
+		if(this.getMaxTextureVariations() > 0) {
+			nBTTagCompound1.setByte("TextureVariation", (byte)(this.getVariant() + 1));
+		}
 	}
 
 	public void readEntityFromNBT(NBTTagCompound nBTTagCompound1) {
@@ -819,6 +883,15 @@ public abstract class EntityLiving extends Entity {
 		// Held item
 		if(!nBTTagCompound1.hasKey("HeldItemId")) {
 			this.setHeldItem(new ItemStack(nBTTagCompound1.getInteger("HeldItemId")));
+		}
+
+		// Restore the texture variant written by this or the older, pre-centralised code
+		// (1-based). A missing or out-of-range value keeps the variant rolled at construction.
+		if(this.getMaxTextureVariations() > 0 && nBTTagCompound1.hasKey("TextureVariation")) {
+			int legacyVariation = nBTTagCompound1.getByte("TextureVariation");
+			if(legacyVariation >= 1 && legacyVariation <= this.getMaxTextureVariations()) {
+				this.setVariant(legacyVariation - 1);
+			}
 		}
 	}
 

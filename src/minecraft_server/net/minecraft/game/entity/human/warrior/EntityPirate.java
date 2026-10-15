@@ -3,7 +3,6 @@ package net.minecraft.game.entity.human.warrior;
 import java.util.List;
 
 import net.minecraft.game.achievements.AchievementList;
-import net.minecraft.game.entity.Datawatchers;
 import net.minecraft.game.entity.Entity;
 import net.minecraft.game.entity.IMobWithLevel;
 import net.minecraft.game.entity.ISentient;
@@ -31,7 +30,6 @@ public class EntityPirate extends EntityArmoredHumanBase implements IMobWithLeve
 		super(world);
 		this.armorIndex = 4;
 		this.attackStrength = 8;
-		this.texture = "/mob/pirate1.png";
 	}
 
 	protected int getMaxTextureVariations() {
@@ -39,27 +37,8 @@ public class EntityPirate extends EntityArmoredHumanBase implements IMobWithLeve
 	}
 
 	@Override
-	protected void entityInit() {
-		super.entityInit();
-		this.dataWatcher.addObject(Datawatchers.DW_TYPE, (byte)0);
-		this.setTextureVariation((byte)(1 + this.rand.nextInt(this.getMaxTextureVariations())));
-	}
-
-	public void setTextureVariation(byte variation) {
-		this.dataWatcher.updateObject(Datawatchers.DW_TYPE, variation);
-	}
-
-	public byte getTextureVariation() {
-		return this.dataWatcher.getWatchableObjectByte(Datawatchers.DW_TYPE);
-	}
-
-	@Override
-	public String getEntityTexture() {
-		if(this.getMaxTextureVariations() > 1) {
-			return "/mob/pirate" + this.getTextureVariation() + ".png";
-		} else {
-			return this.texture;
-		}
+	protected String getVariantTextureStem() {
+		return "/mob/pirate";
 	}
 
 	@Override
@@ -176,7 +155,6 @@ public class EntityPirate extends EntityArmoredHumanBase implements IMobWithLeve
 	public void writeEntityToNBT(NBTTagCompound tag) {
 		super.writeEntityToNBT(tag);
 		tag.setBoolean("AngryAtPlayer", this.angryAtPlayer);
-		tag.setByte("TextureVariation", this.getTextureVariation());
 	}
 
 	@Override
@@ -184,14 +162,6 @@ public class EntityPirate extends EntityArmoredHumanBase implements IMobWithLeve
 		super.readEntityFromNBT(tag);
 		this.angryAtPlayer = tag.getBoolean("AngryAtPlayer");
 		this.configureAttributesBasedOnLevel();
-
-		byte textureVariation = 1;
-		if(tag.hasKey("TextureVariation")) {
-			textureVariation = tag.getByte("TextureVariation");
-		} else {
-			System.out.println("Importing old level, overrode texture variation for " + this.getClass() + " with default.");
-		}
-		this.setTextureVariation(textureVariation);
 	}
 
 	@Override

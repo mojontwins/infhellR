@@ -1,7 +1,6 @@
 package net.minecraft.game.entity.misc;
 
 import net.minecraft.game.world.block.Block;
-import net.minecraft.game.entity.Datawatchers;
 import net.minecraft.game.entity.Entity;
 import net.minecraft.game.entity.EntityArmoredMob;
 import net.minecraft.game.entity.IHostileToPlayer;
@@ -9,16 +8,11 @@ import net.minecraft.game.entity.IWaterMob;
 import net.minecraft.game.item.Item;
 import net.minecraft.game.item.ItemStack;
 import net.minecraft.game.MathHelper;
-import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.game.world.World;
 
 public class EntityTriton extends EntityArmoredMob implements IWaterMob, IHostileToPlayer {
-	protected String texturePrefix;
-
 	public EntityTriton(World world) {
 		super(world);
-		this.texture = "/mob/triton1.png";
-		this.texturePrefix = "triton";
 		this.moveSpeed = 1.1F;
 		this.health = this.getFullHealth();
 		this.inventory.setInventorySlotContents(0, this.rand.nextInt(4) == 0 ? new ItemStack(Item.battleWood) : new ItemStack(Item.axeWood));
@@ -29,43 +23,12 @@ public class EntityTriton extends EntityArmoredMob implements IWaterMob, IHostil
 	}
 
 	@Override
-	protected void entityInit() {
-		super.entityInit();
-		this.dataWatcher.addObject(Datawatchers.DW_TYPE, (byte)0);
-		this.setTextureVariation((byte)(1 + this.rand.nextInt(this.getMaxTextureVariations())));
-	}
-	
-	public void setTextureVariation(byte variation) {
-		this.dataWatcher.updateObject(Datawatchers.DW_TYPE, variation);
-	}
-	
-	public byte getTextureVariation() {
-		return this.dataWatcher.getWatchableObjectByte(Datawatchers.DW_TYPE);
-	}
-	
-	public void writeEntityToNBT(NBTTagCompound tag) {
-		super.writeEntityToNBT(tag);
-		tag.setByte("TextureVariation", this.getTextureVariation());
+	protected String getVariantTextureStem() {
+		return "/mob/triton";
 	}
 
-	public void readEntityFromNBT(NBTTagCompound tag) {
-		super.readEntityFromNBT(tag);
-
-		if(tag.hasKey("TextureVariation")) {
-			this.setTextureVariation(tag.getByte("TextureVariation"));
-		}
-	}
-	
 	protected int getDropItemId() {
 		return this.rand.nextInt(10) == 0 ? Block.driedKelpBlock.blockID : Item.driedKelp.shiftedIndex;
-	}
-	
-	public void onUpdate() {
-		super.onUpdate();
-		if(this.getMaxTextureVariations() > 0) {
-			this.texture = "/mob/" + this.texturePrefix + this.dataWatcher.getWatchableObjectByte(Datawatchers.DW_TYPE) + ".png";		
-		}
-
 	}
 	
 	protected void attackEntity(Entity target, float distance) {

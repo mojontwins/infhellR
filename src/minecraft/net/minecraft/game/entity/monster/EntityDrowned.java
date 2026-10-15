@@ -7,8 +7,6 @@ import net.minecraft.game.world.World;
 public class EntityDrowned extends EntityZombie implements IWaterMob {
 	public EntityDrowned(World world) {
 		super(world);
-		this.texture = "/mob/drowned1.png";
-		this.texturePrefix = "drowned";
 		this.moveSpeed = 0.5F;
 		this.attackStrength = 6;	
 		this.scoreValue = 30;
@@ -20,6 +18,11 @@ public class EntityDrowned extends EntityZombie implements IWaterMob {
 	
 	protected int getMaxTextureVariations() {
 		return 2;
+	}
+
+	@Override
+	protected String getVariantTextureStem() {
+		return "/mob/drowned";
 	}
 	
 	protected int getDropItemId() {

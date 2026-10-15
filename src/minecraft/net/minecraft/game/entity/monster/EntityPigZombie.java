@@ -2,7 +2,6 @@ package net.minecraft.game.entity.monster;
 
 import java.util.Iterator;
 import java.util.List;
-import net.minecraft.game.entity.Datawatchers;
 import net.minecraft.game.entity.Entity;
 import net.minecraft.game.entity.EntityArmoredMob;
 import net.minecraft.game.entity.player.EntityPlayer;
@@ -31,7 +30,6 @@ public class EntityPigZombie extends EntityArmoredMob {
 	public EntityPigZombie(World world1) {
 		super(world1);
 		this.texture = "/mob/pigzombie.png";
-		this.texturePrefix = "pigzombie";
 		this.moveSpeed = 0.5F;
 		this.attackStrength = 5;
 		this.isImmuneToFire = true;
@@ -41,37 +39,6 @@ public class EntityPigZombie extends EntityArmoredMob {
 		case 1: this.heldItem = new ItemStack(Item.battleGold, 1);
 		default: this.heldItem = new ItemStack(Item.swordGold, 1);
 		}
-	}
-
-	// Texture variations. TODO: this block is duplicated from EntityZombie and
-	// is planned to move to a shared EntityLiving once all mobs support skins.
-	protected String texturePrefix;
-
-	protected int getMaxTextureVariations() {
-		return 1;
-	}
-
-	@Override
-	protected void entityInit() {
-		super.entityInit();
-		this.dataWatcher.addObject(Datawatchers.DW_TYPE, (byte)0);
-		this.setTextureVariation((byte)(1 + this.rand.nextInt(this.getMaxTextureVariations())));
-	}
-
-	public void setTextureVariation(byte variation) {
-		this.dataWatcher.updateObject(Datawatchers.DW_TYPE, variation);
-	}
-
-	public byte getTextureVariation() {
-		return this.dataWatcher.getWatchableObjectByte(Datawatchers.DW_TYPE);
-	}
-
-	@Override
-	public String getEntityTexture() {
-		if(this.getMaxTextureVariations() > 1) {
-			return "/mob/" + this.texturePrefix + this.getTextureVariation() + ".png";
-		}
-		return this.texture;
 	}
 
 	@Override
@@ -93,14 +60,12 @@ public class EntityPigZombie extends EntityArmoredMob {
 	public void writeEntityToNBT(NBTTagCompound nBTTagCompound1) {
 		super.writeEntityToNBT(nBTTagCompound1);
 		nBTTagCompound1.setShort("Anger", (short)this.angerLevel);
-		nBTTagCompound1.setByte("TextureVariation", this.getTextureVariation());
 	}
 
 	@Override
 	public void readEntityFromNBT(NBTTagCompound nBTTagCompound1) {
 		super.readEntityFromNBT(nBTTagCompound1);
 		this.angerLevel = nBTTagCompound1.getShort("Anger");
-		this.setTextureVariation(nBTTagCompound1.hasKey("TextureVariation") ? nBTTagCompound1.getByte("TextureVariation") : (byte)1);
 	}
 
 	@Override

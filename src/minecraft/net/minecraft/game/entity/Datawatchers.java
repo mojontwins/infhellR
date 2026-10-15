@@ -12,4 +12,5 @@ public class Datawatchers {
 	public static final int DW_NAME = 24;
 	public static final int DW_OWNER = 25;
 	public static final int DW_LEVEL = 26;
+	public static final int DW_VARIANT = 27;
 }

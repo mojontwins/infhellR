@@ -1,6 +1,5 @@
 package net.minecraft.game.entity.monster;
 
-import net.minecraft.game.entity.Datawatchers;
 import net.minecraft.game.entity.Entity;
 import net.minecraft.game.entity.EntityMob;
 import net.minecraft.game.entity.IHostileToPlayer;
@@ -8,7 +7,6 @@ import net.minecraft.game.entity.ISentient;
 import net.minecraft.game.item.Item;
 import net.minecraft.game.item.ItemStack;
 import net.minecraft.game.MathHelper;
-import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.game.world.World;
 
 public class EntityTFRedcap extends EntityMob implements ISentient, IHostileToPlayer {
@@ -19,7 +17,6 @@ public class EntityTFRedcap extends EntityMob implements ISentient, IHostileToPl
 
 	public EntityTFRedcap(World world) {
 		super(world);
-		this.texture = "/mob/redcap1.png";
 		this.moveSpeed = 0.5F;
 		this.setSize(0.9F, 1.4F);
 		this.attackStrength = 2;
@@ -35,27 +32,10 @@ public class EntityTFRedcap extends EntityMob implements ISentient, IHostileToPl
 	protected int getMaxTextureVariations() {
 		return 3;
 	}
-	
+
 	@Override
-	protected void entityInit() {
-		super.entityInit();
-		this.dataWatcher.addObject(Datawatchers.DW_TYPE, (byte)0);
-		this.setTextureVariation((byte) (1 + rand.nextInt(this.getMaxTextureVariations())));
-	}
-	
-	public void setTextureVariation(byte variation) {
-		this.dataWatcher.updateObject(Datawatchers.DW_TYPE, variation);
-	}
-	
-	public byte getTextureVariation() {
-		return this.dataWatcher.getWatchableObjectByte(Datawatchers.DW_TYPE);
-	}
-	
-	@Override
-	public String getEntityTexture() {
-		if(this.getMaxTextureVariations() > 1) {
-			return "/mob/redcap" + this.getTextureVariation() + ".png";		
-		} else return this.texture;
+	protected String getVariantTextureStem() {
+		return "/mob/redcap";
 	}
 	
 	@Override
@@ -138,24 +118,6 @@ public class EntityTFRedcap extends EntityMob implements ISentient, IHostileToPl
 
 	}
 	
-	@Override
-	public void readEntityFromNBT(NBTTagCompound nbtTagCompound) {
-		super.readEntityFromNBT(nbtTagCompound);
-		byte textureVariation = 1;
-		if(nbtTagCompound.hasKey("TextureVariation")) {
-			textureVariation = nbtTagCompound.getByte("TextureVariation");
-		} else {
-			System.out.println("Importing old level, overrode texture variation for " + this.getClass() + " with default.");
-		}
-		this.setTextureVariation(textureVariation);
-	}
-
-	@Override
-	public void writeEntityToNBT(NBTTagCompound nbtTagCompound) {
-		super.writeEntityToNBT(nbtTagCompound);
-		nbtTagCompound.setByte("TextureVariation", this.getTextureVariation());
-	}
-
 	public boolean isTargetLookingAtMe() {
 		double dx = this.posX - this.entityToAttack.posX;
 		double dz = this.posZ - this.entityToAttack.posZ;

@@ -19,8 +19,6 @@ public class EntityHusk extends EntityZombie {
 	
 	public EntityHusk(World world) {
 		super(world);
-		this.texture = "/mob/husk1.png";
-		this.texturePrefix = "husk";
 		this.moveSpeed = 0.6F;
 		this.attackStrength = 6;
 		this.scoreValue = 25;
@@ -28,6 +26,11 @@ public class EntityHusk extends EntityZombie {
 	
 	protected int getMaxTextureVariations() {
 		return 3;
+	}
+
+	@Override
+	protected String getVariantTextureStem() {
+		return "/mob/husk";
 	}
 
 	@Override

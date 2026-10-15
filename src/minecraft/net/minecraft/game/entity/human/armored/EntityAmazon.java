@@ -1,6 +1,7 @@
 package net.minecraft.game.entity.human.armored;
 
 import java.util.List;
+import java.util.Random;
 
 import net.minecraft.game.physics.AxisAlignedBB;
 import net.minecraft.game.world.block.Block;
@@ -30,15 +31,12 @@ public class EntityAmazon extends EntityArmoredMob implements ISentient {
 	private boolean looksWithInterest = false;
 	private float headRoll;
 	private float prevHeadRoll;
-	protected String texturePrefix;
 
 	/** Ticks left before a provoked amazon gives up on her current target. */
 	public int timeBeforeLosingInterest = 0;
 
 	public EntityAmazon(World world) {
 		super(world);
-		this.texture = "/mob/amazon1.png";
-		this.texturePrefix = "amazon";
 		this.moveSpeed = 1.1F;
 		this.health = this.getFullHealth();
 		
@@ -61,27 +59,23 @@ public class EntityAmazon extends EntityArmoredMob implements ISentient {
 	}
 
 	@Override
+	protected String getVariantTextureStem() {
+		return "/mob/amazon";
+	}
+
+	@Override
+	public int getRandomTextureVariation(Random rand, int count) {
+		// Most amazons use one of the three common skins; a rare one (1 in 9) uses the
+		// alternate skin at the last index.
+		return rand.nextInt(9) == 0 ? count - 1 : rand.nextInt(count - 1);
+	}
+
+	@Override
 	protected void entityInit() {
 		super.entityInit();
 		this.dataWatcher.addObject(Datawatchers.DW_STATUS, (byte)0);
 		this.dataWatcher.addObject(Datawatchers.DW_OWNER, "");
 		this.dataWatcher.addObject(Datawatchers.DW_HEALTH, this.health);
-
-		// Texture variation, kept in a data watcher so clients agree on the skin.
-		this.dataWatcher.addObject(Datawatchers.DW_TYPE, (byte)0);
-		int variation = 4;
-		if(this.rand.nextInt(9) != 0) {
-			variation = 1 + this.rand.nextInt(3);
-		}
-		this.setTextureVariation((byte)variation);
-	}
-
-	public void setTextureVariation(byte variation) {
-		this.dataWatcher.updateObject(Datawatchers.DW_TYPE, variation);
-	}
-
-	public byte getTextureVariation() {
-		return this.dataWatcher.getWatchableObjectByte(Datawatchers.DW_TYPE);
 	}
 
 	@Override
@@ -95,7 +89,6 @@ public class EntityAmazon extends EntityArmoredMob implements ISentient {
 		tag.setBoolean("Angry", this.isAmazonAngry());
 		tag.setBoolean("Sitting", this.getIsSitting());
 		tag.setString("Owner", this.getOwner() == null ? "" : this.getOwner());
-		tag.setByte("TextureVariation", this.getTextureVariation());
 	}
 
 	@Override
@@ -108,10 +101,6 @@ public class EntityAmazon extends EntityArmoredMob implements ISentient {
 		if(owner.length() > 0) {
 			this.setAmazonOwner(owner);
 			this.setAmazonTamed(true);
-		}
-
-		if(tag.hasKey("TextureVariation")) {
-			this.setTextureVariation(tag.getByte("TextureVariation"));
 		}
 	}
 
@@ -126,7 +115,7 @@ public class EntityAmazon extends EntityArmoredMob implements ISentient {
 	}
 
 	protected String getHurtSoundByGender() {
-		return this.getTextureVariation() == 3 ? "random.hurt" : "mob.amazon.hit";
+		return this.getVariant() == 2 ? "random.hurt" : "mob.amazon.hit";
 	}
 
 	@Override
@@ -267,15 +256,6 @@ public class EntityAmazon extends EntityArmoredMob implements ISentient {
 
 		if(this.looksWithInterest) {
 			this.numTicksToChaseTarget = 10;
-		}
-	}
-
-	@Override
-	public String getEntityTexture() {
-		if(this.getMaxTextureVariations() > 1) {
-			return "/mob/" + this.texturePrefix + this.dataWatcher.getWatchableObjectByte(Datawatchers.DW_TYPE) + ".png";
-		} else {
-			return this.texture;
 		}
 	}
 
