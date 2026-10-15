@@ -3,7 +3,7 @@ package net.minecraft.client.render.block;
 import net.minecraft.client.render.RenderBlocks;
 import net.minecraft.client.render.Tessellator;
 import net.minecraft.game.world.block.Block;
-import net.minecraft.client.render.EntityRenderer;
+import net.minecraft.client.render.GameRenderer;
 
 /**
  * Renders the cactus block. Each of the six faces is drawn with the standard shade
@@ -20,7 +20,7 @@ public final class RenderBlockCactus implements BlockRenderHandler {
 		float red = (float)(color >> 16 & 255) / 255.0F;
 		float green = (float)(color >> 8 & 255) / 255.0F;
 		float blue = (float)(color & 255) / 255.0F;
-		if(EntityRenderer.anaglyphEnable) {
+		if(GameRenderer.anaglyphEnable) {
 			float redGray = (red * 30.0F + green * 59.0F + blue * 11.0F) / 100.0F;
 			float greenGray = (red * 30.0F + green * 70.0F) / 100.0F;
 			float blueGray = (red * 30.0F + blue * 70.0F) / 100.0F;
@@ -39,7 +39,7 @@ public final class RenderBlockCactus implements BlockRenderHandler {
 		float red = (float)(color >> 16 & 255) / 255.0F;
 		float green = (float)(color >> 8 & 255) / 255.0F;
 		float blue = (float)(color & 255) / 255.0F;
-		if(EntityRenderer.anaglyphEnable) {
+		if(GameRenderer.anaglyphEnable) {
 			float redGray = (red * 30.0F + green * 59.0F + blue * 11.0F) / 100.0F;
 			float greenGray = (red * 30.0F + green * 70.0F) / 100.0F;
 			float blueGray = (red * 30.0F + blue * 70.0F) / 100.0F;

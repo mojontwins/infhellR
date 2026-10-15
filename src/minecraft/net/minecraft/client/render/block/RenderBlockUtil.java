@@ -1,7 +1,7 @@
 package net.minecraft.client.render.block;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.render.EntityRenderer;
+import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.render.RenderBlocks;
 import net.minecraft.client.render.Tessellator;
 import net.minecraft.client.render.atlas.AtlasTexel;
@@ -33,7 +33,7 @@ public final class RenderBlockUtil {
 		float red = (float)(colorPacked >> 16 & 255) / 255.0F;
 		float green = (float)(colorPacked >> 8 & 255) / 255.0F;
 		float blue = (float)(colorPacked & 255) / 255.0F;
-		if(EntityRenderer.anaglyphEnable) {
+		if(GameRenderer.anaglyphEnable) {
 			float anagRed = (red * 30.0F + green * 59.0F + blue * 11.0F) / 100.0F;
 			float anagGreen = (red * 30.0F + green * 70.0F) / 100.0F;
 			float anagBlue = (red * 30.0F + blue * 70.0F) / 100.0F;
@@ -869,7 +869,7 @@ public final class RenderBlockUtil {
 		float red = (float)(color >> 16 & 255) / 255.0F;
 		float green = (float)(color >> 8 & 255) / 255.0F;
 		float blue = (float)(color & 255) / 255.0F;
-		if(EntityRenderer.anaglyphEnable) {
+		if(GameRenderer.anaglyphEnable) {
 			float anagRed = (red * 30.0F + green * 59.0F + blue * 11.0F) / 100.0F;
 			float anagGreen = (red * 30.0F + green * 70.0F) / 100.0F;
 			float anagBlue = (red * 30.0F + blue * 70.0F) / 100.0F;

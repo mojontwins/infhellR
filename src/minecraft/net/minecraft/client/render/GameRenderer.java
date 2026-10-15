@@ -53,7 +53,7 @@ import net.minecraft.client.render.camera.Frustrum;
  *       layer (each droplet is collision-checked and drawn every frame).</li>
  * </ul>
  */
-public class EntityRenderer {
+public class GameRenderer {
 	public static boolean anaglyphEnable = false;
 	public static int anaglyphField;
 	/** The Minecraft instance whose frame pipeline this renderer drives. */
@@ -142,7 +142,7 @@ public class EntityRenderer {
 	 */
 	private static final int MAX_RAIN_PARTICLES = 400;
 
-	public EntityRenderer(Minecraft minecraft) {
+	public GameRenderer(Minecraft minecraft) {
 		this.mc = minecraft;
 		this.itemRenderer = new ItemRenderer(minecraft);
 		this.lightmapTexture = minecraft.renderEngine.allocateAndSetupTexture(new BufferedImage(16, 16, 1));

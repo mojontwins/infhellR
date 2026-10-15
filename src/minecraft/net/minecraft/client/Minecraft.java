@@ -44,7 +44,7 @@ import net.minecraft.client.gui.container.GuiInventory;
 import net.minecraft.client.model.ModelBiped;
 import net.minecraft.client.player.EntityPlayerSP;
 import net.minecraft.client.player.MovementInputFromOptions;
-import net.minecraft.client.render.EntityRenderer;
+import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.render.GLAllocation;
 import net.minecraft.client.render.GraphicsMode;
 import net.minecraft.client.render.ItemRenderer;
@@ -121,7 +121,7 @@ import net.minecraft.game.worldedit.WorldEdit;
  * </ul>
  *
  * <p>The class is intentionally large because it acts as a singleton facade: nearly every
- * subsystem ({@link RenderEngine}, {@link World}, {@link EntityRenderer}, etc.) is reachable
+ * subsystem ({@link RenderEngine}, {@link World}, {@link GameRenderer}, etc.) is reachable
  * via direct fields. The companion static {@link #getMinecraft()} accessor returns the
  * single live instance for use by classes that are not passed an explicit reference.</p>
  */
@@ -210,7 +210,7 @@ public abstract class Minecraft implements Runnable {
 	public LoadingScreenRenderer loadingScreen = new LoadingScreenRenderer(this);
 
 	/** World-view renderer (camera, hand, lighting, weather). */
-	public EntityRenderer entityRenderer;
+	public GameRenderer entityRenderer;
 
 	// ==================== Resource I/O & timing ====================
 
@@ -528,7 +528,7 @@ public abstract class Minecraft implements Runnable {
 		// Step 6: Entity & item renderers
 		// =====================================================================
 
-		this.entityRenderer = new EntityRenderer(this);
+		this.entityRenderer = new GameRenderer(this);
 		RenderManager.instance.itemRenderer = new ItemRenderer(this);
 
 		// =====================================================================
@@ -2461,7 +2461,7 @@ public abstract class Minecraft implements Runnable {
 
 	/**
 	 * Returns the network send queue for the local player (multiplayer only).
-	 * Used by the {@link EntityRenderer} to interpolate player movement.
+	 * Used by the {@link GameRenderer} to interpolate player movement.
 	 *
 	 * @return the player's client packet handler, or {@code null} in single-player
 	 */

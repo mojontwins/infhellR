@@ -46,10 +46,14 @@ public class GameHints {
 		"Player will be crippled on low health",
 		"It's a good idea to stay away from cities at first",
 		"The dark forest is incredibly dangerous!",
-		"Monsters will attack animals. Be careful.",
+		"Monsters will attack animals. Be careful!",
 		"Plain beds won't skip the night. Enchanted beds do!",
-		"Craft a Lunar Wand and right-click a bed to enchant it.",
-		"Enchanted beds set your spawn when you sleep or wake up in them."
+		"Craft a Lunar Wand and right-click a bed to enchant it!",
+		"Enchanted beds set your spawn when you sleep or wake up in them!",
+		"Morning fog can be turned off in video options!",
+		"Strongholds spawn in the surface!",
+		"Don't mess with cowmen!",
+		"Don't mess with pigmen!"
 	};
 	
 	public static String getRandomHint() {

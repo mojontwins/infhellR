@@ -927,7 +927,7 @@ public class RenderGlobal implements IWorldAccess {
 			if(l == 0) {
 				GL11.glColorMask(false, false, false, false);
 			} else if(GameSettingsValues.anaglyph) {
-				if(EntityRenderer.anaglyphField == 0) {
+				if(GameRenderer.anaglyphField == 0) {
 					GL11.glColorMask(false, true, true, true);
 				} else {
 					GL11.glColorMask(true, false, false, true);
