@@ -3,7 +3,7 @@ package net.minecraft.client.model;
 import org.lwjgl.opengl.GL11;
 
 import net.minecraft.game.entity.EntityLiving;
-import net.minecraft.game.entity.human.EntityHumanBase;
+import net.minecraft.game.entity.human.base.EntityHumanWarrior;
 import net.minecraft.game.MathHelper;
 
 public class ModelHuman extends ModelBase {
@@ -172,7 +172,7 @@ public class ModelHuman extends ModelBase {
 
 	}
 
-	public void renderArmor(EntityHumanBase player, float limbSwing, float limbSwingAmount, float ageInTicks, float headYaw, float headPitch, float scale) {
+	public void renderArmor(EntityHumanWarrior player, float limbSwing, float limbSwingAmount, float ageInTicks, float headYaw, float headPitch, float scale) {
 		this.setRotationAngles(limbSwing, limbSwingAmount, ageInTicks, headYaw, headPitch, scale);
 		if(player.armor > 0) {
 			GL11.glPushMatrix();
@@ -201,7 +201,7 @@ public class ModelHuman extends ModelBase {
 
 	}
 
-	public void renderArmorLegs(EntityHumanBase player, float limbSwing, float limbSwingAmount, float ageInTicks, float headYaw, float headPitch, float scale) {
+	public void renderArmorLegs(EntityHumanWarrior player, float limbSwing, float limbSwingAmount, float ageInTicks, float headYaw, float headPitch, float scale) {
 		if(player.armor > 1) {
 			GL11.glPushMatrix();
 			this.bipedBody.render(scale);

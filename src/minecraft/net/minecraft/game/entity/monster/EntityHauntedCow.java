@@ -9,12 +9,13 @@ import net.minecraft.game.entity.animal.EntityCow;
 import net.minecraft.game.entity.EntityLightningBolt;
 import net.minecraft.game.entity.EntityLiving;
 import net.minecraft.game.entity.EntityMob;
+import net.minecraft.game.entity.IHostileToPlayer;
 import net.minecraft.game.entity.player.EntityPlayer;
 import net.minecraft.game.item.Item;
 import net.minecraft.game.item.ItemStack;
 import net.minecraft.game.world.World;
 
-public class EntityHauntedCow extends EntityMob {
+public class EntityHauntedCow extends EntityMob implements IHostileToPlayer {
 	/*
 	 * Inspired by bigbang87's Haunted Cow from Deadly Monsters.
 	 * Coded from scratch (Not that it was very difficult ;) ). 

@@ -9,6 +9,7 @@ import net.minecraft.game.achievements.AchievementList;
 import net.minecraft.game.entity.Entity;
 import net.minecraft.game.entity.EntityArmoredMob;
 import net.minecraft.game.entity.EntityLiving;
+import net.minecraft.game.entity.IHostileToPlayer;
 import net.minecraft.game.entity.player.EntityPlayer;
 import net.minecraft.game.item.Item;
 import net.minecraft.game.physics.Vec3D;
@@ -23,7 +24,7 @@ import net.minecraft.game.entity.Datawatchers;
 import net.minecraft.game.entity.EntityMeatBlock;
 import net.minecraft.game.entity.ISentient;
 
-public class EntityZombie extends EntityArmoredMob {
+public class EntityZombie extends EntityArmoredMob implements IHostileToPlayer {
 	
 	protected int doorPosX;
 	protected int doorPosY;

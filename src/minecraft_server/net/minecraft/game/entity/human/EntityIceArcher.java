@@ -14,6 +14,7 @@ public class EntityIceArcher extends EntityPirateArcher implements ISentient {
 		this.texture = "/mob/ice_archer.png";	
 	}
 
+	@Override
 	public EntityArrow selectArrow() {
 		switch (this.rand.nextInt(4)) {
 		case 1: 

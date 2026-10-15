@@ -4,12 +4,13 @@ import net.minecraft.game.physics.AxisAlignedBB;
 import net.minecraft.game.entity.Entity;
 import net.minecraft.game.entity.EntityFlying;
 import net.minecraft.game.entity.IMob;
+import net.minecraft.game.entity.IHostileToPlayer;
 import net.minecraft.game.entity.player.EntityPlayer;
 import net.minecraft.game.item.Item;
 import net.minecraft.game.MathHelper;
 import net.minecraft.game.world.World;
 
-public class EntityTFWraith extends EntityFlying implements IMob {
+public class EntityTFWraith extends EntityFlying implements IMob, IHostileToPlayer {
 	
 	// A fancy ghast clone
 	

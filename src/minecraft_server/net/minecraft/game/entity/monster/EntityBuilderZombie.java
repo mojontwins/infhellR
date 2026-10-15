@@ -2,11 +2,12 @@ package net.minecraft.game.entity.monster;
 
 import net.minecraft.game.entity.Entity;
 import net.minecraft.game.entity.EntityMob;
+import net.minecraft.game.entity.IHostileToPlayer;
 import net.minecraft.game.item.Item;
 import net.minecraft.game.world.World;
 import net.minecraft.game.world.block.Block;
 
-public class EntityBuilderZombie extends EntityMob {
+public class EntityBuilderZombie extends EntityMob implements IHostileToPlayer {
 	private int collidingTicks;
 	public int ticksToBuild = 10;
 

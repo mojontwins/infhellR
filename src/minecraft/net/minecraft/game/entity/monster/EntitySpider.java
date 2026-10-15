@@ -3,12 +3,13 @@ package net.minecraft.game.entity.monster;
 import net.minecraft.game.MathHelper;
 import net.minecraft.game.entity.Entity;
 import net.minecraft.game.entity.EntityMob;
+import net.minecraft.game.entity.IHostileToPlayer;
 import net.minecraft.game.entity.player.EntityPlayer;
 import net.minecraft.game.item.Item;
 import net.minecraft.game.world.World;
 import net.minecraft.nbt.NBTTagCompound;
 
-public class EntitySpider extends EntityMob {
+public class EntitySpider extends EntityMob implements IHostileToPlayer {
 	public EntitySpider(World world1) {
 		super(world1);
 		this.texture = "/mob/spider.png";

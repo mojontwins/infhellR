@@ -7,7 +7,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.game.world.block.Block;
 import net.minecraft.game.entity.Entity;
 import net.minecraft.game.entity.EntityLiving;
-import net.minecraft.game.entity.human.EntityHumanBase;
+import net.minecraft.game.entity.human.base.EntityHumanWarrior;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.game.item.Item;
 import net.minecraft.game.item.ItemStack;
@@ -32,7 +32,7 @@ public class RenderHuman extends Render {
 	}
 
 	protected void renderModel(EntityLiving entity, float limbSwing, float limbSwingAmount, float bodySwing, float bodyYawOffset, float bodyPitch, float scale) {
-		EntityHumanBase entityHuman = (EntityHumanBase)entity;
+		EntityHumanWarrior entityHuman = (EntityHumanWarrior)entity;
 		this.renderManager.renderEngine.bindTexture(this.renderManager.renderEngine.getTexture(entity.getEntityTexture()));
 		this.mainModel.render(entityHuman, limbSwing, limbSwingAmount, bodySwing, bodyYawOffset, bodyPitch, scale);
 		if(entityHuman.renderEars) {

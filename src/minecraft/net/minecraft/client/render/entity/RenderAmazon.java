@@ -7,11 +7,11 @@ import net.minecraft.client.model.ModelBiped;
 import net.minecraft.client.render.RenderBlocks;
 import net.minecraft.game.entity.Entity;
 import net.minecraft.game.entity.EntityLiving;
+import net.minecraft.game.entity.human.armored.EntityAmazon;
 import net.minecraft.game.item.Item;
 import net.minecraft.game.item.ItemArmor;
 import net.minecraft.game.item.ItemStack;
 import net.minecraft.game.world.block.Block;
-import net.minecraft.game.world.terrain.generate.feature.amazonvillage.EntityAmazon;
 
 public class RenderAmazon extends RenderLiving {
 	private ModelAmazon modelBipedMain = (ModelAmazon)this.mainModel;

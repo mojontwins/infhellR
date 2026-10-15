@@ -1,7 +1,7 @@
 package net.minecraft.game.entity.status;
 
 import net.minecraft.game.entity.EntityLiving;
-import net.minecraft.game.entity.human.EntityAlphaWitch;
+import net.minecraft.game.entity.human.armored.EntityAlphaWitch;
 
 public class StatusSlowness extends Status {
 

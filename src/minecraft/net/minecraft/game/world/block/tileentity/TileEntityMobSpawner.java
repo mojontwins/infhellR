@@ -6,7 +6,7 @@ import net.minecraft.game.entity.EntityArmoredMob;
 import net.minecraft.game.entity.EntityList;
 import net.minecraft.game.entity.EntityLiving;
 import net.minecraft.game.entity.human.EntityIceArcher;
-import net.minecraft.game.entity.human.EntityIceWarrior;
+import net.minecraft.game.entity.human.warrior.EntityIceWarrior;
 import net.minecraft.game.physics.AxisAlignedBB;
 import net.minecraft.game.world.SpawnerAnimals;
 import net.minecraft.nbt.NBTTagCompound;

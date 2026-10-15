@@ -1,10 +1,11 @@
 package net.minecraft.game.entity.monster;
 
 import net.minecraft.game.entity.EntityMob;
+import net.minecraft.game.entity.IHostileToPlayer;
 import net.minecraft.game.world.World;
 import net.minecraft.game.world.block.Block;
 
-public class EntityExplodingZombie extends EntityMob {
+public class EntityExplodingZombie extends EntityMob implements IHostileToPlayer {
 	public int collidingTicks = 0;
 	public int ticksToExplode = 20;
 

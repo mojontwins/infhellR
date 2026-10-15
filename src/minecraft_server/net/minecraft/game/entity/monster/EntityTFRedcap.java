@@ -3,6 +3,7 @@ package net.minecraft.game.entity.monster;
 import net.minecraft.game.entity.Datawatchers;
 import net.minecraft.game.entity.Entity;
 import net.minecraft.game.entity.EntityMob;
+import net.minecraft.game.entity.IHostileToPlayer;
 import net.minecraft.game.entity.ISentient;
 import net.minecraft.game.item.Item;
 import net.minecraft.game.item.ItemStack;
@@ -10,7 +11,7 @@ import net.minecraft.game.MathHelper;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.game.world.World;
 
-public class EntityTFRedcap extends EntityMob implements ISentient {
+public class EntityTFRedcap extends EntityMob implements ISentient, IHostileToPlayer {
 	private static final ItemStack defaultHeldItem = new ItemStack(Item.pickaxeSteel, 1);
 	protected ItemStack heldItem;
 	protected boolean lefty;

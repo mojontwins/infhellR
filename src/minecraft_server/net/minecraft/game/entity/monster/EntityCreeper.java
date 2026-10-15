@@ -5,13 +5,14 @@ import java.util.List;
 import net.minecraft.game.entity.animal.EntityBetaOcelot;
 import net.minecraft.game.entity.Datawatchers;
 import net.minecraft.game.entity.Entity;
+import net.minecraft.game.entity.IHostileToPlayer;
 import net.minecraft.game.item.Item;
 import net.minecraft.game.world.World;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.game.entity.EntityLightningBolt;
 import net.minecraft.game.entity.EntityMob;
 
-public class EntityCreeper extends EntityMob {
+public class EntityCreeper extends EntityMob implements IHostileToPlayer {
 	int timeSinceIgnited;
 	int lastActiveTime;
 	protected static final int fuseDuration = 30;

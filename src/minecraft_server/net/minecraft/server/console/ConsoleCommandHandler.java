@@ -11,7 +11,7 @@ import net.minecraft.server.WorldServer;
 import net.minecraft.game.IProgressUpdate;
 import net.minecraft.game.entity.EntityList;
 import net.minecraft.game.entity.EntityLiving;
-import net.minecraft.game.entity.human.EntityAlphaWitch;
+import net.minecraft.game.entity.human.armored.EntityAlphaWitch;
 import net.minecraft.game.item.Item;
 import net.minecraft.game.item.ItemStack;
 import net.minecraft.network.packet.Packet3Chat;

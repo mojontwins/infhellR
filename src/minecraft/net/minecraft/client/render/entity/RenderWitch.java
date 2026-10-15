@@ -5,7 +5,7 @@ import org.lwjgl.opengl.GL11;
 import net.minecraft.game.world.block.Block;
 import net.minecraft.game.entity.Entity;
 import net.minecraft.game.entity.EntityLiving;
-import net.minecraft.game.entity.human.EntityAlphaWitch;
+import net.minecraft.game.entity.human.armored.EntityAlphaWitch;
 import net.minecraft.game.item.Item;
 import net.minecraft.game.item.ItemStack;
 import net.minecraft.client.render.RenderBlocks;

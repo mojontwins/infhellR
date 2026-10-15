@@ -3,6 +3,7 @@ package net.minecraft.game.entity.monster;
 import net.minecraft.game.MathHelper;
 import net.minecraft.game.entity.Entity;
 import net.minecraft.game.entity.EntityArmoredMob;
+import net.minecraft.game.entity.IHostileToPlayer;
 import net.minecraft.game.item.Item;
 import net.minecraft.game.item.ItemStack;
 import net.minecraft.game.world.World;
@@ -10,7 +11,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.game.Seasons;
 import net.minecraft.game.entity.projectile.EntityArrow;
 
-public class EntitySkeleton extends EntityArmoredMob {
+public class EntitySkeleton extends EntityArmoredMob implements IHostileToPlayer {
 	public EntitySkeleton(World world1) {
 		super(world1);
 		this.texture = "/mob/skeleton.png";

@@ -1,56 +1,63 @@
 package net.minecraft.game.entity.human;
 
-import net.minecraft.game.entity.status.Status;
-import net.minecraft.game.entity.status.StatusEffect;
+import net.minecraft.game.achievements.AchievementList;
 import net.minecraft.game.entity.Datawatchers;
 import net.minecraft.game.entity.Entity;
 import net.minecraft.game.entity.EntityMob;
+import net.minecraft.game.entity.IHostileToPlayer;
 import net.minecraft.game.entity.ISentient;
+import net.minecraft.game.entity.player.EntityPlayer;
 import net.minecraft.game.entity.projectile.EntityArrow;
 import net.minecraft.game.entity.projectile.EntityArrowWithEffect;
-import net.minecraft.game.entity.player.EntityPlayer;
+import net.minecraft.game.entity.status.Status;
+import net.minecraft.game.entity.status.StatusEffect;
 import net.minecraft.game.item.Item;
 import net.minecraft.game.item.ItemStack;
 import net.minecraft.game.MathHelper;
-import net.minecraft.game.achievements.AchievementList;
-import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.game.world.World;
+import net.minecraft.nbt.NBTTagCompound;
 
-public class EntityPirateArcher extends EntityMob implements ISentient {
-	private ItemStack heldItem;;
-	protected boolean angryAtPlayer = false;
-	
+/**
+ * Pirate archer. Fires blinding arrows at players, and like the pirate
+ * swordsmen it only attacks players who are not disguised (unless provoked).
+ */
+public class EntityPirateArcher extends EntityMob implements ISentient, IHostileToPlayer {
+	private ItemStack heldItem;
+	public boolean angryAtPlayer = false;
+
 	public EntityPirateArcher(World world) {
 		super(world);
 		this.attackStrength = this.worldObj == null ? 7 : 5 + this.worldObj.difficultySetting;
 		this.texture = "/mob/pirate1.png";
 		this.setHeldItem(new ItemStack(Item.bow));
 	}
-	
+
 	protected int getMaxTextureVariations() {
 		return 3;
 	}
-	
+
 	@Override
 	protected void entityInit() {
 		super.entityInit();
 		this.dataWatcher.addObject(Datawatchers.DW_TYPE, (byte)0);
-		this.setTextureVariation((byte) (1 + rand.nextInt(this.getMaxTextureVariations())));
+		this.setTextureVariation((byte)(1 + this.rand.nextInt(this.getMaxTextureVariations())));
 	}
-	
+
 	public void setTextureVariation(byte variation) {
 		this.dataWatcher.updateObject(Datawatchers.DW_TYPE, variation);
 	}
-	
+
 	public byte getTextureVariation() {
 		return this.dataWatcher.getWatchableObjectByte(Datawatchers.DW_TYPE);
 	}
-	
+
 	@Override
 	public String getEntityTexture() {
 		if(this.getMaxTextureVariations() > 1) {
-			return "/mob/pirate" + this.getTextureVariation() + ".png";		
-		} else return this.texture;
+			return "/mob/pirate" + this.getTextureVariation() + ".png";
+		} else {
+			return this.texture;
+		}
 	}
 
 	@Override
@@ -58,140 +65,122 @@ public class EntityPirateArcher extends EntityMob implements ISentient {
 		this.heldItem = itemStack;
 		return true;
 	}
-	
+
 	@Override
 	public ItemStack getHeldItem() {
 		return this.heldItem;
 	}
-	
+
 	public int getFullHealth() {
 		return this.worldObj == null ? 27 : 25 + this.worldObj.difficultySetting;
 	}
 
+	@Override
 	protected String getLivingSound() {
 		return "mob.zombie";
 	}
 
+	@Override
 	protected String getHurtSound() {
 		return "mob.zombiehurt";
 	}
 
+	@Override
 	protected String getDeathSound() {
 		return "mob.zombiedeath";
 	}
 
-	protected void attackEntity(Entity entity, float f) {
-		if(f < 10.0F) {
-			double d = entity.posX - this.posX;
-			double d1 = entity.posZ - this.posZ;
+	@Override
+	protected void attackEntity(Entity target, float distance) {
+		if(distance < 10.0F) {
+			double deltaX = target.posX - this.posX;
+			double deltaZ = target.posZ - this.posZ;
+
 			if(this.attackTime == 0) {
-			
-				EntityArrow entityArrow7 = this.selectArrow();
-				
-				++entityArrow7.posY;
-				double d8 = entity.posY + (double)entity.getEyeHeight() - (double)0.2F - entityArrow7.posY;
-				float f10 = MathHelper.sqrt_double(d * d + d1 * d1) * 0.2F;
-				this.worldObj.spawnEntityInWorld(entityArrow7);
-				entityArrow7.setArrowHeading(d, d8 + (double)f10, d1, 0.6F, 12.0F);
-				
+				EntityArrow arrow = this.selectArrow();
+				++arrow.posY;
+
+				double deltaY = target.posY + (double)target.getEyeHeight() - (double)0.2F - arrow.posY;
+				float arc = MathHelper.sqrt_double(deltaX * deltaX + deltaZ * deltaZ) * 0.2F;
+				this.worldObj.spawnEntityInWorld(arrow);
+				arrow.setArrowHeading(deltaX, deltaY + (double)arc, deltaZ, 0.6F, 12.0F);
+
 				this.worldObj.playSoundAtEntity(this, "random.bow", 1.0F, 1.0F / (this.rand.nextFloat() * 0.4F + 0.8F));
-				
 				this.attackTime = 100;
 			}
 
-			this.rotationYaw = (float)(Math.atan2(d1, d) * 180.0D / (double)(float)Math.PI) - 90.0F;
+			this.rotationYaw = (float)(Math.atan2(deltaZ, deltaX) * 180.0D / (double)(float)Math.PI) - 90.0F;
 			this.hasAttacked = true;
 		}
-
 	}
-	
+
 	public EntityArrow selectArrow() {
 		return new EntityArrowWithEffect(this.worldObj, this)
 				.withStatusEffect(new StatusEffect(Status.statusBlind.id, 100, 1));
 	}
 
-	public void writeEntityToNBT(NBTTagCompound nbttagcompound) {
-		super.writeEntityToNBT(nbttagcompound);
-		nbttagcompound.setBoolean("AngryAtPlayer", this.angryAtPlayer);
-		nbttagcompound.setByte("TextureVariation", this.getTextureVariation());
+	@Override
+	public void writeEntityToNBT(NBTTagCompound tag) {
+		super.writeEntityToNBT(tag);
+		tag.setBoolean("AngryAtPlayer", this.angryAtPlayer);
+		tag.setByte("TextureVariation", this.getTextureVariation());
 	}
 
-	public void readEntityFromNBT(NBTTagCompound nbttagcompound) {
-		super.readEntityFromNBT(nbttagcompound);
-		this.angryAtPlayer = nbttagcompound.getBoolean("AntryAtPlayer");
-		
+	@Override
+	public void readEntityFromNBT(NBTTagCompound tag) {
+		super.readEntityFromNBT(tag);
+		this.angryAtPlayer = tag.getBoolean("AngryAtPlayer");
+
 		byte textureVariation = 1;
-		if(nbttagcompound.hasKey("TextureVariation")) {
-			textureVariation = nbttagcompound.getByte("TextureVariation");
+		if(tag.hasKey("TextureVariation")) {
+			textureVariation = tag.getByte("TextureVariation");
 		} else {
 			System.out.println("Importing old level, overrode texture variation for " + this.getClass() + " with default.");
 		}
 		this.setTextureVariation(textureVariation);
 	}
 
+	@Override
 	protected int getDropItemId() {
 		return Item.arrow.shiftedIndex;
 	}
 
-	protected void dropFewItems(boolean flag, int i) {
-		int j = this.rand.nextInt(3 + i);
-
-		int l;
-		for(l = 0; l < j; ++l) {
-			this.dropItem(Item.arrow.shiftedIndex, 1);
-		}
-
-		j = this.rand.nextInt(3 + i);
-
-		for(l = 0; l < j; ++l) {
-			this.dropItem(Item.ingotGold.shiftedIndex, 2);
-		}
-
-	}
-
+	@Override
 	public boolean getCanSpawnHere() {
-		int i = MathHelper.floor_double(this.posX);
-		int j = MathHelper.floor_double(this.boundingBox.minY);
-		int k = MathHelper.floor_double(this.posZ);
-		return 
-				this.posY > 60.0D && this.worldObj.isBlockOpaqueCube(i, j, k) ? true
-			: 
-				(this.rand.nextInt(4) == 1 ? super.getCanSpawnHere() : false);
+		int blockX = MathHelper.floor_double(this.posX);
+		int blockY = MathHelper.floor_double(this.boundingBox.minY);
+		int blockZ = MathHelper.floor_double(this.posZ);
+		return this.posY > 60.0D && this.worldObj.isBlockOpaqueCube(blockX, blockY, blockZ) ? true : (this.rand.nextInt(4) == 1 ? super.getCanSpawnHere() : false);
 	}
 
+	@Override
 	protected void despawnEntity() {
 		if(this.isDead) {
 			super.despawnEntity();
 		}
-
 	}
-	
+
 	@Override
 	protected Entity findPlayerToAttack() {
-		// New logic - if player is disguised and pirates are not angry at player, don't attack.
-		
+		// If something hit us, retaliate before looking for a fresh target.
 		if(this.lastAttackingEntity != null && this.lastAttackingEntity != this.currentTarget) {
 			return this.lastAttackingEntity;
 		}
-		
-		EntityPlayer entityPlayer1 = this.worldObj.getClosestPlayerToEntity(this, 16.0D);
-		return 
-				entityPlayer1 != null && 
-				!entityPlayer1.isCreative && 
-				this.canEntityBeSeen(entityPlayer1) && 
-				(!entityPlayer1.dressedAsAPirate() || this.angryAtPlayer) ? 
-						entityPlayer1 
-					: 
-						null;
+
+		EntityPlayer player = this.worldObj.getClosestPlayerToEntity(this, 16.0D);
+		if(player != null && !player.isCreative && this.canEntityBeSeen(player) && (!player.dressedAsAPirate() || this.angryAtPlayer)) {
+			return player;
+		}
+
+		return null;
 	}
 
 	@Override
-	public void onDeath(Entity entity) {
-		if(entity instanceof EntityPlayer) {
-			EntityPlayer entityPlayer = (EntityPlayer) entity;
-			entityPlayer.triggerAchievement(AchievementList.pirateKill);
+	public void onDeath(Entity source) {
+		if(source instanceof EntityPlayer) {
+			((EntityPlayer)source).triggerAchievement(AchievementList.pirateKill);
 		}
-		
-		super.onDeath(entity);
+
+		super.onDeath(source);
 	}
 }

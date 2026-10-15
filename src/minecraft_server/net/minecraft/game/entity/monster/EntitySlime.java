@@ -4,13 +4,14 @@ import net.minecraft.game.MathHelper;
 import net.minecraft.game.entity.Datawatchers;
 import net.minecraft.game.entity.EntityLiving;
 import net.minecraft.game.entity.IMob;
+import net.minecraft.game.entity.IHostileToPlayer;
 import net.minecraft.game.entity.player.EntityPlayer;
 import net.minecraft.game.item.Item;
 import net.minecraft.game.world.World;
 import net.minecraft.game.world.chunk.Chunk;
 import net.minecraft.nbt.NBTTagCompound;
 
-public class EntitySlime extends EntityLiving implements IMob {
+public class EntitySlime extends EntityLiving implements IMob, IHostileToPlayer {
 	public float squishFactor;
 	public float prevSquishFactor;
 	protected int slimeJumpDelay = 0;

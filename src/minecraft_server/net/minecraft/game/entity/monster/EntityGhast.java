@@ -10,9 +10,10 @@ import net.minecraft.game.physics.Vec3D;
 import net.minecraft.game.world.World;
 import net.minecraft.game.entity.EntityFlying;
 import net.minecraft.game.entity.IMob;
+import net.minecraft.game.entity.IHostileToPlayer;
 import net.minecraft.game.entity.projectile.EntityFireball;
 
-public class EntityGhast extends EntityFlying implements IMob {
+public class EntityGhast extends EntityFlying implements IMob, IHostileToPlayer {
 	public int courseChangeCooldown = 0;
 	public double waypointX;
 	public double waypointY;
